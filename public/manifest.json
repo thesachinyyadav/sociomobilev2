@@ -1,0 +1,20 @@
+{
+  "name": "SOCIO",
+  "short_name": "SOCIO",
+  "description": "University Event Platform — Discover, Register & Attend campus events",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#063168",
+  "theme_color": "#154CB3",
+  "scope": "/",
+  "categories": ["education", "social", "entertainment"],
+  "icons": [
+    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ],
+  "screenshots": [],
+  "shortcuts": [
+    { "name": "Discover Events", "url": "/discover", "icons": [{"src":"/favicon.svg","sizes":"any"}] },
+    { "name": "My Profile",     "url": "/profile",  "icons": [{"src":"/favicon.svg","sizes":"any"}] }
+  ]
+}

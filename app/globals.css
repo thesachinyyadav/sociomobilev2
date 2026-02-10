@@ -1,0 +1,171 @@
+@import "tailwindcss";
+
+/* ── Brand Tokens ── */
+:root {
+  --color-primary: #154CB3;
+  --color-primary-dark: #063168;
+  --color-accent: #FFCC00;
+  --color-bg: #F7F8FC;
+  --color-surface: #FFFFFF;
+  --color-text: #1A1A2E;
+  --color-text-muted: #6B7280;
+  --radius: 16px;
+  --nav-height: 56px;
+  --bottom-nav: 72px;
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --font-sans: "DM Sans", system-ui, -apple-system, sans-serif;
+}
+
+/* ── PWA Reset ── */
+html, body {
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+  font-family: var(--font-sans);
+  background: var(--color-bg);
+  color: var(--color-text);
+  -webkit-tap-highlight-color: transparent;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Standalone PWA adjustments */
+@media all and (display-mode: standalone) {
+  body { padding-top: env(safe-area-inset-top, 0px); }
+}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 99px; }
+
+/* ── PWA page wrapper ── */
+.pwa-page {
+  min-height: 100dvh;
+  padding-bottom: calc(var(--bottom-nav) + var(--safe-bottom) + 8px);
+}
+
+/* ── Animations ── */
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes slide-up {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+@keyframes pulse-ring {
+  0%   { transform: scale(0.9); opacity: 0.7; }
+  50%  { transform: scale(1); opacity: 1; }
+  100% { transform: scale(0.9); opacity: 0.7; }
+}
+@keyframes scale-in {
+  from { opacity: 0; transform: scale(0.92); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+.animate-fade-up   { animation: fade-up 0.5s ease-out both; }
+.animate-fade-in   { animation: fade-in 0.3s ease-out both; }
+.animate-slide-up  { animation: slide-up 0.35s cubic-bezier(.22,1,.36,1) both; }
+.animate-scale-in  { animation: scale-in 0.25s ease-out both; }
+
+/* Staggered children */
+.stagger > *:nth-child(1) { animation-delay: 0ms; }
+.stagger > *:nth-child(2) { animation-delay: 50ms; }
+.stagger > *:nth-child(3) { animation-delay: 100ms; }
+.stagger > *:nth-child(4) { animation-delay: 150ms; }
+.stagger > *:nth-child(5) { animation-delay: 200ms; }
+.stagger > *:nth-child(6) { animation-delay: 250ms; }
+.stagger > *:nth-child(7) { animation-delay: 300ms; }
+.stagger > *:nth-child(8) { animation-delay: 350ms; }
+
+/* ── Skeleton loader ── */
+.skeleton {
+  background: linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 12px;
+}
+
+/* ── Glass card ── */
+.glass {
+  background: rgba(255,255,255,0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255,255,255,0.4);
+}
+
+/* ── Chip / Tag ── */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 99px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+/* ── Button base ── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 24px;
+  border-radius: 14px;
+  font-weight: 600;
+  font-size: 15px;
+  transition: all 0.2s;
+  cursor: pointer;
+  border: none;
+  outline: none;
+}
+.btn:active { transform: scale(0.97); }
+.btn-primary {
+  background: var(--color-primary);
+  color: white;
+}
+.btn-primary:hover { background: #1258cc; }
+.btn-accent {
+  background: var(--color-accent);
+  color: var(--color-primary-dark);
+}
+.btn-ghost {
+  background: transparent;
+  color: var(--color-primary);
+  border: 1.5px solid var(--color-primary);
+}
+
+/* ── Card ── */
+.card {
+  background: var(--color-surface);
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.card:active { transform: scale(0.985); }
+
+/* ── Input ── */
+.input {
+  width: 100%;
+  padding: 12px 16px;
+  border-radius: 12px;
+  border: 1.5px solid #e2e8f0;
+  font-size: 15px;
+  background: white;
+  transition: border-color 0.2s;
+  outline: none;
+}
+.input:focus { border-color: var(--color-primary); }
+.input-error { border-color: #ef4444; }

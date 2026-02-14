@@ -1,114 +1,94 @@
-import type { Metadata, Viewport } from "next";
-import { DM_Sans } from "next/font/google";
-import { createServerClient } from "@supabase/ssr";
-import { cookies } from "next/headers";
 import "./globals.css";
-import { AuthProvider } from "@/context/AuthContext";
-import { EventProvider, type FetchedEvent } from "@/context/EventContext";
+import type { Metadata, Viewport } from "next";
 import { Toaster } from "react-hot-toast";
-import { BottomNav } from "@/components/BottomNav";
-import { TopBar } from "@/components/TopBar";
+import { AuthProvider } from "@/context/AuthContext";
+import { EventProvider } from "@/context/EventContext";
+import { NotificationProvider } from "@/context/NotificationContext";
+import type { FetchedEvent } from "@/context/EventContext";
+import AppShell from "./AppShell";
 
-const dmSans = DM_Sans({
-  subsets: ["latin"],
-  variable: "--font-dm-sans",
-  display: "swap",
-});
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+
+export const metadata: Metadata = {
+  title: "SOCIO – Campus Events",
+  description: "Discover, register and stay updated on campus events.",
+  manifest: "/manifest.json",
+  appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: "SOCIO" },
+};
 
 export const viewport: Viewport = {
-  themeColor: "#154CB3",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
-  userScalable: false,
   viewportFit: "cover",
+  themeColor: "#154CB3",
 };
 
-export const metadata: Metadata = {
-  title: "SOCIO",
-  description: "University Event Platform — Discover, Register & Attend",
-  manifest: "/manifest.json",
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: "black-translucent",
-    title: "SOCIO",
-  },
-  icons: {
-    icon: "/favicon.svg",
-    apple: "/favicon.svg",
-  },
-};
-
-/* ── Server-side event prefetch ── */
-async function prefetchEvents(): Promise<FetchedEvent[]> {
+async function fetchEvents(): Promise<FetchedEvent[]> {
   try {
-    const cookieStore = await cookies();
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          getAll: () => cookieStore.getAll(),
-          setAll: () => {},
-        },
-      }
-    );
-    const { data } = await supabase
-      .from("events")
-      .select("*")
-      .order("created_at", { ascending: false });
-    return (data as FetchedEvent[]) ?? [];
+    const res = await fetch(`${API_URL}/api/events`, {
+      next: { revalidate: 120 },
+    });
+    if (!res.ok) return [];
+    const data = await res.json();
+    return data.events ?? data ?? [];
   } catch {
     return [];
   }
 }
-
-export const revalidate = 300; // ISR 5 min
 
 export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const events = await prefetchEvents();
+  const events = await fetchEvents();
 
   return (
-    <html lang="en" className={dmSans.variable}>
+    <html lang="en" suppressHydrationWarning>
       <head>
-        {/* PWA: register service worker */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link
+          rel="preconnect"
+          href="https://fonts.gstatic.com"
+          crossOrigin="anonymous"
+        />
+        <link
+          href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300..800;1,9..40,300..800&display=swap"
+          rel="stylesheet"
+        />
+        <link rel="apple-touch-icon" href="/logo.svg" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
         <script
           dangerouslySetInnerHTML={{
             __html: `
               if('serviceWorker' in navigator){
-                window.addEventListener('load',()=>{
-                  navigator.serviceWorker.register('/sw.js').catch(()=>{});
-                });
+                window.addEventListener('load',()=>{navigator.serviceWorker.register('/sw.js')});
               }
             `,
           }}
         />
       </head>
-      <body className="font-[family-name:var(--font-dm-sans)] bg-[var(--color-bg)]">
+      <body>
         <AuthProvider>
           <EventProvider initialEvents={events}>
-            <TopBar />
-            <main className="pwa-page">{children}</main>
-            <BottomNav />
-            <Toaster
-              position="top-center"
-              toastOptions={{
-                duration: 3000,
-                style: {
-                  borderRadius: "14px",
-                  background: "#1e293b",
-                  color: "#fff",
-                  fontSize: "14px",
-                  padding: "12px 18px",
-                },
-              }}
-            />
+            <NotificationProvider>
+              <AppShell>{children}</AppShell>
+            </NotificationProvider>
           </EventProvider>
         </AuthProvider>
+        <Toaster
+          position="top-center"
+          toastOptions={{
+            duration: 3000,
+            style: {
+              borderRadius: "var(--radius)",
+              fontSize: "13px",
+              fontWeight: 600,
+              padding: "10px 16px",
+            },
+          }}
+        />
       </body>
     </html>
   );

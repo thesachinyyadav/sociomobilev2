@@ -1,60 +1,65 @@
 "use client";
 
-import Link from "next/link";
 import Image from "next/image";
+import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
-import { usePathname } from "next/navigation";
+import NotificationBell from "@/components/NotificationBell";
 
-const HIDE_ON = ["/auth", "/auth/callback"];
-
-export function TopBar() {
-  const { userData, isLoading } = useAuth();
-  const pathname = usePathname();
-
-  if (HIDE_ON.some((p) => pathname.startsWith(p))) return null;
+export default function TopBar() {
+  const { userData } = useAuth();
 
   return (
-    <header className="sticky top-0 z-50 glass border-b border-white/20">
-      <div className="flex items-center justify-between px-4 h-[var(--nav-height)]">
+    <header
+      className="fixed top-0 left-0 right-0 z-50 glass border-b border-[var(--color-border)]"
+      style={{ paddingTop: "var(--safe-top)" }}
+    >
+      <div
+        className="flex items-center px-4 gap-3"
+        style={{ height: "var(--nav-height)" }}
+      >
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2 shrink-0">
           <Image
             src="/logo.svg"
-            alt="SOCIO"
-            width={90}
+            alt="Socio"
+            width={28}
             height={28}
             priority
-            className="h-6 w-auto"
           />
+          <span className="text-base font-extrabold tracking-tight text-gradient">
+            SOCIO
+          </span>
         </Link>
 
-        {/* Right side */}
-        <div className="flex items-center gap-3">
-          {isLoading ? (
-            <div className="w-8 h-8 rounded-full skeleton" />
-          ) : userData ? (
-            <Link href="/profile" className="flex items-center gap-2">
-              {userData.avatar_url ? (
-                <img
-                  src={userData.avatar_url}
-                  alt=""
-                  className="w-8 h-8 rounded-full ring-2 ring-[var(--color-primary)]/20"
-                />
-              ) : (
-                <div className="w-8 h-8 rounded-full bg-[var(--color-primary)] flex items-center justify-center text-white text-xs font-bold">
-                  {(userData.name || "U")[0].toUpperCase()}
-                </div>
-              )}
-            </Link>
-          ) : (
-            <Link
-              href="/auth"
-              className="btn-primary text-xs py-2 px-4 rounded-full"
-            >
-              Sign in
-            </Link>
-          )}
-        </div>
+        <div className="flex-1" />
+
+        {/* Right actions */}
+        {userData && <NotificationBell />}
+
+        {userData ? (
+          <Link href="/profile" className="shrink-0">
+            {userData.avatar_url ? (
+              <Image
+                src={userData.avatar_url}
+                alt={userData.name}
+                width={32}
+                height={32}
+                className="rounded-full ring-2 ring-[var(--color-primary)]/20"
+              />
+            ) : (
+              <div className="w-8 h-8 rounded-full bg-[var(--color-primary)] text-white flex items-center justify-center text-xs font-bold">
+                {userData.name?.[0]?.toUpperCase() || "U"}
+              </div>
+            )}
+          </Link>
+        ) : (
+          <Link
+            href="/auth"
+            className="btn btn-primary btn-sm text-[12px] py-1.5 px-3"
+          >
+            Sign in
+          </Link>
+        )}
       </div>
     </header>
   );

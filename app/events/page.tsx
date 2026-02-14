@@ -3,94 +3,122 @@
 import { useState, useMemo } from "react";
 import { useEvents } from "@/context/EventContext";
 import EventCard from "@/components/EventCard";
-import { EmptyState } from "@/components/EmptyState";
-import { PageSkeleton } from "@/components/Skeleton";
-import { Search, CalendarDays } from "lucide-react";
+import Skeleton from "@/components/Skeleton";
+import EmptyState from "@/components/EmptyState";
+import { Search, X, CalendarDays, Filter } from "lucide-react";
+import { isDeadlinePassed } from "@/lib/dateUtils";
 
-const CATEGORIES = ["All", "Academic", "Cultural", "Sports", "Literary", "Arts", "Innovation", "Free"];
+type SortKey = "date" | "popular" | "name";
 
 export default function EventsPage() {
   const { allEvents, isLoading } = useEvents();
   const [search, setSearch] = useState("");
-  const [category, setCategory] = useState("All");
+  const [sort, setSort] = useState<SortKey>("date");
+  const [onlyOpen, setOnlyOpen] = useState(false);
 
-  const filtered = useMemo(() => {
-    let items = [...allEvents];
-    if (category === "Free") {
-      items = items.filter((e) => !e.registration_fee || e.registration_fee <= 0);
-    } else if (category !== "All") {
-      items = items.filter(
-        (e) => e.category?.toLowerCase() === category.toLowerCase()
-      );
-    }
-    if (search.trim()) {
+  const events = useMemo(() => {
+    let list = allEvents;
+    if (search) {
       const q = search.toLowerCase();
-      items = items.filter(
+      list = list.filter(
         (e) =>
           e.title.toLowerCase().includes(q) ||
           e.venue?.toLowerCase().includes(q) ||
-          e.organizing_dept?.toLowerCase().includes(q)
+          e.fest?.toLowerCase().includes(q)
       );
     }
-    return items;
-  }, [allEvents, category, search]);
-
-  if (isLoading) return <PageSkeleton />;
+    if (onlyOpen) {
+      list = list.filter((e) => !isDeadlinePassed(e.registration_deadline));
+    }
+    const sorted = [...list];
+    switch (sort) {
+      case "date":
+        sorted.sort((a, b) => new Date(a.event_date).getTime() - new Date(b.event_date).getTime());
+        break;
+      case "popular":
+        sorted.sort((a, b) => (b.total_participants ?? 0) - (a.total_participants ?? 0));
+        break;
+      case "name":
+        sorted.sort((a, b) => a.title.localeCompare(b.title));
+        break;
+    }
+    return sorted;
+  }, [allEvents, search, sort, onlyOpen]);
 
   return (
-    <div className="pb-4">
+    <div className="pwa-page pt-[calc(var(--nav-height)+var(--safe-top)+8px)]">
       {/* Header */}
-      <div className="px-4 pt-4 pb-2 sticky top-[var(--nav-height)] z-30 bg-[var(--color-bg)]">
+      <div className="px-4 mb-3">
+        <h1 className="text-lg font-extrabold">Events</h1>
+        <p className="text-[13px] text-[var(--color-text-muted)]">
+          {allEvents.length} events available
+        </p>
+      </div>
+
+      {/* Search */}
+      <div className="px-4 mb-3">
         <div className="relative">
-          <Search size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]" />
+          <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-light)]" />
           <input
             type="text"
             placeholder="Search events…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="input pl-10 pr-4 py-3 text-sm bg-white shadow-sm"
+            className="input pl-10 pr-10"
           />
+          {search && (
+            <button onClick={() => setSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-text-light)]">
+              <X size={16} />
+            </button>
+          )}
         </div>
       </div>
 
       {/* Filters */}
-      <div className="px-4 pt-2 pb-3 overflow-x-auto no-scrollbar">
-        <div className="flex gap-2">
-          {CATEGORIES.map((cat) => (
-            <button
-              key={cat}
-              onClick={() => setCategory(cat)}
-              className={`chip transition-all ${
-                category === cat
-                  ? "bg-[var(--color-primary)] text-white shadow-md shadow-[var(--color-primary)]/20"
-                  : "bg-white text-[var(--color-text-muted)] border border-gray-200"
-              }`}
-              style={{ padding: "6px 14px", fontSize: "12px" }}
-            >
-              {cat}
-            </button>
-          ))}
-        </div>
+      <div className="h-scroll px-4 mb-4 gap-2">
+        <button
+          onClick={() => setOnlyOpen(!onlyOpen)}
+          className={`chip px-3 py-1.5 text-[12px] font-semibold border transition-colors ${
+            onlyOpen
+              ? "bg-green-100 text-green-700 border-green-200"
+              : "bg-white text-[var(--color-text-muted)] border-[var(--color-border)]"
+          }`}
+        >
+          <Filter size={11} /> {onlyOpen ? "Open only" : "All"}
+        </button>
+        {(["date", "popular", "name"] as SortKey[]).map((s) => (
+          <button
+            key={s}
+            onClick={() => setSort(s)}
+            className={`chip px-3 py-1.5 text-[12px] font-semibold border transition-colors capitalize ${
+              sort === s
+                ? "bg-[var(--color-primary)] text-white border-[var(--color-primary)]"
+                : "bg-white text-[var(--color-text-muted)] border-[var(--color-border)]"
+            }`}
+          >
+            {s === "date" ? "By date" : s === "popular" ? "Popular" : "A-Z"}
+          </button>
+        ))}
       </div>
 
-      {/* Grid */}
-      <section className="px-4">
-        <h2 className="text-base font-bold mb-3 flex items-center gap-1.5">
-          <CalendarDays size={16} />
-          {category === "All" ? "All Events" : category}
-          <span className="text-xs font-normal text-[var(--color-text-muted)] ml-1">({filtered.length})</span>
-        </h2>
-
-        {filtered.length === 0 ? (
-          <EmptyState icon={<Search size={28} />} title="No events found" subtitle="Try a different search or category" />
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 stagger">
-            {filtered.map((e) => (
-              <EventCard key={e.event_id} event={e} />
-            ))}
-          </div>
-        )}
-      </section>
+      {/* List */}
+      {isLoading ? (
+        <div className="px-4 space-y-3">
+          <Skeleton className="h-48 w-full rounded-[var(--radius)]" count={4} />
+        </div>
+      ) : events.length === 0 ? (
+        <EmptyState
+          icon={<CalendarDays size={28} className="text-[var(--color-primary)]" />}
+          title="No events found"
+          subtitle="Try a different search term"
+        />
+      ) : (
+        <div className="px-4 space-y-3 stagger">
+          {events.map((e) => (
+            <EventCard key={e.event_id} event={e} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

@@ -1,210 +1,173 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import Link from "next/link";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { formatDateUTC } from "@/lib/dateUtils";
+import EventCard from "@/components/EventCard";
+import Skeleton from "@/components/Skeleton";
+import LoadingScreen from "@/components/LoadingScreen";
 import {
-  User,
+  LogOut,
   Mail,
   Hash,
-  LogOut,
+  GraduationCap,
+  Building,
   CalendarDays,
-  MapPin,
   ChevronRight,
-  Loader2,
-  AlertCircle,
-  BadgeCheck,
-  Globe,
-  IdCard,
+  Bell,
+  Ticket,
 } from "lucide-react";
+import type { FetchedEvent } from "@/context/EventContext";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
-interface RegisteredEvent {
+interface Registration {
   event_id: string;
-  title: string;
-  event_date: string;
-  venue?: string;
-  team_name?: string;
-  registration_date?: string;
+  event?: FetchedEvent;
 }
 
 export default function ProfilePage() {
-  const { user, userData, signOut, isLoading: authLoading } = useAuth();
+  const { userData, isLoading, signOut } = useAuth();
   const router = useRouter();
-
-  const [events, setEvents] = useState<RegisteredEvent[]>([]);
-  const [loadingEvents, setLoadingEvents] = useState(false);
+  const [registrations, setRegistrations] = useState<Registration[]>([]);
+  const [regLoading, setRegLoading] = useState(true);
 
   useEffect(() => {
-    if (authLoading || !userData?.register_number) return;
-    setLoadingEvents(true);
-    fetch(`${API_URL}/api/registrations/user/${userData.register_number}/events`)
-      .then((r) => (r.ok ? r.json() : { events: [] }))
-      .then((d) => setEvents(d.events || []))
-      .catch(() => {})
-      .finally(() => setLoadingEvents(false));
-  }, [userData, authLoading]);
+    if (!userData?.email) {
+      setRegLoading(false);
+      return;
+    }
+    (async () => {
+      try {
+        const res = await fetch(
+          `${API_URL}/api/registrations?email=${encodeURIComponent(userData.email)}`
+        );
+        if (res.ok) {
+          const data = await res.json();
+          setRegistrations(data.registrations ?? data ?? []);
+        }
+      } catch {}
+      setRegLoading(false);
+    })();
+  }, [userData?.email]);
 
-  if (authLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="w-8 h-8 animate-spin text-[var(--color-primary)]" />
-      </div>
-    );
+  if (isLoading) return <LoadingScreen />;
+  if (!userData) {
+    router.replace("/auth");
+    return null;
   }
 
-  if (!user || !userData) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3 px-6 text-center">
-        <User size={48} className="text-gray-300" />
-        <p className="font-bold text-lg">Sign in to view your profile</p>
-        <Link href="/auth" className="btn btn-primary text-sm mt-2">
-          Sign in with Google
-        </Link>
-      </div>
-    );
-  }
-
-  const isOutsider = userData.organization_type === "outsider";
+  const infoRows = [
+    { icon: Mail, label: "Email", value: userData.email },
+    userData.register_number && { icon: Hash, label: "Register No.", value: userData.register_number },
+    userData.course && { icon: GraduationCap, label: "Course", value: userData.course },
+    userData.department && { icon: Building, label: "Department", value: userData.department },
+    userData.campus && { icon: Building, label: "Campus", value: userData.campus },
+  ].filter(Boolean) as { icon: any; label: string; value: string }[];
 
   return (
-    <div className="pb-28 animate-fade-up">
+    <div className="pwa-page pt-[calc(var(--nav-height)+var(--safe-top))]">
       {/* Profile header */}
-      <div className="bg-gradient-to-br from-[var(--color-primary)] to-[var(--color-primary-dark)] text-white p-6 pt-4 rounded-b-3xl">
-        <div className="flex items-center gap-4">
-          <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-white/30 bg-white/20 flex items-center justify-center shrink-0">
-            {user.user_metadata?.avatar_url ? (
-              <Image
-                src={user.user_metadata.avatar_url}
-                alt="avatar"
-                width={64}
-                height={64}
-                className="object-cover"
-              />
-            ) : (
-              <User size={28} className="text-white/70" />
-            )}
-          </div>
-          <div className="min-w-0">
-            <h1 className="text-lg font-bold truncate">{userData.name}</h1>
-            <p className="text-xs opacity-75 truncate">{userData.email}</p>
-            <div className="flex items-center gap-2 mt-1">
-              {isOutsider ? (
-                <span className="chip bg-white/20 text-white text-[10px]">
-                  <Globe size={10} /> External
-                </span>
-              ) : (
-                <span className="chip bg-white/20 text-white text-[10px]">
-                  <BadgeCheck size={10} /> Christ
-                </span>
-              )}
+      <div className="relative bg-gradient-to-br from-[var(--color-primary-dark)] via-[var(--color-primary)] to-[#1a6bdb] text-white px-5 pt-8 pb-10">
+        <div className="absolute -top-16 -right-16 w-48 h-48 bg-white/5 rounded-full blur-2xl" />
+        <div className="flex items-center gap-4 relative z-10">
+          {userData.avatar_url ? (
+            <Image
+              src={userData.avatar_url}
+              alt={userData.name}
+              width={64}
+              height={64}
+              className="rounded-full ring-3 ring-white/30"
+            />
+          ) : (
+            <div className="w-16 h-16 rounded-full bg-white/20 flex items-center justify-center text-xl font-bold">
+              {userData.name?.[0]?.toUpperCase() || "U"}
             </div>
+          )}
+          <div>
+            <h1 className="text-lg font-extrabold">{userData.name}</h1>
+            <p className="text-sm opacity-80">{userData.organization_type === "christ_member" ? "Christ University" : "External"}</p>
           </div>
         </div>
       </div>
 
-      {/* Info cards */}
-      <div className="px-4 mt-4 space-y-2">
-        <div className="card p-4">
-          <h2 className="text-sm font-bold mb-3">Details</h2>
-          <div className="space-y-3 text-sm">
-            <div className="flex items-center gap-3 text-[var(--color-text-muted)]">
-              <Hash size={16} className="text-[var(--color-primary)]" />
-              <div>
-                <p className="text-[10px] opacity-60">Register Number</p>
-                <p className="font-medium text-[var(--color-text)]">
-                  {userData.register_number || "—"}
-                </p>
-              </div>
-            </div>
-            {isOutsider && userData.visitor_id && (
-              <div className="flex items-center gap-3 text-[var(--color-text-muted)]">
-                <IdCard size={16} className="text-[var(--color-accent)]" />
-                <div>
-                  <p className="text-[10px] opacity-60">Visitor ID</p>
-                  <p className="font-medium text-[var(--color-text)]">
-                    {userData.visitor_id}
-                  </p>
-                </div>
-              </div>
-            )}
-            <div className="flex items-center gap-3 text-[var(--color-text-muted)]">
-              <Mail size={16} className="text-indigo-500" />
-              <div>
-                <p className="text-[10px] opacity-60">Email</p>
-                <p className="font-medium text-[var(--color-text)] truncate max-w-[230px]">
-                  {userData.email}
-                </p>
-              </div>
-            </div>
+      {/* Quick links */}
+      <div className="px-4 -mt-5 relative z-10 flex gap-3 mb-5">
+        <button
+          onClick={() => router.push("/notifications")}
+          className="flex-1 card p-3 flex items-center gap-3"
+        >
+          <div className="w-9 h-9 rounded-full bg-blue-50 flex items-center justify-center">
+            <Bell size={18} className="text-[var(--color-primary)]" />
           </div>
-        </div>
+          <div className="text-left">
+            <p className="text-[13px] font-bold">Notifications</p>
+            <p className="text-[11px] text-[var(--color-text-muted)]">Updates & alerts</p>
+          </div>
+          <ChevronRight size={16} className="ml-auto text-[var(--color-text-light)]" />
+        </button>
+      </div>
 
-        {/* Registered events */}
-        <div className="card p-4">
-          <h2 className="text-sm font-bold mb-3 flex items-center gap-2">
-            <CalendarDays size={16} className="text-[var(--color-primary)]" />
-            My Events
-            {events.length > 0 && (
-              <span className="chip bg-[var(--color-primary)]/10 text-[var(--color-primary)] text-[10px]">
-                {events.length}
-              </span>
+      {/* Info */}
+      <div className="px-4 mb-5">
+        <div className="card divide-y divide-[var(--color-border)]">
+          {infoRows.map(({ icon: Icon, label, value }) => (
+            <div key={label} className="flex items-center gap-3 px-4 py-3">
+              <Icon size={16} className="text-[var(--color-text-muted)] shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="text-[11px] text-[var(--color-text-light)]">{label}</p>
+                <p className="text-[13px] font-semibold truncate">{value}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Registered events */}
+      <div className="px-4 mb-5">
+        <div className="flex items-center gap-2 mb-3">
+          <Ticket size={16} className="text-[var(--color-primary)]" />
+          <h2 className="text-[15px] font-extrabold">My Registrations</h2>
+        </div>
+        {regLoading ? (
+          <div className="space-y-3">
+            <Skeleton className="h-32 w-full rounded-[var(--radius)]" count={2} />
+          </div>
+        ) : registrations.length === 0 ? (
+          <div className="card p-6 text-center">
+            <CalendarDays size={28} className="mx-auto text-[var(--color-text-light)] mb-2" />
+            <p className="text-[13px] font-semibold text-[var(--color-text-muted)]">
+              No registrations yet
+            </p>
+            <p className="text-[12px] text-[var(--color-text-light)] mt-0.5">
+              Browse events and register to see them here
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-3 stagger">
+            {registrations.map((r) =>
+              r.event ? (
+                <EventCard key={r.event_id} event={r.event} />
+              ) : (
+                <div key={r.event_id} className="card p-4">
+                  <p className="text-[13px] font-semibold">Event {r.event_id}</p>
+                  <p className="text-[11px] text-[var(--color-text-muted)]">Registered</p>
+                </div>
+              )
             )}
-          </h2>
+          </div>
+        )}
+      </div>
 
-          {loadingEvents ? (
-            <div className="flex justify-center py-6">
-              <Loader2 className="w-5 h-5 animate-spin text-[var(--color-primary)]" />
-            </div>
-          ) : events.length === 0 ? (
-            <div className="text-center py-6 text-sm text-[var(--color-text-muted)]">
-              <CalendarDays size={24} className="mx-auto mb-2 opacity-30" />
-              <p>No events yet</p>
-              <Link href="/discover" className="text-[var(--color-primary)] text-xs underline mt-1 inline-block">
-                Explore events →
-              </Link>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {events.map((ev) => (
-                <Link
-                  key={ev.event_id}
-                  href={`/event/${ev.event_id}`}
-                  className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors"
-                >
-                  <div className="w-8 h-8 rounded-lg bg-[var(--color-primary)]/10 flex items-center justify-center shrink-0">
-                    <CalendarDays size={14} className="text-[var(--color-primary)]" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-semibold truncate">{ev.title}</p>
-                    <p className="text-[10px] text-[var(--color-text-muted)]">
-                      {ev.venue && `${ev.venue} · `}
-                      {formatDateUTC(ev.event_date)}
-                    </p>
-                    {ev.team_name && (
-                      <p className="text-[10px] text-[var(--color-primary)]">
-                        Team: {ev.team_name}
-                      </p>
-                    )}
-                  </div>
-                  <ChevronRight size={16} className="text-gray-300 shrink-0" />
-                </Link>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Sign out */}
+      {/* Sign out */}
+      <div className="px-4 mb-8">
         <button
           onClick={async () => {
             await signOut();
-            router.push("/");
+            router.replace("/auth");
           }}
-          className="btn btn-ghost w-full text-sm text-red-500 border-red-200 mt-4"
+          className="btn btn-danger w-full"
         >
           <LogOut size={16} /> Sign out
         </button>

@@ -26,6 +26,7 @@ interface NotifCtx {
   markRead: (id: string) => void;
   markAllRead: () => void;
   dismiss: (id: string) => void;
+  dismissAll: () => void;
   refresh: () => void;
 }
 
@@ -39,6 +40,7 @@ const NotifContext = createContext<NotifCtx>({
   markRead: () => {},
   markAllRead: () => {},
   dismiss: () => {},
+  dismissAll: () => {},
   refresh: () => {},
 });
 
@@ -142,14 +144,41 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
   const dismiss = useCallback(
     async (id: string) => {
-      setNotifications((prev) => prev.filter((n) => n.id !== id));
+      if (!userData?.email) return;
+
       const dismissed = notifications.find((n) => n.id === id);
+      setNotifications((prev) => prev.filter((n) => n.id !== id));
       if (dismissed && !dismissed.read) {
         setUnreadCount((c) => Math.max(0, c - 1));
       }
+
+      try {
+        await fetch(`/api/pwa/notifications/${encodeURIComponent(id)}?email=${encodeURIComponent(userData.email)}`, {
+          method: "DELETE",
+          headers: session?.access_token
+            ? { Authorization: `Bearer ${session.access_token}` }
+            : undefined,
+        });
+      } catch {}
     },
-    [notifications]
+    [notifications, userData?.email, session?.access_token]
   );
+
+  const dismissAll = useCallback(async () => {
+    if (!userData?.email) return;
+
+    setNotifications([]);
+    setUnreadCount(0);
+
+    try {
+      await fetch(`/api/pwa/notifications?email=${encodeURIComponent(userData.email)}`, {
+        method: "DELETE",
+        headers: session?.access_token
+          ? { Authorization: `Bearer ${session.access_token}` }
+          : undefined,
+      });
+    } catch {}
+  }, [userData?.email, session?.access_token]);
 
   return (
     <NotifContext.Provider
@@ -163,6 +192,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         markRead,
         markAllRead,
         dismiss,
+        dismissAll,
         refresh: fetchNotifications,
       }}
     >

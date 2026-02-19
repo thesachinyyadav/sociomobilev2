@@ -44,8 +44,18 @@ export default function InstallPrompt() {
       setTimeout(() => setShow(true), 2000);
     };
 
+    const installedHandler = () => {
+      setShow(false);
+      setDeferredPrompt(null);
+      localStorage.setItem("install-prompt-dismissed", Date.now().toString());
+    };
+
     window.addEventListener("beforeinstallprompt", handler);
-    return () => window.removeEventListener("beforeinstallprompt", handler);
+    window.addEventListener("appinstalled", installedHandler);
+    return () => {
+      window.removeEventListener("beforeinstallprompt", handler);
+      window.removeEventListener("appinstalled", installedHandler);
+    };
   }, []);
 
   const handleInstall = async () => {

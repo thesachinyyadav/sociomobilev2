@@ -1,11 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { useAuth } from "@/context/AuthContext";
 import { useEvents } from "@/context/EventContext";
 import EventCard from "@/components/EventCard";
-import { CalendarDays, ArrowRight } from "lucide-react";
+import { CalendarDays, ArrowRight, Search } from "lucide-react";
 import { isDeadlinePassed } from "@/lib/dateUtils";
 
 function SectionHeader({ title, href }: { title: string; href?: string }) {
@@ -87,34 +86,34 @@ export default function HomePage() {
   return (
     <div className="pwa-page">
       <div className="px-3 pt-3" style={{ paddingTop: "calc(var(--nav-height) + var(--safe-top) + 12px)" }}>
-        <section className="relative overflow-hidden rounded-[var(--radius-lg)] bg-gradient-to-br from-[var(--color-primary-dark)] via-[var(--color-primary)] to-[var(--color-primary)] text-white px-5 pt-5 pb-5">
-          <div className="flex items-center gap-4 mb-5">
-            <div className="w-16 h-16 rounded-2xl bg-white/15 border border-white/25 flex items-center justify-center flex-shrink-0 ring-2 ring-white/10">
-              <Image src="/logo.svg" alt="SOCIO" width={40} height={40} priority className="drop-shadow-lg" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-[13px] opacity-85 font-medium">Welcome back, {firstName}</p>
-              <h1 className="text-[22px] font-extrabold leading-tight">Find your next event</h1>
-            </div>
-          </div>
+        <section className="relative overflow-hidden rounded-[var(--radius-xl)] bg-gradient-to-br from-[var(--color-primary-dark)] to-[var(--color-primary)] text-white px-5 pt-6 pb-5">
+          {/* Subtle decorative shapes */}
+          <div className="absolute -top-10 -right-10 w-40 h-40 rounded-full bg-white/[0.06]" />
+          <div className="absolute -bottom-8 -left-8 w-32 h-32 rounded-full bg-white/[0.04]" />
 
-          <Link
-            href="/discover"
-            className="flex items-center gap-2.5 bg-white/15 backdrop-blur-sm rounded-[var(--radius-lg)] px-5 py-3.5 border border-white/25 hover:bg-white/20 transition-colors active:scale-95"
-          >
-            <span className="text-[14px] opacity-85">Search events, fests, venues...</span>
-          </Link>
+          <div className="relative z-10">
+            <p className="text-[13px] text-white/70 font-medium">Welcome back, {firstName}</p>
+            <h1 className="text-[24px] font-extrabold leading-tight mt-0.5">Find your next event</h1>
 
-          <div className="h-scroll gap-3 mt-5 pb-1 px-0">
-            <Link href="/discover" className="flex items-center bg-white/15 rounded-[var(--radius-full)] px-4 py-2.5 border border-white/25 hover:bg-white/20 transition-colors">
-              <span className="text-[12px] font-semibold">Discover</span>
+            <Link
+              href="/discover"
+              className="flex items-center gap-3 bg-white rounded-[var(--radius)] px-4 py-3 mt-4 active:scale-[0.98] transition-transform shadow-sm"
+            >
+              <Search size={16} className="text-[var(--color-text-light)]" />
+              <span className="text-[14px] text-[var(--color-text-muted)]">Search events, fests, venues…</span>
             </Link>
-            <Link href="/events" className="flex items-center bg-white/15 rounded-[var(--radius-full)] px-4 py-2.5 border border-white/25 hover:bg-white/20 transition-colors">
-              <span className="text-[12px] font-semibold">Events</span>
-            </Link>
-            <Link href="/fests" className="flex items-center bg-white/15 rounded-[var(--radius-full)] px-4 py-2.5 border border-white/25 hover:bg-white/20 transition-colors">
-              <span className="text-[12px] font-semibold">Fests</span>
-            </Link>
+
+            <div className="flex gap-2 mt-4">
+              <Link href="/discover" className="flex-1 flex items-center justify-center bg-white/15 rounded-[var(--radius)] px-3 py-2.5 border border-white/20 hover:bg-white/25 transition-colors active:scale-95">
+                <span className="text-[12px] font-bold">Discover</span>
+              </Link>
+              <Link href="/events" className="flex-1 flex items-center justify-center bg-white/15 rounded-[var(--radius)] px-3 py-2.5 border border-white/20 hover:bg-white/25 transition-colors active:scale-95">
+                <span className="text-[12px] font-bold">Events</span>
+              </Link>
+              <Link href="/fests" className="flex-1 flex items-center justify-center bg-white/15 rounded-[var(--radius)] px-3 py-2.5 border border-white/20 hover:bg-white/25 transition-colors active:scale-95">
+                <span className="text-[12px] font-bold">Fests</span>
+              </Link>
+            </div>
           </div>
         </section>
       </div>

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const API_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000").replace(/\/$/, "");
+const API_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000").replace(/\/api\/?$/, "").replace(/\/$/, "");
 
 export async function GET(request: NextRequest) {
   try {
@@ -54,5 +54,34 @@ export async function PATCH(request: NextRequest) {
     });
   } catch {
     return NextResponse.json({ error: "Failed to mark notifications as read" }, { status: 502 });
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const url = new URL(request.url);
+    const email = url.searchParams.get("email");
+
+    if (!email) {
+      return NextResponse.json({ error: "Email parameter is required" }, { status: 400 });
+    }
+
+    const authHeader = request.headers.get("authorization");
+    const res = await fetch(
+      `${API_URL}/api/notifications/clear-all?email=${encodeURIComponent(email)}`,
+      {
+        method: "DELETE",
+        headers: authHeader ? { Authorization: authHeader } : undefined,
+        cache: "no-store",
+      }
+    );
+
+    const bodyText = await res.text();
+    return new NextResponse(bodyText, {
+      status: res.status,
+      headers: { "Content-Type": res.headers.get("Content-Type") || "application/json" },
+    });
+  } catch {
+    return NextResponse.json({ error: "Failed to clear notifications" }, { status: 502 });
   }
 }

@@ -1,20 +1,25 @@
 {
+  "id": "/",
   "name": "SOCIO",
   "short_name": "SOCIO",
   "description": "University Event Platform — Discover, Register & Attend campus events",
+  "lang": "en",
+  "dir": "ltr",
   "start_url": "/",
   "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui", "browser"],
   "orientation": "portrait",
   "background_color": "#063168",
   "theme_color": "#154CB3",
   "scope": "/",
+  "prefer_related_applications": false,
   "categories": ["education", "social", "entertainment"],
   "icons": [
-    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+    { "src": "/applogo.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
   ],
   "screenshots": [],
   "shortcuts": [
-    { "name": "Discover Events", "url": "/discover", "icons": [{"src":"/favicon.svg","sizes":"any"}] },
-    { "name": "My Profile",     "url": "/profile",  "icons": [{"src":"/favicon.svg","sizes":"any"}] }
+    { "name": "Discover Events", "url": "/discover", "icons": [{"src":"/applogo.png","sizes":"512x512","type":"image/png"}] },
+    { "name": "My Profile",     "url": "/profile",  "icons": [{"src":"/applogo.png","sizes":"512x512","type":"image/png"}] }
   ]
 }

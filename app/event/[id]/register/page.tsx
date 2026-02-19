@@ -45,6 +45,7 @@ export default function RegisterPage() {
   const [submitting, setSubmitting] = useState(false);
   const [regError, setRegError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [alreadyRegistered, setAlreadyRegistered] = useState(false);
 
   const isTeam = event ? event.participants_per_team > 1 : false;
   const maxSize = event?.participants_per_team ?? 1;
@@ -85,6 +86,37 @@ export default function RegisterPage() {
       }
     }
     setTeammates(initial);
+  }, [event, userData, authLoading]);
+
+  useEffect(() => {
+    if (!event || !userData || authLoading) return;
+
+    const registerNumber =
+      userData.organization_type === "outsider"
+        ? userData.visitor_id || userData.register_number || ""
+        : userData.register_number || "";
+
+    if (!registerNumber && !userData.email) return;
+
+    const params = new URLSearchParams();
+    if (registerNumber) params.set("registerNumber", String(registerNumber));
+    if (userData.email) params.set("email", userData.email);
+
+    fetch(`/api/pwa/registrations?${params.toString()}`, { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : []))
+      .then((data) => {
+        const registrations = Array.isArray(data)
+          ? data
+          : data?.registrations ?? data?.events ?? [];
+
+        const ids = (Array.isArray(registrations) ? registrations : [])
+          .map((item: any) => item?.event_id || item?.id || item?.event?.event_id || item?.event?.id)
+          .filter(Boolean)
+          .map((id: any) => String(id));
+
+        setAlreadyRegistered(ids.includes(String(event.event_id)));
+      })
+      .catch(() => {});
   }, [event, userData, authLoading]);
 
   /* ── Validation ── */
@@ -131,6 +163,10 @@ export default function RegisterPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setRegError(null);
+    if (alreadyRegistered) {
+      setRegError("You are already registered for this event.");
+      return;
+    }
     if (!validate() || !event) return;
 
     setSubmitting(true);
@@ -152,6 +188,10 @@ export default function RegisterPage() {
         setSuccess(true);
       } else {
         const d = await res.json();
+        if (res.status === 409 || d.code === "ALREADY_REGISTERED") {
+          setRegError("You are already registered for this event.");
+          return;
+        }
         setRegError(d.error || d.message || "Registration failed.");
       }
     } catch {
@@ -253,6 +293,13 @@ export default function RegisterPage() {
       </div>
 
       <form onSubmit={handleSubmit} className="px-4 mt-4 space-y-4">
+        {alreadyRegistered && (
+          <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-sm text-emerald-700 flex items-start gap-2">
+            <CheckCircle2 size={16} className="shrink-0 mt-0.5" />
+            <span>You are already registered for this event.</span>
+          </div>
+        )}
+
         {/* Team name */}
         {isTeam && (
           <div>
@@ -349,11 +396,15 @@ export default function RegisterPage() {
         {/* Submit */}
         <button
           type="submit"
-          disabled={submitting}
+          disabled={submitting || alreadyRegistered}
           className="btn btn-primary w-full text-sm"
         >
           {submitting ? (
             <Loader2 size={18} className="animate-spin" />
+          ) : alreadyRegistered ? (
+            <>
+              <CheckCircle2 size={16} /> Registered
+            </>
           ) : (
             <>
               <CheckCircle2 size={16} /> Confirm Registration

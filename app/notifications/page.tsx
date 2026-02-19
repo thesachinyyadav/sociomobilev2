@@ -20,13 +20,11 @@ function typeStyle(type: string) {
 function Card({
   n,
   onTap,
-  onMarkRead,
-  onDismiss,
+  onClear,
 }: {
   n: Notification;
   onTap: () => void;
-  onMarkRead: () => void;
-  onDismiss: () => void;
+  onClear: () => void;
 }) {
   const { icon, color } = typeStyle(n.type);
   return (
@@ -54,21 +52,12 @@ function Card({
       </button>
 
       <div className="mt-3 pt-2 border-t border-[var(--color-border)] flex items-center gap-2">
-        {!n.read && (
-          <button
-            onClick={onMarkRead}
-            className="btn btn-ghost btn-sm text-[12px]"
-            title="Mark as read"
-          >
-            <Check size={14} /> Mark as read
-          </button>
-        )}
         <button
-          onClick={onDismiss}
+          onClick={onClear}
           className="btn btn-ghost btn-sm text-[12px]"
-          title="Dismiss notification"
+          title="Mark read and clear"
         >
-          <X size={14} /> Dismiss
+          <Check size={14} /> Mark read & Clear
         </button>
       </div>
     </div>
@@ -76,18 +65,21 @@ function Card({
 }
 
 export default function NotificationsPage() {
-  const { notifications, unreadCount, markRead, markAllRead, dismiss, isLoading } = useNotifications();
+  const { notifications, unreadCount, markRead, markAllRead, dismiss, dismissAll, isLoading } = useNotifications();
   const router = useRouter();
 
-  const handleDismissAll = () => {
-    notifications.forEach((n) =>{
-      dismiss(n.id);
-    });
+  const handleDismissAll = async () => {
+    await dismissAll();
   };
 
   const handleTap = (n: Notification) => {
     if (!n.read) markRead(n.id);
     if (n.eventId) router.push(`/event/${n.eventId}`);
+  };
+
+  const handleClearOne = (n: Notification) => {
+    if (!n.read) markRead(n.id);
+    dismiss(n.id);
   };
 
   return (
@@ -143,8 +135,7 @@ export default function NotificationsPage() {
               key={n.id}
               n={n}
               onTap={() => handleTap(n)}
-              onMarkRead={() => markRead(n.id)}
-              onDismiss={() => dismiss(n.id)}
+              onClear={() => handleClearOne(n)}
             />
           ))}
         </div>

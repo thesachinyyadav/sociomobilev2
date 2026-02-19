@@ -64,9 +64,6 @@ export default function EventsPage() {
       {/* Header */}
       <div className="px-4 mb-3">
         <h1 className="text-lg font-extrabold">Events</h1>
-        <p className="text-[12px] text-[var(--color-text-muted)]">
-          {allEvents.length} events available
-        </p>
       </div>
 
       {/* Search */}

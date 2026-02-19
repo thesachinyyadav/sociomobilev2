@@ -113,14 +113,35 @@ export default function EventDetailPage() {
 
   /* ── Load user registrations ── */
   useEffect(() => {
-    if (!userData?.register_number || authLoading) return;
-    fetch(`${API_URL}/api/registrations/user/${userData.register_number}/events`)
-      .then((r) => (r.ok ? r.json() : { events: [] }))
-      .then((d) =>
-        setRegisteredIds(
-          (d.events || []).map((e: any) => e.event_id || e.id).filter(Boolean)
-        )
-      )
+    if (!userData || authLoading) return;
+
+    const registerNumber =
+      userData.organization_type === "outsider"
+        ? userData.visitor_id || userData.register_number || ""
+        : userData.register_number || "";
+
+    if (!registerNumber && !userData.email) return;
+
+    const params = new URLSearchParams();
+    if (registerNumber) params.set("registerNumber", String(registerNumber));
+    if (userData.email) params.set("email", userData.email);
+
+    fetch(`/api/pwa/registrations?${params.toString()}`, { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : []))
+      .then((data) => {
+        const registrations = Array.isArray(data)
+          ? data
+          : data?.registrations ?? data?.events ?? [];
+
+        const ids = (Array.isArray(registrations) ? registrations : [])
+          .map((item: any) =>
+            item?.event_id || item?.id || item?.event?.event_id || item?.event?.id
+          )
+          .filter(Boolean)
+          .map((id: any) => String(id));
+
+        setRegisteredIds(ids);
+      })
       .catch(() => {});
   }, [userData, authLoading]);
 
@@ -191,10 +212,16 @@ export default function EventDetailPage() {
       });
       if (res.ok) {
         setShowSuccess(true);
-        setRegisteredIds((p) => [...p, event.event_id]);
+        setRegisteredIds((p) => (p.includes(event.event_id) ? p : [...p, event.event_id]));
       } else {
         const d = await res.json();
-        setRegError(d.error || d.message || "Registration failed.");
+        const err = d.error || d.message || "Registration failed.";
+        if (res.status === 409 || d.code === "ALREADY_REGISTERED") {
+          setRegisteredIds((p) => (p.includes(event.event_id) ? p : [...p, event.event_id]));
+          setRegError(null);
+          return;
+        }
+        setRegError(err);
       }
     } catch {
       setRegError("Network error. Please try again.");
@@ -502,19 +529,19 @@ export default function EventDetailPage() {
           <div
             ref={errorRef}
             tabIndex={-1}
-            className="mx-4 mt-3 rounded-xl bg-red-50 border border-red-200 p-4 shadow-sm outline-none"
+            className="mx-4 mt-2 rounded-[var(--radius)] bg-red-50 border border-red-200 p-3 shadow-sm outline-none"
           >
-            <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center shrink-0">
-                <AlertCircle size={20} className="text-red-600" />
+            <div className="flex items-start gap-2.5">
+              <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center shrink-0">
+                <AlertCircle size={16} className="text-red-600" />
               </div>
-              <div>
-                <h4 className="font-bold text-red-800 text-sm">Registration Restricted</h4>
-                <p className="text-red-700 text-sm mt-1">
-                  This event is exclusively for <span className="font-semibold">Christ University members</span> only.
+              <div className="min-w-0">
+                <h4 className="font-bold text-red-800 text-[13px] leading-tight">Registration restricted</h4>
+                <p className="text-red-700 text-[12px] mt-0.5 leading-snug">
+                  This event is only for Christ University members.
                 </p>
-                <div className="mt-2 p-2 bg-red-100 rounded-lg">
-                  <p className="text-red-600 text-xs">External participants cannot register for this event</p>
+                <div className="mt-1.5 inline-flex items-center rounded-full bg-red-100 px-2 py-0.5">
+                  <p className="text-red-700 text-[11px] font-medium">External participants cannot register</p>
                 </div>
               </div>
             </div>

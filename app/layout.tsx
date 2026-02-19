@@ -13,6 +13,10 @@ export const metadata: Metadata = {
   title: "SOCIO – Campus Events",
   description: "Discover, register and stay updated on campus events.",
   manifest: "/manifest.json",
+  icons: {
+    icon: [{ url: "/applogo.png", type: "image/png" }],
+    apple: [{ url: "/applogo.png", type: "image/png" }],
+  },
   appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: "SOCIO" },
 };
 
@@ -57,8 +61,9 @@ export default async function RootLayout({
           href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300..800;1,9..40,300..800&display=swap"
           rel="stylesheet"
         />
-        <link rel="icon" href="/logo.svg" type="image/svg+xml" />
-        <link rel="apple-touch-icon" href="/logo.svg" />
+        <link rel="icon" href="/applogo.png" type="image/png" />
+        <link rel="shortcut icon" href="/applogo.png" type="image/png" />
+        <link rel="apple-touch-icon" href="/applogo.png" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <script
           dangerouslySetInnerHTML={{

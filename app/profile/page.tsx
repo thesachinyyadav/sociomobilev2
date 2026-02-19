@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
@@ -17,6 +17,8 @@ import {
   ChevronRight,
   Bell,
   Ticket,
+  MapPin,
+  Settings,
 } from "lucide-react";
 import type { FetchedEvent } from "@/context/EventContext";
 
@@ -52,71 +54,84 @@ export default function ProfilePage() {
     })();
   }, [userData?.email]);
 
+  // Deduplicate registrations by event_id
+  const uniqueRegistrations = useMemo(() => {
+    const seen = new Map<string, Registration>();
+    for (const r of registrations) {
+      if (!seen.has(r.event_id)) {
+        seen.set(r.event_id, r);
+      }
+    }
+    return Array.from(seen.values());
+  }, [registrations]);
+
+  useEffect(() => {
+    if (!isLoading && !userData) router.replace("/auth");
+  }, [isLoading, userData, router]);
+
   if (isLoading) return <LoadingScreen />;
-  if (!userData) {
-    router.replace("/auth");
-    return null;
-  }
+  if (!userData) return <LoadingScreen />;
 
   const infoRows = [
     { icon: Mail, label: "Email", value: userData.email },
     userData.register_number && { icon: Hash, label: "Register No.", value: userData.register_number },
     userData.course && { icon: GraduationCap, label: "Course", value: userData.course },
     userData.department && { icon: Building, label: "Department", value: userData.department },
-    userData.campus && { icon: Building, label: "Campus", value: userData.campus },
+    userData.campus && { icon: MapPin, label: "Campus", value: userData.campus },
   ].filter(Boolean) as { icon: any; label: string; value: string }[];
 
   return (
     <div className="pwa-page pt-[calc(var(--nav-height)+var(--safe-top))]">
       {/* Profile header */}
-      <div className="relative bg-gradient-to-br from-[var(--color-primary-dark)] via-[var(--color-primary)] to-[#1a6bdb] text-white px-5 pt-8 pb-10">
+      <div className="relative bg-gradient-to-br from-[var(--color-primary-dark)] via-[var(--color-primary)] to-[#1a6bdb] text-white px-5 pt-7 pb-10">
         <div className="absolute -top-16 -right-16 w-48 h-48 bg-white/5 rounded-full blur-2xl" />
         <div className="flex items-center gap-4 relative z-10">
           {userData.avatar_url ? (
             <Image
               src={userData.avatar_url}
               alt={userData.name}
-              width={64}
-              height={64}
+              width={60}
+              height={60}
               className="rounded-full ring-3 ring-white/30"
             />
           ) : (
-            <div className="w-16 h-16 rounded-full bg-white/20 flex items-center justify-center text-xl font-bold">
+            <div className="w-[60px] h-[60px] rounded-full bg-white/20 flex items-center justify-center text-xl font-bold">
               {userData.name?.[0]?.toUpperCase() || "U"}
             </div>
           )}
-          <div>
-            <h1 className="text-lg font-extrabold">{userData.name}</h1>
-            <p className="text-sm opacity-80">{userData.organization_type === "christ_member" ? "Christ University" : "External"}</p>
+          <div className="flex-1 min-w-0">
+            <h1 className="text-[17px] font-extrabold truncate">{userData.name}</h1>
+            <p className="text-[12px] opacity-75 mt-0.5">
+              {userData.organization_type === "christ_member" ? "Christ University" : "External"}
+            </p>
           </div>
         </div>
       </div>
 
       {/* Quick links */}
-      <div className="px-4 -mt-5 relative z-10 flex gap-3 mb-5">
+      <div className="px-4 -mt-5 relative z-10 flex gap-3 mb-4">
         <button
           onClick={() => router.push("/notifications")}
           className="flex-1 card p-3 flex items-center gap-3"
         >
           <div className="w-9 h-9 rounded-full bg-blue-50 flex items-center justify-center">
-            <Bell size={18} className="text-[var(--color-primary)]" />
+            <Bell size={17} className="text-[var(--color-primary)]" />
           </div>
-          <div className="text-left">
+          <div className="text-left flex-1 min-w-0">
             <p className="text-[13px] font-bold">Notifications</p>
-            <p className="text-[11px] text-[var(--color-text-muted)]">Updates & alerts</p>
           </div>
-          <ChevronRight size={16} className="ml-auto text-[var(--color-text-light)]" />
+          <ChevronRight size={15} className="text-[var(--color-text-light)]" />
         </button>
       </div>
 
-      {/* Info */}
-      <div className="px-4 mb-5">
+      {/* Info Card */}
+      <div className="px-4 mb-4">
         <div className="card divide-y divide-[var(--color-border)]">
           {infoRows.map(({ icon: Icon, label, value }) => (
-            <div key={label} className="flex items-center gap-3 px-4 py-3">
-              <Icon size={16} className="text-[var(--color-text-muted)] shrink-0" />
+            <div key={label} className="flex items-center gap-3 px-4 py-2.5">
+              <Icon size={15} className="text-[var(--color-text-muted)] shrink-0" />
               <div className="flex-1 min-w-0">
-                <p className="text-[11px] text-[var(--color-text-light)]">{label}</p>
+                <p className="text-[10px] text-[var(--color-text-light)] uppercase tracking-wide">{label}</p>
                 <p className="text-[13px] font-semibold truncate">{value}</p>
               </div>
             </div>
@@ -124,17 +139,22 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      {/* Registered events */}
-      <div className="px-4 mb-5">
+      {/* Registered events — deduplicated + compact */}
+      <div className="px-4 mb-4">
         <div className="flex items-center gap-2 mb-3">
-          <Ticket size={16} className="text-[var(--color-primary)]" />
+          <Ticket size={15} className="text-[var(--color-primary)]" />
           <h2 className="text-[15px] font-extrabold">My Registrations</h2>
+          {uniqueRegistrations.length > 0 && (
+            <span className="ml-auto text-[11px] font-bold text-[var(--color-text-muted)] bg-gray-100 px-2 py-0.5 rounded-full">
+              {uniqueRegistrations.length}
+            </span>
+          )}
         </div>
         {regLoading ? (
-          <div className="space-y-3">
-            <Skeleton className="h-32 w-full rounded-[var(--radius)]" count={2} />
+          <div className="space-y-2">
+            <Skeleton className="h-20 w-full rounded-[var(--radius)]" count={2} />
           </div>
-        ) : registrations.length === 0 ? (
+        ) : uniqueRegistrations.length === 0 ? (
           <div className="card p-6 text-center">
             <CalendarDays size={28} className="mx-auto text-[var(--color-text-light)] mb-2" />
             <p className="text-[13px] font-semibold text-[var(--color-text-muted)]">
@@ -145,14 +165,19 @@ export default function ProfilePage() {
             </p>
           </div>
         ) : (
-          <div className="space-y-3 stagger">
-            {registrations.map((r) =>
+          <div className="space-y-2 stagger">
+            {uniqueRegistrations.map((r) =>
               r.event ? (
-                <EventCard key={r.event_id} event={r.event} />
+                <EventCard key={r.event_id} event={r.event} compact />
               ) : (
-                <div key={r.event_id} className="card p-4">
-                  <p className="text-[13px] font-semibold">Event {r.event_id}</p>
-                  <p className="text-[11px] text-[var(--color-text-muted)]">Registered</p>
+                <div key={r.event_id} className="card p-3 flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-[var(--radius-sm)] bg-gray-100 flex items-center justify-center">
+                    <CalendarDays size={16} className="text-[var(--color-text-muted)]" />
+                  </div>
+                  <div>
+                    <p className="text-[13px] font-semibold">Event {r.event_id}</p>
+                    <p className="text-[11px] text-[var(--color-text-muted)]">Registered</p>
+                  </div>
                 </div>
               )
             )}

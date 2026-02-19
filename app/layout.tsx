@@ -63,7 +63,16 @@ export default async function RootLayout({
           dangerouslySetInnerHTML={{
             __html: `
               if('serviceWorker' in navigator){
-                window.addEventListener('load',()=>{navigator.serviceWorker.register('/sw.js')});
+                window.addEventListener('load', async () => {
+                  if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
+                    const registrations = await navigator.serviceWorker.getRegistrations();
+                    await Promise.all(registrations.map((registration) => registration.unregister()));
+                    const keys = await caches.keys();
+                    await Promise.all(keys.map((key) => caches.delete(key)));
+                    return;
+                  }
+                  navigator.serviceWorker.register('/sw.js');
+                });
               }
             `,
           }}

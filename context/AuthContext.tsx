@@ -35,6 +35,7 @@ interface AuthCtx {
   user: User | null;
   userData: UserData | null;
   isLoading: boolean;
+  needsCampus: boolean;
   signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
   refreshUserData: () => Promise<void>;
@@ -45,6 +46,7 @@ const AuthContext = createContext<AuthCtx>({
   user: null,
   userData: null,
   isLoading: true,
+  needsCampus: false,
   signInWithGoogle: async () => {},
   signOut: async () => {},
   refreshUserData: async () => {},
@@ -178,9 +180,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUserData(null);
   }, []);
 
+  /* Derived: show campus selector for christ members without campus */
+  const needsCampus =
+    !isLoading &&
+    !!userData &&
+    userData.organization_type === "christ_member" &&
+    !userData.campus;
+
   return (
     <AuthContext.Provider
-      value={{ session, user, userData, isLoading, signInWithGoogle, signOut, refreshUserData }}
+      value={{ session, user, userData, isLoading, needsCampus, signInWithGoogle, signOut, refreshUserData }}
     >
       {children}
     </AuthContext.Provider>

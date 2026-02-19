@@ -1,4 +1,4 @@
-const CACHE_NAME = "socio-pwa-v1";
+const CACHE_NAME = "socio-pwa-v2";
 const OFFLINE_URL = "/offline";
 
 const PRECACHE_URLS = [
@@ -35,6 +35,9 @@ self.addEventListener("fetch", (event) => {
   // Skip API calls and auth routes
   if (request.url.includes("/api/") || request.url.includes("/auth/callback")) return;
 
+  // Never handle Next.js internals/chunks
+  if (request.url.includes("/_next/")) return;
+
   // Navigation requests — network first, fallback to offline page
   if (request.mode === "navigate") {
     event.respondWith(
@@ -66,7 +69,16 @@ self.addEventListener("fetch", (event) => {
               caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
             }
             return response;
-          })
+          }).catch(() =>
+            caches.match(request).then(
+              (fallback) =>
+                fallback ||
+                new Response("", {
+                  status: 504,
+                  statusText: "Gateway Timeout",
+                })
+            )
+          )
       )
     );
     return;

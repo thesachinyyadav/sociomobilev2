@@ -5,10 +5,16 @@ import { useEvents } from "@/context/EventContext";
 import EventCard from "@/components/EventCard";
 import Skeleton from "@/components/Skeleton";
 import EmptyState from "@/components/EmptyState";
-import { Search, X, CalendarDays, Filter } from "lucide-react";
+import { Search, X, CalendarDays, Filter, ArrowDownAZ, TrendingUp, Clock } from "lucide-react";
 import { isDeadlinePassed } from "@/lib/dateUtils";
 
 type SortKey = "date" | "popular" | "name";
+
+const SORT_OPTIONS: { key: SortKey; label: string; icon: React.ReactNode }[] = [
+  { key: "date", label: "Date", icon: <Clock size={11} /> },
+  { key: "popular", label: "Popular", icon: <TrendingUp size={11} /> },
+  { key: "name", label: "A-Z", icon: <ArrowDownAZ size={11} /> },
+];
 
 export default function EventsPage() {
   const { allEvents, isLoading } = useEvents();
@@ -50,7 +56,7 @@ export default function EventsPage() {
       {/* Header */}
       <div className="px-4 mb-3">
         <h1 className="text-lg font-extrabold">Events</h1>
-        <p className="text-[13px] text-[var(--color-text-muted)]">
+        <p className="text-[12px] text-[var(--color-text-muted)]">
           {allEvents.length} events available
         </p>
       </div>
@@ -58,7 +64,7 @@ export default function EventsPage() {
       {/* Search */}
       <div className="px-4 mb-3">
         <div className="relative">
-          <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-light)]" />
+          <Search size={17} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-light)]" />
           <input
             type="text"
             placeholder="Search events…"
@@ -80,23 +86,23 @@ export default function EventsPage() {
           onClick={() => setOnlyOpen(!onlyOpen)}
           className={`chip px-3 py-1.5 text-[12px] font-semibold border transition-colors ${
             onlyOpen
-              ? "bg-green-100 text-green-700 border-green-200"
+              ? "bg-green-50 text-green-700 border-green-200"
               : "bg-white text-[var(--color-text-muted)] border-[var(--color-border)]"
           }`}
         >
           <Filter size={11} /> {onlyOpen ? "Open only" : "All"}
         </button>
-        {(["date", "popular", "name"] as SortKey[]).map((s) => (
+        {SORT_OPTIONS.map(({ key, label, icon }) => (
           <button
-            key={s}
-            onClick={() => setSort(s)}
-            className={`chip px-3 py-1.5 text-[12px] font-semibold border transition-colors capitalize ${
-              sort === s
+            key={key}
+            onClick={() => setSort(key)}
+            className={`chip px-3 py-1.5 text-[12px] font-semibold border transition-colors ${
+              sort === key
                 ? "bg-[var(--color-primary)] text-white border-[var(--color-primary)]"
                 : "bg-white text-[var(--color-text-muted)] border-[var(--color-border)]"
             }`}
           >
-            {s === "date" ? "By date" : s === "popular" ? "Popular" : "A-Z"}
+            {icon} {label}
           </button>
         ))}
       </div>

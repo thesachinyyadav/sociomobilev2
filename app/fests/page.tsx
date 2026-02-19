@@ -40,7 +40,7 @@ export default function FestsPage() {
       {/* Header */}
       <div className="px-4 mb-3">
         <h1 className="text-lg font-extrabold">Fests</h1>
-        <p className="text-[13px] text-[var(--color-text-muted)]">
+        <p className="text-[12px] text-[var(--color-text-muted)]">
           Campus festivals & mega events
         </p>
       </div>
@@ -48,7 +48,7 @@ export default function FestsPage() {
       {/* Search */}
       <div className="px-4 mb-4">
         <div className="relative">
-          <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-light)]" />
+          <Search size={17} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-light)]" />
           <input
             type="text"
             placeholder="Search fests…"

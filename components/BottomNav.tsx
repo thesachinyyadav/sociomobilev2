@@ -34,26 +34,27 @@ export default function BottomNav() {
             <Link
               key={href}
               href={href}
-              className={`flex flex-col items-center justify-center gap-0.5 transition-colors ${
+              className={`relative flex flex-col items-center justify-center gap-0.5 transition-all duration-200 ${
                 active
                   ? "text-[var(--color-primary)]"
-                  : "text-[var(--color-text-muted)]"
+                  : "text-[var(--color-text-light)]"
               }`}
             >
-              <Icon
-                size={22}
-                strokeWidth={active ? 2.4 : 1.8}
-                className="transition-all"
-              />
+              <div className={`relative transition-transform duration-200 ${active ? "scale-110" : ""}`}>
+                <Icon
+                  size={22}
+                  strokeWidth={active ? 2.4 : 1.6}
+                />
+              </div>
               <span
-                className={`text-[10px] leading-none ${
+                className={`text-[10px] leading-none transition-all ${
                   active ? "font-bold" : "font-medium"
                 }`}
               >
                 {label}
               </span>
               {active && (
-                <span className="absolute bottom-[calc(var(--safe-bottom)+2px)] w-5 h-[3px] rounded-full bg-[var(--color-primary)]" />
+                <span className="absolute bottom-[calc(var(--safe-bottom)+1px)] w-8 h-[3px] rounded-full bg-[var(--color-primary)]" />
               )}
             </Link>
           );

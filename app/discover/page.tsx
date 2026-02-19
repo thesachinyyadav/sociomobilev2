@@ -6,7 +6,7 @@ import { useEvents } from "@/context/EventContext";
 import EventCard from "@/components/EventCard";
 import Skeleton from "@/components/Skeleton";
 import EmptyState from "@/components/EmptyState";
-import { Search, SlidersHorizontal, X, CalendarDays, PartyPopper, Layers } from "lucide-react";
+import { Search, X, CalendarDays, PartyPopper, Layers, Filter } from "lucide-react";
 import { isDeadlinePassed } from "@/lib/dateUtils";
 
 const CATEGORIES = ["All", "Technical", "Cultural", "Sports", "Workshop", "Seminar", "Other"] as const;
@@ -52,11 +52,19 @@ export default function DiscoverPage() {
 
   return (
     <div className="pwa-page pt-[calc(var(--nav-height)+var(--safe-top)+8px)]">
+      {/* Header */}
+      <div className="px-4 mb-3">
+        <h1 className="text-lg font-extrabold">Discover</h1>
+        <p className="text-[12px] text-[var(--color-text-muted)]">
+          Find events, fests & more
+        </p>
+      </div>
+
       {/* Search */}
       <div className="px-4 mb-3">
         <div className="relative">
           <Search
-            size={18}
+            size={17}
             className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-light)]"
           />
           <input
@@ -78,28 +86,28 @@ export default function DiscoverPage() {
       </div>
 
       {/* Quick links */}
-      <div className="h-scroll px-4 mb-4">
+      <div className="h-scroll px-4 mb-3">
         <Link
           href="/events"
           className="chip bg-[var(--color-primary-light)] text-[var(--color-primary)] font-bold gap-1.5 px-3 py-2"
         >
-          <CalendarDays size={13} /> Events
+          <CalendarDays size={12} /> Events
         </Link>
         <Link
           href="/fests"
           className="chip bg-amber-50 text-amber-700 font-bold gap-1.5 px-3 py-2"
         >
-          <PartyPopper size={13} /> Fests
+          <PartyPopper size={12} /> Fests
         </Link>
         <button
           onClick={() => setShowOpen(!showOpen)}
-          className={`chip font-bold gap-1.5 px-3 py-2 ${
+          className={`chip font-bold gap-1.5 px-3 py-2 border ${
             showOpen
-              ? "bg-green-100 text-green-700"
-              : "bg-gray-100 text-[var(--color-text-muted)]"
+              ? "bg-green-50 text-green-700 border-green-200"
+              : "bg-white text-[var(--color-text-muted)] border-[var(--color-border)]"
           }`}
         >
-          <SlidersHorizontal size={13} /> {showOpen ? "Open only" : "All status"}
+          <Filter size={12} /> {showOpen ? "Open only" : "All status"}
         </button>
       </div>
 
@@ -122,7 +130,7 @@ export default function DiscoverPage() {
 
       {/* Fests marquee */}
       {fests.length > 0 && (
-        <div className="px-4 mb-5">
+        <div className="px-4 mb-4">
           <p className="text-[11px] font-bold text-[var(--color-text-muted)] uppercase tracking-wider mb-2">
             Active Fests
           </p>

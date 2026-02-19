@@ -6,7 +6,7 @@ import { useEvents } from "@/context/EventContext";
 import EventCard from "@/components/EventCard";
 import Skeleton from "@/components/Skeleton";
 import EmptyState from "@/components/EmptyState";
-import { Search, X, CalendarDays, PartyPopper, Layers, Filter } from "lucide-react";
+import { Search, X, CalendarDays, Filter, Check } from "lucide-react";
 import { isDeadlinePassed } from "@/lib/dateUtils";
 
 const CATEGORIES = ["All", "Technical", "Cultural", "Sports", "Workshop", "Seminar", "Other"] as const;
@@ -23,7 +23,7 @@ export default function DiscoverPage() {
     allEvents.forEach((e) => {
       if (e.fest) map.set(e.fest, e.fest);
     });
-    return Array.from(map.values());
+    return Array.from(map.values()).sort();
   }, [allEvents]);
 
   /* Filter */
@@ -53,15 +53,12 @@ export default function DiscoverPage() {
   return (
     <div className="pwa-page pt-[calc(var(--nav-height)+var(--safe-top)+8px)]">
       {/* Header */}
-      <div className="px-4 mb-3">
-        <h1 className="text-lg font-extrabold">Discover</h1>
-        <p className="text-[12px] text-[var(--color-text-muted)]">
-          Find events, fests & more
-        </p>
+      <div className="px-4 pt-2 pb-3">
+        <h1 className="text-[20px] font-extrabold">Discover</h1>
       </div>
 
-      {/* Search */}
-      <div className="px-4 mb-3">
+      {/* Search bar */}
+      <div className="px-4 pb-3">
         <div className="relative">
           <Search
             size={17}
@@ -69,7 +66,7 @@ export default function DiscoverPage() {
           />
           <input
             type="text"
-            placeholder="Search events, fests, venues…"
+            placeholder="Search events, fests…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="input pl-10 pr-10"
@@ -77,7 +74,7 @@ export default function DiscoverPage() {
           {search && (
             <button
               onClick={() => setSearch("")}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-text-light)]"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-text-light)] hover:text-[var(--color-text)]"
             >
               <X size={16} />
             </button>
@@ -85,73 +82,73 @@ export default function DiscoverPage() {
         </div>
       </div>
 
-      {/* Quick links */}
-      <div className="h-scroll px-4 mb-3">
-        <Link
-          href="/events"
-          className="chip bg-[var(--color-primary-light)] text-[var(--color-primary)] font-bold gap-1.5 px-3 py-2"
-        >
-          <CalendarDays size={12} /> Events
-        </Link>
-        <Link
-          href="/fests"
-          className="chip bg-amber-50 text-amber-700 font-bold gap-1.5 px-3 py-2"
-        >
-          <PartyPopper size={12} /> Fests
-        </Link>
+      {/* Quick filters */}
+      <div className="px-4 pb-3 flex gap-2">
         <button
           onClick={() => setShowOpen(!showOpen)}
-          className={`chip font-bold gap-1.5 px-3 py-2 border ${
+          className={`chip font-bold gap-1.5 px-3 py-2 border text-[12px] transition-all flex-1 ${
             showOpen
               ? "bg-green-50 text-green-700 border-green-200"
               : "bg-white text-[var(--color-text-muted)] border-[var(--color-border)]"
           }`}
         >
-          <Filter size={12} /> {showOpen ? "Open only" : "All status"}
+          <Filter size={13} />
+          {showOpen ? "Open Only" : "All Events"}
         </button>
       </div>
 
-      {/* Category chips */}
-      <div className="h-scroll px-4 mb-4 gap-2">
+      {/* Category filter - compact horizontal scroll */}
+      <div className="h-scroll px-4 pb-3 gap-1.5">
         {CATEGORIES.map((c) => (
           <button
             key={c}
             onClick={() => setCategory(c)}
-            className={`chip px-3 py-1.5 text-[12px] font-semibold border transition-colors ${
+            className={`chip px-3 py-1.5 text-[11px] font-bold border transition-all whitespace-nowrap ${
               category === c
                 ? "bg-[var(--color-primary)] text-white border-[var(--color-primary)]"
                 : "bg-white text-[var(--color-text-muted)] border-[var(--color-border)]"
             }`}
           >
+            {category === c && <Check size={11} className="inline mr-0.5" />}
             {c}
           </button>
         ))}
       </div>
 
-      {/* Fests marquee */}
+      {/* Fests section - compact */}
       {fests.length > 0 && (
-        <div className="px-4 mb-4">
-          <p className="text-[11px] font-bold text-[var(--color-text-muted)] uppercase tracking-wider mb-2">
+        <div className="px-4 pb-3">
+          <p className="text-[10px] font-bold text-[var(--color-text-light)] uppercase tracking-widest mb-2">
             Active Fests
           </p>
-          <div className="h-scroll gap-2">
+          <div className="h-scroll gap-1.5">
             {fests.map((f) => (
               <Link
                 key={f}
                 href="/fests"
-                className="chip bg-gradient-to-r from-[var(--color-primary)] to-[#1a6bdb] text-white px-3 py-1.5 text-[11px]"
+                className="chip bg-gradient-to-br from-[var(--color-primary)] to-[#1a6bdb] text-white px-3 py-1.5 text-[11px] font-bold whitespace-nowrap"
               >
-                <Layers size={11} /> {f}
+                {f}
               </Link>
             ))}
           </div>
         </div>
       )}
 
-      {/* Results */}
+      {/* Separator */}
+      <div className="h-px bg-[var(--color-border)] my-2" />
+
+      {/* Stats line */}
+      {!isLoading && (
+        <div className="px-4 py-2 text-[11px] text-[var(--color-text-muted)] font-semibold">
+          {filtered.length} {filtered.length === 1 ? "event" : "events"} found
+        </div>
+      )}
+
+      {/* Results grid */}
       {isLoading ? (
-        <div className="px-4 space-y-3">
-          <Skeleton className="h-48 w-full rounded-[var(--radius)]" count={3} />
+        <div className="px-3 space-y-2.5">
+          <Skeleton className="h-40 w-full rounded-[var(--radius)]" count={3} />
         </div>
       ) : filtered.length === 0 ? (
         <EmptyState
@@ -160,7 +157,7 @@ export default function DiscoverPage() {
           subtitle="Try changing your search or filters"
         />
       ) : (
-        <div className="px-4 space-y-3 stagger">
+        <div className="px-3 space-y-2.5 pb-8">
           {filtered.map((e) => (
             <EventCard key={e.event_id} event={e} />
           ))}
@@ -169,3 +166,4 @@ export default function DiscoverPage() {
     </div>
   );
 }
+

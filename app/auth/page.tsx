@@ -12,7 +12,15 @@ export default function AuthPage() {
   useEffect(() => {
     if (isLoading) return;
     if (session) {
-      router.replace("/discover");
+      let destination = "/discover";
+      if (typeof window !== "undefined") {
+        const returnTo = sessionStorage.getItem("returnTo");
+        if (returnTo && returnTo.startsWith("/")) {
+          destination = returnTo;
+        }
+        sessionStorage.removeItem("returnTo");
+      }
+      router.replace(destination);
     } else {
       signInWithGoogle();
     }
@@ -33,7 +41,7 @@ export default function AuthPage() {
           />
         ))}
       </div>
-      <p className="text-sm opacity-70">Redirecting to sign in…</p>
+      <p className="text-sm opacity-70">Redirecting to sign in...</p>
     </div>
   );
 }

@@ -3,7 +3,6 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 function getOrgType(email: string): "christ_member" | "outsider" {
@@ -54,10 +53,11 @@ async function createUserInDB(user: any) {
 
 export async function GET(request: NextRequest) {
   const url = new URL(request.url);
+  const appOrigin = `${url.protocol}//${url.host}`;
   const code = url.searchParams.get("code");
 
   if (!code) {
-    return NextResponse.redirect(`${APP_URL}/?error=no_code`);
+    return NextResponse.redirect(`${appOrigin}/?error=no_code`);
   }
 
   const cookieStore = await cookies();
@@ -80,10 +80,10 @@ export async function GET(request: NextRequest) {
     const { data, error } = await supabase.auth.exchangeCodeForSession(code);
     if (error) throw error;
     if (data.user) createUserInDB(data.user);
-    return NextResponse.redirect(`${APP_URL}/discover`);
+    return NextResponse.redirect(`${appOrigin}/discover`);
   } catch (err) {
     console.error("Auth callback error:", err);
     try { await supabase.auth.signOut(); } catch {}
-    return NextResponse.redirect(`${APP_URL}/?error=auth_failed`);
+    return NextResponse.redirect(`${appOrigin}/?error=auth_failed`);
   }
 }

@@ -3,8 +3,6 @@
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react";
 import { useAuth } from "@/context/AuthContext";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-
 export interface Notification {
   id: string;
   title: string;
@@ -45,7 +43,7 @@ const NotifContext = createContext<NotifCtx>({
 export const useNotifications = () => useContext(NotifContext);
 
 export function NotificationProvider({ children }: { children: ReactNode }) {
-  const { userData } = useAuth();
+  const { userData, session } = useAuth();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
@@ -56,22 +54,52 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     setIsLoading(true);
     try {
       const res = await fetch(
-        `${API_URL}/api/notifications?email=${encodeURIComponent(userData.email)}&limit=30`
+        `/api/pwa/notifications?email=${encodeURIComponent(userData.email)}&page=1&limit=30`,
+        {
+          headers: session?.access_token
+            ? { Authorization: `Bearer ${session.access_token}` }
+            : undefined,
+        }
       );
       if (res.ok) {
         const data = await res.json();
         setNotifications(data.notifications || []);
-        setUnreadCount(data.unreadCount || 0);
+        if (data.unreadCount !== undefined) {
+          setUnreadCount(data.unreadCount);
+        } else {
+          setUnreadCount((data.notifications || []).filter((n: Notification) => !n.read).length);
+        }
       }
     } catch {}
     setIsLoading(false);
-  }, [userData?.email]);
+  }, [userData?.email, session?.access_token]);
 
   useEffect(() => {
     fetchNotifications();
     const interval = setInterval(fetchNotifications, 60000);
     return () => clearInterval(interval);
   }, [fetchNotifications]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (!("Notification" in window)) return;
+    if (Notification.permission !== "granted") return;
+    if (!notifications.length) return;
+
+    const newestUnread = notifications.find((n) => !n.read);
+    if (!newestUnread) return;
+
+    const key = `notif-seen-${newestUnread.id}`;
+    if (sessionStorage.getItem(key)) return;
+    sessionStorage.setItem(key, "1");
+
+    try {
+      new Notification(newestUnread.title, {
+        body: newestUnread.message,
+        tag: newestUnread.id,
+      });
+    } catch {}
+  }, [notifications]);
 
   const markRead = useCallback(
     async (id: string) => {
@@ -81,14 +109,17 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       );
       setUnreadCount((c) => Math.max(0, c - 1));
       try {
-        await fetch(`${API_URL}/api/notifications/${id}/read`, {
+        await fetch(`/api/pwa/notifications/${id}/read`, {
           method: "PATCH",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
+          },
           body: JSON.stringify({ email: userData.email }),
         });
       } catch {}
     },
-    [userData?.email]
+    [userData?.email, session?.access_token]
   );
 
   const markAllRead = useCallback(async () => {
@@ -96,13 +127,16 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
     setUnreadCount(0);
     try {
-      await fetch(`${API_URL}/api/notifications/mark-read`, {
+      await fetch(`/api/pwa/notifications`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
+        },
         body: JSON.stringify({ email: userData.email }),
       });
     } catch {}
-  }, [userData?.email]);
+  }, [userData?.email, session?.access_token]);
 
   return (
     <NotifContext.Provider

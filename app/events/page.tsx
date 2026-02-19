@@ -16,13 +16,16 @@ const SORT_OPTIONS: { key: SortKey; label: string; icon: React.ReactNode }[] = [
   { key: "name", label: "A-Z", icon: <ArrowDownAZ size={11} /> },
 ];
 
+const ITEMS_PER_PAGE = 8;
+
 export default function EventsPage() {
   const { allEvents, isLoading } = useEvents();
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState<SortKey>("date");
   const [onlyOpen, setOnlyOpen] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
 
-  const events = useMemo(() => {
+  const allFilteredEvents = useMemo(() => {
     let list = allEvents;
     if (search) {
       const q = search.toLowerCase();
@@ -50,6 +53,11 @@ export default function EventsPage() {
     }
     return sorted;
   }, [allEvents, search, sort, onlyOpen]);
+
+  const totalPages = Math.ceil(allFilteredEvents.length / ITEMS_PER_PAGE);
+  const startIdx = (currentPage - 1) * ITEMS_PER_PAGE;
+  const events = allFilteredEvents.slice(0, startIdx + ITEMS_PER_PAGE);
+  const hasMore = currentPage < totalPages;
 
   return (
     <div className="pwa-page pt-[calc(var(--nav-height)+var(--safe-top)+8px)]">
@@ -83,7 +91,10 @@ export default function EventsPage() {
       {/* Filters */}
       <div className="h-scroll px-4 mb-4 gap-2">
         <button
-          onClick={() => setOnlyOpen(!onlyOpen)}
+          onClick={() => {
+            setOnlyOpen(!onlyOpen);
+            setCurrentPage(1);
+          }}
           className={`chip px-3 py-1.5 text-[12px] font-semibold border transition-colors ${
             onlyOpen
               ? "bg-green-50 text-green-700 border-green-200"
@@ -95,7 +106,10 @@ export default function EventsPage() {
         {SORT_OPTIONS.map(({ key, label, icon }) => (
           <button
             key={key}
-            onClick={() => setSort(key)}
+            onClick={() => {
+              setSort(key);
+              setCurrentPage(1);
+            }}
             className={`chip px-3 py-1.5 text-[12px] font-semibold border transition-colors ${
               sort === key
                 ? "bg-[var(--color-primary)] text-white border-[var(--color-primary)]"
@@ -119,11 +133,30 @@ export default function EventsPage() {
           subtitle="Try a different search term"
         />
       ) : (
-        <div className="px-4 space-y-3 stagger">
-          {events.map((e) => (
-            <EventCard key={e.event_id} event={e} />
-          ))}
-        </div>
+        <>
+          <div className="px-4 space-y-3 stagger">
+            {events.map((e) => (
+              <EventCard key={e.event_id} event={e} />
+            ))}
+          </div>
+
+          {/* Pagination info and load more button */}
+          {allFilteredEvents.length > ITEMS_PER_PAGE && (
+            <div className="px-4 py-4 flex items-center justify-between">
+              <p className="text-[12px] text-[var(--color-text-muted)] font-semibold">
+                Showing {Math.min(startIdx + ITEMS_PER_PAGE, allFilteredEvents.length)} of {allFilteredEvents.length}
+              </p>
+              {hasMore && (
+                <button
+                  onClick={() => setCurrentPage(currentPage + 1)}
+                  className="btn btn-primary text-[12px] px-4 py-1.5"
+                >
+                  Load More
+                </button>
+              )}
+            </div>
+          )}
+        </>
       )}
     </div>
   );

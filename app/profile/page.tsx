@@ -7,6 +7,7 @@ import { useAuth } from "@/context/AuthContext";
 import EventCard from "@/components/EventCard";
 import Skeleton from "@/components/Skeleton";
 import LoadingScreen from "@/components/LoadingScreen";
+import CampusSelector from "@/components/CampusSelector";
 import {
   LogOut,
   Mail,
@@ -30,10 +31,11 @@ interface Registration {
 }
 
 export default function ProfilePage() {
-  const { userData, isLoading, signOut } = useAuth();
+  const { userData, isLoading, signOut, session, refreshUserData } = useAuth();
   const router = useRouter();
   const [registrations, setRegistrations] = useState<Registration[]>([]);
   const [regLoading, setRegLoading] = useState(true);
+  const [showCampusSelector, setShowCampusSelector] = useState(false);
 
   useEffect(() => {
     if (!userData?.email) {
@@ -124,6 +126,19 @@ export default function ProfilePage() {
         </button>
       </div>
 
+      {/* Detect Campus button for Christ members without campus */}
+      {userData.organization_type === "christ_member" && !userData.campus && (
+        <div className="px-4 mb-4">
+          <button
+            onClick={() => setShowCampusSelector(true)}
+            className="btn btn-primary w-full flex items-center justify-center gap-2"
+          >
+            <MapPin size={16} />
+            Detect Your Campus
+          </button>
+        </div>
+      )}
+
       {/* Info Card */}
       <div className="px-4 mb-4">
         <div className="card divide-y divide-[var(--color-border)]">
@@ -197,6 +212,19 @@ export default function ProfilePage() {
           <LogOut size={16} /> Sign out
         </button>
       </div>
+
+      {/* Campus Selector modal */}
+      {showCampusSelector && userData?.email && session?.access_token && (
+        <CampusSelector
+          email={userData.email}
+          accessToken={session.access_token}
+          onComplete={async (campus) => {
+            setShowCampusSelector(false);
+            await refreshUserData();
+          }}
+          onDismiss={() => setShowCampusSelector(false)}
+        />
+      )}
     </div>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -73,9 +73,17 @@ export default function EventDetailPage() {
   const [isRegistering, setIsRegistering] = useState(false);
   const [regError, setRegError] = useState<string | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
+  const errorRef = useRef<HTMLDivElement>(null);
 
   const [openSection, setOpenSection] = useState<string | null>(null);
   const toggle = (s: string) => setOpenSection(openSection === s ? null : s);
+
+  useEffect(() => {
+    if (regError && errorRef.current) {
+      errorRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+      errorRef.current.focus();
+    }
+  }, [regError]);
 
   /* ── Load event ── */
   useEffect(() => {
@@ -118,8 +126,21 @@ export default function EventDetailPage() {
 
   /* ── Register (inline for solo, no custom fields) ── */
   const handleRegister = async () => {
-    if (!event || !userData) return;
+    if (!event) return;
     setRegError(null);
+
+    if (authLoading) {
+      setRegError("Verifying user data, please wait...");
+      return;
+    }
+
+    if (!userData) {
+      if (typeof window !== "undefined") {
+        sessionStorage.setItem("returnTo", window.location.pathname);
+      }
+      router.push("/auth");
+      return;
+    }
 
     // custom fields or team → redirect
     const customFields = parseJsonField(event.custom_fields);
@@ -130,18 +151,25 @@ export default function EventDetailPage() {
 
     // outsider check
     if (userData.organization_type === "outsider" && !event.allow_outsiders) {
-      setRegError("This event is not open to external participants.");
+      setRegError("OUTSIDER_NOT_ALLOWED");
       return;
     }
 
-    const regNum =
-      userData.organization_type === "outsider"
-        ? userData.visitor_id || userData.register_number
-        : userData.register_number;
-
-    if (!regNum) {
-      setRegError("Missing registration/visitor ID in your profile.");
-      return;
+    let regNum = "";
+    if (userData.organization_type === "outsider") {
+      const vis = userData.visitor_id || userData.register_number;
+      if (!vis || !String(vis).toUpperCase().startsWith("VIS")) {
+        setRegError("Missing Visitor ID (VIS...) in your profile.");
+        return;
+      }
+      regNum = String(vis);
+    } else {
+      const regNumStr = String(userData.register_number || "");
+      if (!/^(?:\d{7}|STF[A-Z0-9]+)$/i.test(regNumStr)) {
+        setRegError("Invalid registration number in your profile. It must be 7 digits or a valid STF ID.");
+        return;
+      }
+      regNum = regNumStr;
     }
 
     setIsRegistering(true);
@@ -155,7 +183,7 @@ export default function EventDetailPage() {
           teammates: [
             {
               name: userData.name || "Unknown",
-              registerNumber: String(regNum),
+              registerNumber: regNum,
               email: userData.email || "",
             },
           ],
@@ -366,6 +394,11 @@ export default function EventDetailPage() {
             {daysLeft === 0 ? "Last day!" : `${daysLeft} days left`}
           </div>
         )}
+        {daysLeft === null && !isClosed && (
+          <div className="chip bg-emerald-50 text-emerald-700">
+            <Ticket size={12} /> Open Registration
+          </div>
+        )}
       </div>
 
       {/* Description */}
@@ -465,10 +498,37 @@ export default function EventDetailPage() {
 
       {/* Error */}
       {regError && (
-        <div className="mx-4 mt-3 p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700 flex items-start gap-2 animate-fade-up">
-          <AlertCircle size={16} className="shrink-0 mt-0.5" />
-          <span>{regError}</span>
-        </div>
+        regError === "OUTSIDER_NOT_ALLOWED" ? (
+          <div
+            ref={errorRef}
+            tabIndex={-1}
+            className="mx-4 mt-3 rounded-xl bg-gradient-to-r from-red-50 to-orange-50 border-2 border-red-200 p-4 shadow-sm outline-none"
+          >
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center shrink-0">
+                <AlertCircle size={20} className="text-red-600" />
+              </div>
+              <div>
+                <h4 className="font-bold text-red-800 text-sm">Registration Restricted</h4>
+                <p className="text-red-700 text-sm mt-1">
+                  This event is exclusively for <span className="font-semibold">Christ University members</span> only.
+                </p>
+                <div className="mt-2 p-2 bg-red-100 rounded-lg">
+                  <p className="text-red-600 text-xs">External participants cannot register for this event</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div
+            ref={errorRef}
+            tabIndex={-1}
+            className="mx-4 mt-3 p-3 rounded-xl bg-amber-50 border border-amber-200 text-sm text-amber-800 flex items-start gap-2 animate-fade-up outline-none"
+          >
+            <AlertCircle size={16} className="shrink-0 mt-0.5" />
+            <span>{regError}</span>
+          </div>
+        )
       )}
 
       {/* Sticky register bar */}

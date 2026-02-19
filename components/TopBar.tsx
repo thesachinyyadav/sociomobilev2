@@ -8,7 +8,7 @@ import NotificationBell from "@/components/NotificationBell";
 import { ArrowLeft } from "lucide-react";
 
 // Pages that show back button instead of logo
-const BACK_PAGES = ["/event/", "/fest/", "/club/", "/notifications", "/edit/", "/create/", "/manage/"];
+const BACK_PAGES = ["/event/", "/fest/", "/notifications"];
 
 export default function TopBar() {
   const { userData } = useAuth();
@@ -23,7 +23,7 @@ export default function TopBar() {
       style={{ paddingTop: "var(--safe-top)" }}
     >
       <div
-        className="flex items-center px-3 gap-2"
+        className="flex items-center px-4 gap-2"
         style={{ height: "var(--nav-height)" }}
       >
         {/* Left: Back button or Logo */}
@@ -36,12 +36,12 @@ export default function TopBar() {
             <ArrowLeft size={18} strokeWidth={2.2} />
           </button>
         ) : (
-          <Link href="/" className="flex items-center gap-1.5 shrink-0">
+          <Link href="/" className="flex items-center shrink-0">
             <Image
               src="/logo.svg"
               alt="Socio"
-              width={30}
-              height={30}
+              width={34}
+              height={34}
               priority
             />
           </Link>

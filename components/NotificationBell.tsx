@@ -49,6 +49,12 @@ export default function NotificationBell() {
     useNotifications();
   const router = useRouter();
 
+  const handleBellClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    openPanel();
+  };
+
   const handleTap = (n: Notification) => {
     if (!n.read) markRead(n.id);
     if (n.eventId) {
@@ -61,9 +67,10 @@ export default function NotificationBell() {
     <>
       {/* Bell button */}
       <button
-        onClick={openPanel}
+        onClick={handleBellClick}
         className="relative p-2 -mr-1 rounded-full hover:bg-black/5 transition-colors"
         aria-label="Notifications"
+        type="button"
       >
         <Bell size={22} strokeWidth={2} />
         {unreadCount > 0 && (

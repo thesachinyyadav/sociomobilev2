@@ -54,8 +54,6 @@ const AuthContext = createContext<AuthCtx>({
 
 export const useAuth = () => useContext(AuthContext);
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
 function getOrgType(email: string): "christ_member" | "outsider" {
   return email.toLowerCase().endsWith("christuniversity.in")
@@ -73,7 +71,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   /* Fetch profile from backend */
   const fetchUserData = useCallback(async (email: string) => {
     try {
-      const res = await fetch(`${API_URL}/api/users/${encodeURIComponent(email)}`);
+      const res = await fetch(`/api/pwa/users/${encodeURIComponent(email)}`);
       if (res.ok) {
         const data = await res.json();
         setUserData(data.user ?? data);
@@ -117,7 +115,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       try {
-        await fetch(`${API_URL}/api/users`, {
+        await fetch(`/api/pwa/users`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -167,9 +165,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   /* Actions */
   const signInWithGoogle = useCallback(async () => {
+    const runtimeOrigin = typeof window !== "undefined" ? window.location.origin : (process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000");
     await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: `${APP_URL}/auth/callback` },
+      options: { redirectTo: `${runtimeOrigin}/auth/callback` },
     });
   }, []);
 

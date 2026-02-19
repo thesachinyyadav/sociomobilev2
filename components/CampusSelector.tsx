@@ -1,19 +1,21 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { MapPin, Loader2, AlertTriangle, WifiOff, ShieldOff, LocateFixed, RefreshCw } from "lucide-react";
+import { MapPin, Loader2, RefreshCw, Copy, Check } from "lucide-react";
 
-/* ── Christ University campus coordinates ── */
+/* ── Christ University campus coordinates (match web) ── */
 const CAMPUSES = [
-  { name: "Central Campus",           lat: 12.9346, lng: 77.6068, radius: 1.5 },
-  { name: "Bannerghatta Road Campus", lat: 12.8978, lng: 77.5968, radius: 1.5 },
-  { name: "Yeshwanthpur Campus",      lat: 13.0206, lng: 77.5422, radius: 1.5 },
-  { name: "Kengeri Campus",           lat: 12.9125, lng: 77.4834, radius: 1.5 },
+  { name: "Central Campus (Main)", lat: 12.93611753346996, lng: 77.60604219692418 },
+  { name: "Bannerghatta Road Campus", lat: 12.878129156102318, lng: 77.59588398930113 },
+  { name: "Yeshwanthpur Campus", lat: 13.037196562241775, lng: 77.5069922916129 },
+  { name: "Kengeri Campus", lat: 12.869504452408306, lng: 77.43640503831412 },
+  { name: "Delhi NCR Campus", lat: 28.86394683554733, lng: 77.35636918532354 },
+  { name: "Pune Lavasa Campus", lat: 18.6221158344556, lng: 73.48047100149613 },
 ] as const;
 
-const MAX_CAMPUS_DISTANCE_KM = 2; // must be within 2 km
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const MAX_CAMPUS_DISTANCE_KM = 15;
+const DISMISS_KEY = "campus_modal_dismissed_at";
+const DISMISS_HOURS = 12;
 
 /* ── Haversine distance (km) ── */
 function haversine(lat1: number, lon1: number, lat2: number, lon2: number): number {
@@ -29,34 +31,59 @@ function haversine(lat1: number, lon1: number, lat2: number, lon2: number): numb
 }
 
 type Status = "detecting" | "saving" | "success" | "error";
-type ErrorKind = "denied" | "unavailable" | "timeout" | "not_near" | "api_fail";
+type ModalState = "detecting" | "confirm" | "finalConfirm" | "notOnCampus" | "saving" | "success" | "error";
+
+export function isCampusDismissedRecently(): boolean {
+  try {
+    const ts = localStorage.getItem(DISMISS_KEY);
+    if (!ts) return false;
+    const elapsed = Date.now() - Number(ts);
+    return elapsed < DISMISS_HOURS * 60 * 60 * 1000;
+  } catch {
+    return false;
+  }
+}
+
+function markDismissed() {
+  try {
+    localStorage.setItem(DISMISS_KEY, String(Date.now()));
+  } catch {}
+}
 
 interface CampusSelectorProps {
   email: string;
+  accessToken: string;
   onComplete: (campus: string) => void;
+  onDismiss: () => void;
 }
 
-export default function CampusSelector({ email, onComplete }: CampusSelectorProps) {
-  const [status, setStatus] = useState<Status>("detecting");
-  const [errorKind, setErrorKind] = useState<ErrorKind | null>(null);
+export default function CampusSelector({ email, accessToken, onComplete, onDismiss }: CampusSelectorProps) {
+  const [state, setState] = useState<ModalState>("detecting");
   const [detectedCampus, setDetectedCampus] = useState<string | null>(null);
-  const [distance, setDistance] = useState<number | null>(null);
+  const [detectedDistance, setDetectedDistance] = useState<number>(0);
+  const [errorMsg, setErrorMsg] = useState("");
+  const [confirmInput, setConfirmInput] = useState("");
+  const [copied, setCopied] = useState(false);
 
-  const detect = useCallback(() => {
-    setStatus("detecting");
-    setErrorKind(null);
+  const handleDismiss = () => {
+    markDismissed();
+    onDismiss();
+  };
+
+  const detectLocation = useCallback(() => {
+    setState("detecting");
+    setConfirmInput("");
+    setCopied(false);
 
     if (!navigator.geolocation) {
-      setStatus("error");
-      setErrorKind("unavailable");
+      setState("notOnCampus");
       return;
     }
 
     navigator.geolocation.getCurrentPosition(
-      async (pos) => {
-        const { latitude, longitude } = pos.coords;
+      (position) => {
+        const { latitude, longitude } = position.coords;
 
-        // Find nearest campus
         let nearest = CAMPUSES[0] as (typeof CAMPUSES)[number];
         let minDist = Infinity;
         for (const c of CAMPUSES) {
@@ -67,145 +94,187 @@ export default function CampusSelector({ email, onComplete }: CampusSelectorProp
           }
         }
 
-        setDistance(Math.round(minDist * 100) / 100);
-
-        if (minDist > MAX_CAMPUS_DISTANCE_KM) {
-          setStatus("error");
-          setErrorKind("not_near");
-          return;
-        }
-
-        // Found a campus — save it
         setDetectedCampus(nearest.name);
-        setStatus("saving");
+        setDetectedDistance(Math.round(minDist * 10) / 10);
 
-        try {
-          const res = await fetch(
-            `${API_URL}/api/users/${encodeURIComponent(email)}/campus`,
-            {
-              method: "PATCH",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ campus: nearest.name }),
-            }
-          );
-          if (res.ok) {
-            setStatus("success");
-            setTimeout(() => onComplete(nearest.name), 1200);
-          } else {
-            // API failed but still complete
-            setStatus("success");
-            setTimeout(() => onComplete(nearest.name), 1200);
-          }
-        } catch {
-          setStatus("success");
-          setTimeout(() => onComplete(nearest.name), 1200);
+        if (minDist <= MAX_CAMPUS_DISTANCE_KM) {
+          setState("confirm");
+        } else {
+          setState("notOnCampus");
         }
       },
-      (err) => {
-        setStatus("error");
-        switch (err.code) {
-          case err.PERMISSION_DENIED:
-            setErrorKind("denied");
-            break;
-          case err.POSITION_UNAVAILABLE:
-            setErrorKind("unavailable");
-            break;
-          case err.TIMEOUT:
-            setErrorKind("timeout");
-            break;
-          default:
-            setErrorKind("unavailable");
-        }
+      () => {
+        setState("notOnCampus");
       },
-      { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 }
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
     );
-  }, [email, onComplete]);
+  }, []);
+
+  const saveCampus = async (campus: string) => {
+    setState("saving");
+    try {
+      const res = await fetch(`/api/pwa/users/${encodeURIComponent(email)}/campus`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({ campus }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Failed to save campus");
+      }
+      setState("success");
+      setTimeout(() => onComplete(campus), 900);
+    } catch (err: any) {
+      setErrorMsg(err.message || "Something went wrong");
+      setState("error");
+    }
+  };
+
+  const copyYes = async () => {
+    try {
+      await navigator.clipboard.writeText("YES");
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {}
+  };
 
   useEffect(() => {
-    detect();
-  }, [detect]);
-
-  const errorMessages: Record<ErrorKind, { icon: React.ReactNode; title: string; message: string }> = {
-    denied: {
-      icon: <ShieldOff size={28} className="text-red-500" />,
-      title: "Location Access Denied",
-      message:
-        "SOCIO needs your location to detect your Christ University campus. Please enable location permissions in your browser settings and try again.",
-    },
-    unavailable: {
-      icon: <WifiOff size={28} className="text-orange-500" />,
-      title: "Location Unavailable",
-      message:
-        "We couldn't determine your location. Make sure your device's location services (GPS) are turned on and you have a stable internet connection.",
-    },
-    timeout: {
-      icon: <AlertTriangle size={28} className="text-amber-500" />,
-      title: "Location Request Timed Out",
-      message:
-        "It took too long to get your location. Please make sure you're in an area with good GPS signal and try again.",
-    },
-    not_near: {
-      icon: <MapPin size={28} className="text-red-500" />,
-      title: "Not Near Any Campus",
-      message: `You don't appear to be near any Christ University campus (nearest is ${distance ?? "?"} km away). Campus detection only works when you're physically on or near a campus.`,
-    },
-    api_fail: {
-      icon: <AlertTriangle size={28} className="text-red-500" />,
-      title: "Server Error",
-      message: "Failed to save your campus. Please check your connection and try again.",
-    },
-  };
+    detectLocation();
+  }, [detectLocation]);
 
   return (
     <div className="modal-backdrop">
       <div className="modal-card">
-        {/* Header */}
-        <div className="px-5 pt-5 pb-2 text-center">
+        <div className="px-5 pt-5 pb-2 text-center border-b border-[var(--color-border)]">
           <div className="w-14 h-14 mx-auto mb-3 rounded-full bg-[var(--color-primary-light)] flex items-center justify-center">
-            {status === "detecting" || status === "saving" ? (
-              <LocateFixed size={24} className="text-[var(--color-primary)] animate-pulse" />
-            ) : status === "success" ? (
-              <MapPin size={24} className="text-emerald-600" />
-            ) : (
-              <MapPin size={24} className="text-red-500" />
-            )}
+            <MapPin size={24} className="text-[var(--color-primary)]" />
           </div>
           <h2 className="text-lg font-extrabold">
-            {status === "detecting"
-              ? "Detecting Campus..."
-              : status === "saving"
-              ? "Saving..."
-              : status === "success"
-              ? "Campus Detected!"
-              : "Detection Failed"}
+            {state === "finalConfirm" ? "Final Confirmation" : "Set Your Campus"}
           </h2>
         </div>
 
         <div className="px-5 pb-5">
-          {/* Detecting */}
-          {status === "detecting" && (
+          {state === "detecting" && (
             <div className="flex flex-col items-center py-6">
               <Loader2 size={36} className="animate-spin text-[var(--color-primary)] mb-3" />
-              <p className="text-[13px] text-[var(--color-text-muted)] text-center">
-                Getting your location to find your Christ University campus...
+              <p className="text-[13px] text-[var(--color-text-muted)] text-center font-medium">
+                Detecting your location...
               </p>
               <p className="text-[11px] text-[var(--color-text-light)] mt-1 text-center">
-                Please allow location access if prompted
+                Please allow location access when prompted
               </p>
             </div>
           )}
 
-          {/* Saving */}
-          {status === "saving" && detectedCampus && (
+          {state === "confirm" && detectedCampus && (
+            <>
+              <div className="text-center mb-4 mt-4">
+                <p className="text-lg font-bold text-[var(--color-primary-dark)]">{detectedCampus}</p>
+                <p className="text-xs font-semibold text-[var(--color-primary)] mt-0.5">{detectedDistance} km away</p>
+              </div>
+
+              <p className="text-sm text-[var(--color-text-muted)] text-center mb-4">
+                This is <strong>permanent</strong> and cannot be changed. Wrong campus? Dismiss and retry on your campus network.
+              </p>
+
+              <button
+                onClick={() => setState("finalConfirm")}
+                className="btn btn-primary w-full"
+              >
+                Yes, This Is My Campus
+              </button>
+              <button
+                onClick={handleDismiss}
+                className="btn btn-ghost w-full mt-2"
+              >
+                Wrong Campus — Try Later On Campus
+              </button>
+            </>
+          )}
+
+          {state === "finalConfirm" && detectedCampus && (
+            <>
+              <div className="text-center mb-4 mt-4">
+                <p className="text-base font-bold text-[var(--color-primary-dark)] mb-1">Your campus will be set to</p>
+                <p className="text-xl font-extrabold text-[var(--color-primary)] mb-2">{detectedCampus.toUpperCase()}</p>
+                <p className="text-sm font-semibold text-red-600">This is permanent. Are you sure?</p>
+              </div>
+
+              <div className="mb-3">
+                <label className="block text-xs font-semibold text-[var(--color-text-muted)] mb-1.5">
+                  Type <span className="font-mono bg-gray-100 px-1 py-0.5 rounded text-[var(--color-primary)]">YES</span> to confirm:
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={confirmInput}
+                    onChange={(e) => setConfirmInput(e.target.value)}
+                    placeholder="YES"
+                    className="input flex-1 text-center text-base font-bold tracking-widest uppercase"
+                    autoFocus
+                  />
+                  <button
+                    onClick={copyYes}
+                    className="btn btn-ghost px-3 shrink-0"
+                    title="Copy YES to clipboard"
+                    type="button"
+                  >
+                    {copied ? <Check size={14} /> : <Copy size={14} />}
+                    {copied ? "Copied" : "Copy"}
+                  </button>
+                </div>
+              </div>
+
+              <button
+                onClick={() => saveCampus(detectedCampus)}
+                disabled={confirmInput.trim().toUpperCase() !== "YES"}
+                className="btn btn-primary w-full disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Confirm &amp; Save
+              </button>
+              <button
+                onClick={() => {
+                  setConfirmInput("");
+                  setState("confirm");
+                }}
+                className="btn btn-ghost w-full mt-2 text-[12px]"
+              >
+                Go Back
+              </button>
+            </>
+          )}
+
+          {state === "notOnCampus" && (
+            <>
+              <div className="text-center mb-4 mt-5">
+                <MapPin size={30} className="mx-auto text-[var(--color-text-light)] mb-2" />
+                <p className="text-[var(--color-text)] font-semibold text-sm">Not on campus</p>
+                <p className="text-[var(--color-text-light)] text-xs mt-1">
+                  Try again when on your campus network. You can use <strong>Detect Campus</strong> on your profile anytime.
+                </p>
+              </div>
+
+              <button
+                onClick={handleDismiss}
+                className="btn btn-primary w-full"
+              >
+                Got It
+              </button>
+            </>
+          )}
+
+          {state === "saving" && (
             <div className="flex flex-col items-center py-6">
               <Loader2 size={36} className="animate-spin text-[var(--color-primary)] mb-3" />
-              <p className="text-[14px] font-semibold text-center">{detectedCampus}</p>
-              <p className="text-[12px] text-[var(--color-text-muted)] mt-1">Saving your campus...</p>
+              <p className="text-[14px] font-semibold text-center">Saving your campus...</p>
             </div>
           )}
 
-          {/* Success */}
-          {status === "success" && detectedCampus && (
+          {state === "success" && detectedCampus && (
             <div className="flex flex-col items-center py-6">
               <div className="w-14 h-14 rounded-full bg-emerald-100 flex items-center justify-center mb-3">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
@@ -213,30 +282,24 @@ export default function CampusSelector({ email, onComplete }: CampusSelectorProp
                 </svg>
               </div>
               <p className="text-[15px] font-bold text-center">{detectedCampus}</p>
-              <p className="text-[12px] text-[var(--color-text-muted)] mt-1">
-                {distance != null && `${distance} km away`}
-              </p>
+              <p className="text-[12px] text-[var(--color-text-muted)] mt-1">Saved successfully</p>
             </div>
           )}
 
-          {/* Error */}
-          {status === "error" && errorKind && (
+          {state === "error" && (
             <div className="py-4">
-              <div className="flex flex-col items-center text-center mb-4">
-                {errorMessages[errorKind].icon}
-                <h3 className="text-[14px] font-bold mt-2">{errorMessages[errorKind].title}</h3>
-                <p className="text-[12px] text-[var(--color-text-muted)] mt-1.5 leading-relaxed">
-                  {errorMessages[errorKind].message}
-                </p>
+              <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-center mb-3">
+                <p className="font-semibold text-red-700 text-sm">Something went wrong</p>
+                <p className="text-xs text-red-600 mt-1">{errorMsg}</p>
               </div>
-              <button onClick={detect} className="btn btn-primary w-full">
+              <button onClick={detectLocation} className="btn btn-primary w-full">
                 <RefreshCw size={16} /> Try Again
               </button>
               <button
-                onClick={() => onComplete("")}
+                onClick={handleDismiss}
                 className="btn btn-ghost w-full mt-2 text-[12px]"
               >
-                Skip for now
+                Try again later
               </button>
             </div>
           )}

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Image from "next/image";
-import { Download, X, Share, MoreVertical } from "lucide-react";
+import { Download, Share } from "lucide-react";
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -49,6 +49,11 @@ export default function InstallPrompt() {
   }, []);
 
   const handleInstall = async () => {
+    if (isIOS) {
+      setShowIOSGuide(true);
+      return;
+    }
+
     if (deferredPrompt) {
       await deferredPrompt.prompt();
       const { outcome } = await deferredPrompt.userChoice;
@@ -110,23 +115,17 @@ export default function InstallPrompt() {
       <div className="install-banner">
         <Image src="/logo.svg" alt="SOCIO" width={40} height={40} className="shrink-0 rounded-[10px]" />
         <div className="flex-1 min-w-0">
-          <p className="text-[13px] font-bold">Install SOCIO</p>
-          <p className="text-[11px] opacity-75 mt-0.5">
-            Get the full app experience — faster, offline-ready
-          </p>
+          <p className="text-[13px] font-bold">Install app</p>
+          <p className="text-[11px] opacity-75 mt-0.5">Add SOCIO to your home screen for faster access</p>
         </div>
-        {isIOS ? (
-          <button onClick={() => setShowIOSGuide(true)} className="btn btn-sm bg-white text-[var(--color-primary-dark)] font-bold text-[12px] px-3 py-1.5">
-            How to
-          </button>
-        ) : (
+        <div className="flex items-center gap-2">
           <button onClick={handleInstall} className="btn btn-sm bg-white text-[var(--color-primary-dark)] font-bold text-[12px] px-3 py-1.5">
-            <Download size={14} /> Install
+            <Download size={14} /> Install app
           </button>
-        )}
-        <button onClick={handleDismiss} className="p-1 opacity-60 hover:opacity-100">
-          <X size={16} />
-        </button>
+          <button onClick={handleDismiss} className="btn btn-sm btn-ghost text-white border-white/40 text-[12px] px-2.5 py-1.5">
+            Remind me later
+          </button>
+        </div>
       </div>
     </div>
   );

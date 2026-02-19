@@ -58,7 +58,7 @@ export default function HomePage() {
 
   const featuredEvents = openRegistrations.length > 0 ? openRegistrations : latestEvents;
 
-  // Get unique fest events for "Explore More" section
+  // Get unique fest events for "Featured Fests" section
   const festEvents = Array.from(
     new Map(
       allEvents
@@ -69,37 +69,50 @@ export default function HomePage() {
     .sort((a, b) => new Date(b.event_date).getTime() - new Date(a.event_date).getTime())
     .slice(0, 6);
 
+  // Deduplicate sections: track which events have been shown
+  const shownIds = new Set<string>();
+  
+  // Add open registrations to shown set
+  openRegistrations.forEach(e => shownIds.add(e.event_id));
+  
+  // Filter happening soon to exclude already shown events
+  const happeningSoonDedup = happeningSoon.filter(e => !shownIds.has(e.event_id));
+  happeningSoonDedup.forEach(e => shownIds.add(e.event_id));
+  
+  // Filter featured fests to exclude already shown events
+  const festEventsDedup = festEvents.filter(e => !shownIds.has(e.event_id));
+
   const firstName = userData?.name?.split(" ")?.[0] || "there";
 
   return (
     <div className="pwa-page">
       <div className="px-3 pt-3" style={{ paddingTop: "calc(var(--nav-height) + var(--safe-top) + 12px)" }}>
-        <section className="relative overflow-hidden rounded-[var(--radius-lg)] bg-gradient-to-br from-[var(--color-primary-dark)] via-[var(--color-primary)] to-[var(--color-primary)] text-white px-4 pt-4 pb-4">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-14 h-14 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center">
-              <Image src="/logo.svg" alt="SOCIO" width={34} height={34} priority />
+        <section className="relative overflow-hidden rounded-[var(--radius-lg)] bg-gradient-to-br from-[var(--color-primary-dark)] via-[var(--color-primary)] to-[var(--color-primary)] text-white px-5 pt-5 pb-5">
+          <div className="flex items-center gap-4 mb-5">
+            <div className="w-16 h-16 rounded-2xl bg-white/15 border border-white/25 flex items-center justify-center flex-shrink-0 ring-2 ring-white/10">
+              <Image src="/logo.svg" alt="SOCIO" width={40} height={40} priority className="drop-shadow-lg" />
             </div>
-            <div>
-              <p className="text-[13px] opacity-80 font-medium">Welcome back, {firstName}</p>
+            <div className="flex-1 min-w-0">
+              <p className="text-[13px] opacity-85 font-medium">Welcome back, {firstName}</p>
               <h1 className="text-[22px] font-extrabold leading-tight">Find your next event</h1>
             </div>
           </div>
 
           <Link
             href="/discover"
-            className="flex items-center gap-2.5 bg-white/12 backdrop-blur-sm rounded-[var(--radius)] px-4 py-3 border border-white/20"
+            className="flex items-center gap-2.5 bg-white/15 backdrop-blur-sm rounded-[var(--radius-lg)] px-5 py-3.5 border border-white/25 hover:bg-white/20 transition-colors active:scale-95"
           >
-            <span className="text-[14px] opacity-80">Search events, fests, venues...</span>
+            <span className="text-[14px] opacity-85">Search events, fests, venues...</span>
           </Link>
 
-          <div className="h-scroll gap-2.5 mt-4 pb-1">
-            <Link href="/discover" className="flex items-center bg-white/12 rounded-[var(--radius-full)] px-4 py-2 border border-white/20">
+          <div className="h-scroll gap-3 mt-5 pb-1 px-0">
+            <Link href="/discover" className="flex items-center bg-white/15 rounded-[var(--radius-full)] px-4 py-2.5 border border-white/25 hover:bg-white/20 transition-colors">
               <span className="text-[12px] font-semibold">Discover</span>
             </Link>
-            <Link href="/events" className="flex items-center bg-white/12 rounded-[var(--radius-full)] px-4 py-2 border border-white/20">
+            <Link href="/events" className="flex items-center bg-white/15 rounded-[var(--radius-full)] px-4 py-2.5 border border-white/25 hover:bg-white/20 transition-colors">
               <span className="text-[12px] font-semibold">Events</span>
             </Link>
-            <Link href="/fests" className="flex items-center bg-white/12 rounded-[var(--radius-full)] px-4 py-2 border border-white/20">
+            <Link href="/fests" className="flex items-center bg-white/15 rounded-[var(--radius-full)] px-4 py-2.5 border border-white/25 hover:bg-white/20 transition-colors">
               <span className="text-[12px] font-semibold">Fests</span>
             </Link>
           </div>
@@ -107,31 +120,31 @@ export default function HomePage() {
       </div>
 
       {allEvents.length > 0 && (
-        <section className="mx-3 mt-4">
-          <div className="grid grid-cols-3 gap-2.5">
-            <div className="card p-3 text-center">
-              <p className="text-[18px] font-extrabold text-[var(--color-primary)]">{openRegistrations.length}</p>
-              <p className="text-[11px] text-[var(--color-text-muted)] font-semibold">Open Now</p>
+        <section className="mx-5 mt-6">
+          <div className="grid grid-cols-3 gap-3">
+            <div className="card p-4 text-center rounded-[var(--radius-lg)]">
+              <p className="text-[20px] font-extrabold text-[var(--color-primary)]">{openRegistrations.length}</p>
+              <p className="text-[11px] text-[var(--color-text-muted)] font-semibold mt-1.5">Open Now</p>
             </div>
-            <div className="card p-3 text-center">
-              <p className="text-[18px] font-extrabold text-[var(--color-primary)]">{allEvents.length}</p>
-              <p className="text-[11px] text-[var(--color-text-muted)] font-semibold">Total Events</p>
+            <div className="card p-4 text-center rounded-[var(--radius-lg)]">
+              <p className="text-[20px] font-extrabold text-[var(--color-primary)]">{allEvents.length}</p>
+              <p className="text-[11px] text-[var(--color-text-muted)] font-semibold mt-1.5">Total Events</p>
             </div>
-            <div className="card p-3 text-center">
-              <p className="text-[18px] font-extrabold text-[var(--color-primary)]">{festCount}</p>
-              <p className="text-[11px] text-[var(--color-text-muted)] font-semibold">Active Fests</p>
+            <div className="card p-4 text-center rounded-[var(--radius-lg)]">
+              <p className="text-[20px] font-extrabold text-[var(--color-primary)]">{festCount}</p>
+              <p className="text-[11px] text-[var(--color-text-muted)] font-semibold mt-1.5">Active Fests</p>
             </div>
           </div>
         </section>
       )}
 
       {featuredEvents.length > 0 && (
-        <section className="mt-5 mx-3">
+        <section className="mt-6 mx-5">
           <SectionHeader
             title={openRegistrations.length > 0 ? "Open Registrations" : "Featured Events"}
             href="/events"
           />
-          <div className="h-scroll px-1">
+          <div className="h-scroll px-0 gap-3">
             {featuredEvents.map((e) => (
               <div key={e.event_id} className="w-[260px]">
                 <EventCard event={e} />
@@ -141,11 +154,11 @@ export default function HomePage() {
         </section>
       )}
 
-      {happeningSoon.length > 0 && (
-        <section className="mt-6 mx-3">
+      {happeningSoonDedup.length > 0 && (
+        <section className="mt-7 mx-5">
           <SectionHeader title="Happening This Week" href="/events" />
-          <div className="h-scroll px-1">
-            {happeningSoon.map((e) => (
+          <div className="h-scroll px-0 gap-3">
+            {happeningSoonDedup.map((e) => (
               <div key={e.event_id} className="w-[260px]">
                 <EventCard event={e} />
               </div>
@@ -154,11 +167,11 @@ export default function HomePage() {
         </section>
       )}
 
-      {festEvents.length > 0 && (
-        <section className="mt-6 mx-3">
+      {festEventsDedup.length > 0 && (
+        <section className="mt-7 mx-5">
           <SectionHeader title="Featured Fests" href="/fests" />
-          <div className="h-scroll px-1">
-            {festEvents.map((e) => (
+          <div className="h-scroll px-0 gap-3">
+            {festEventsDedup.map((e) => (
               <div key={e.event_id} className="w-[260px]">
                 <EventCard event={e} />
               </div>
@@ -167,8 +180,8 @@ export default function HomePage() {
         </section>
       )}
 
-      <section className="mx-3 mt-6">
-        <Link href="/notifications" className="card p-4 flex items-center gap-3">
+      <section className="mx-5 mt-7">
+        <Link href="/notifications" className="card p-5 flex items-center gap-4 rounded-[var(--radius-lg)] hover:shadow-lg transition-shadow active:scale-95">
           <div className="flex-1 min-w-0">
             <p className="text-[14px] font-extrabold">Stay Updated</p>
             <p className="text-[12px] text-[var(--color-text-muted)]">Get reminders and registration alerts in Notifications</p>

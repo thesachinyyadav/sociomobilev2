@@ -7,7 +7,6 @@ import EmptyState from "@/components/EmptyState";
 import { Search, X, Sparkles } from "lucide-react";
 import type { Fest } from "@/context/EventContext";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 const ITEMS_PER_PAGE = 8;
 
 export default function FestsPage() {
@@ -19,12 +18,17 @@ export default function FestsPage() {
   useEffect(() => {
     (async () => {
       try {
-        const res = await fetch(`${API_URL}/api/fests`);
+        const res = await fetch(`/api/pwa/fests`);
         if (res.ok) {
           const data = await res.json();
-          setFests(data.fests ?? data ?? []);
+          const festArray = data.fests ?? data ?? [];
+          setFests(Array.isArray(festArray) ? festArray : []);
+        } else {
+          console.error("Failed to fetch fests:", res.status);
         }
-      } catch {}
+      } catch (err) {
+        console.error("Error fetching fests:", err);
+      }
       setLoading(false);
     })();
   }, []);
@@ -53,9 +57,9 @@ export default function FestsPage() {
       </div>
 
       {/* Search */}
-      <div className="px-4 mb-4">
-        <div className="relative">
-          <Search size={17} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-light)]" />
+      <div className="px-5 mb-4">
+        <div className="relative group min-w-0">
+          <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--color-text-light)] group-focus-within:text-[var(--color-primary)] transition-colors pointer-events-none z-[1]" />
           <input
             type="text"
             placeholder="Search fests…"
@@ -64,13 +68,18 @@ export default function FestsPage() {
               setSearch(e.target.value);
               setCurrentPage(1);
             }}
-            className="input pl-10 pr-10"
+            className="w-full h-[44px] text-[14px] bg-white border-[1.5px] border-[var(--color-border)] rounded-[var(--radius)] outline-none focus:border-[var(--color-primary)] focus:shadow-[0_0_0_3px_rgba(21,76,179,0.1)] transition-all placeholder:text-[var(--color-text-muted)]"
+            style={{ paddingLeft: 42, paddingRight: 40 }}
           />
           {search && (
-            <button onClick={() => {
-              setSearch("");
-              setCurrentPage(1);
-            }} className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-text-light)]">
+            <button 
+              onClick={() => {
+                setSearch("");
+                setCurrentPage(1);
+              }} 
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-text-light)] hover:text-[var(--color-text)] transition-colors p-1.5 rounded-full hover:bg-black/5 z-[1]"
+              aria-label="Clear search"
+            >
               <X size={16} />
             </button>
           )}

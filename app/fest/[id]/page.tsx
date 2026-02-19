@@ -39,7 +39,7 @@ export default function FestDetailPage() {
       return;
     }
 
-    fetch(`${API_URL}/api/fests/${festId}`)
+    fetch(`/api/pwa/fests/${festId}`)
       .then((r) => {
         if (!r.ok) throw new Error();
         return r.json();
@@ -104,7 +104,7 @@ export default function FestDetailPage() {
   }
 
   return (
-    <div className="pb-28">
+    <div className="pb-28 pt-[calc(var(--nav-height)+var(--safe-top)+16px)]">
       {/* Back */}
       <div className="px-4 pt-3 pb-2">
         <button

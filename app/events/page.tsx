@@ -70,18 +70,23 @@ export default function EventsPage() {
       </div>
 
       {/* Search */}
-      <div className="px-4 mb-3">
-        <div className="relative">
-          <Search size={17} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-light)]" />
+      <div className="px-5 mb-4">
+        <div className="relative group min-w-0">
+          <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--color-text-light)] group-focus-within:text-[var(--color-primary)] transition-colors pointer-events-none z-[1]" />
           <input
             type="text"
             placeholder="Search events…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="input pl-10 pr-10"
+            className="w-full h-[44px] text-[14px] bg-white border-[1.5px] border-[var(--color-border)] rounded-[var(--radius)] outline-none focus:border-[var(--color-primary)] focus:shadow-[0_0_0_3px_rgba(21,76,179,0.1)] transition-all placeholder:text-[var(--color-text-muted)]"
+            style={{ paddingLeft: 42, paddingRight: 40 }}
           />
           {search && (
-            <button onClick={() => setSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-text-light)]">
+            <button 
+              onClick={() => setSearch("")} 
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-text-light)] hover:text-[var(--color-text)] transition-colors p-1.5 rounded-full hover:bg-black/5 z-[1]"
+              aria-label="Clear search"
+            >
               <X size={16} />
             </button>
           )}
@@ -89,7 +94,8 @@ export default function EventsPage() {
       </div>
 
       {/* Filters */}
-      <div className="h-scroll px-4 mb-4 gap-2">
+      <div className="h-scroll mb-4 gap-2">
+        <div className="shrink-0 w-5" aria-hidden />
         <button
           onClick={() => {
             setOnlyOpen(!onlyOpen);
@@ -119,6 +125,7 @@ export default function EventsPage() {
             {icon} {label}
           </button>
         ))}
+        <div className="shrink-0 w-5" aria-hidden />
       </div>
 
       {/* List */}

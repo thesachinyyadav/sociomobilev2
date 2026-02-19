@@ -2,20 +2,20 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Compass, CalendarDays, User, Bell } from "lucide-react";
-import { useNotifications } from "@/context/NotificationContext";
+import { Home, Compass, CalendarDays, User } from "lucide-react";
+
+import { Flame } from "lucide-react";
 
 const tabs = [
   { href: "/", icon: Home, label: "Home" },
   { href: "/discover", icon: Compass, label: "Discover" },
   { href: "/events", icon: CalendarDays, label: "Events" },
-  { href: "/notifications", icon: Bell, label: "Alerts" },
+  { href: "/fests", icon: Flame, label: "Fests" },
   { href: "/profile", icon: User, label: "Profile" },
 ] as const;
 
 export default function BottomNav() {
   const pathname = usePathname();
-  const { unreadCount } = useNotifications();
 
   const isActive = (href: string) => {
     if (href === "/") return pathname === "/";
@@ -33,7 +33,6 @@ export default function BottomNav() {
       >
         {tabs.map(({ href, icon: Icon, label }) => {
           const active = isActive(href);
-          const showBadge = href === "/notifications" && unreadCount > 0;
           return (
             <Link
               key={href}
@@ -49,9 +48,6 @@ export default function BottomNav() {
                   size={22}
                   strokeWidth={active ? 2.4 : 1.6}
                 />
-                {showBadge && (
-                  <span className="badge-count">{unreadCount > 9 ? "9+" : unreadCount}</span>
-                )}
               </div>
               <span
                 className={`text-[10px] leading-none transition-all ${

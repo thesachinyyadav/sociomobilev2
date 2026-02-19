@@ -25,6 +25,7 @@ interface NotifCtx {
   closePanel: () => void;
   markRead: (id: string) => void;
   markAllRead: () => void;
+  dismiss: (id: string) => void;
   refresh: () => void;
 }
 
@@ -37,6 +38,7 @@ const NotifContext = createContext<NotifCtx>({
   closePanel: () => {},
   markRead: () => {},
   markAllRead: () => {},
+  dismiss: () => {},
   refresh: () => {},
 });
 
@@ -138,6 +140,17 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     } catch {}
   }, [userData?.email, session?.access_token]);
 
+  const dismiss = useCallback(
+    async (id: string) => {
+      setNotifications((prev) => prev.filter((n) => n.id !== id));
+      const dismissed = notifications.find((n) => n.id === id);
+      if (dismissed && !dismissed.read) {
+        setUnreadCount((c) => Math.max(0, c - 1));
+      }
+    },
+    [notifications]
+  );
+
   return (
     <NotifContext.Provider
       value={{
@@ -149,6 +162,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         closePanel: () => setPanelOpen(false),
         markRead,
         markAllRead,
+        dismiss,
         refresh: fetchNotifications,
       }}
     >

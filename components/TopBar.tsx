@@ -19,11 +19,11 @@ export default function TopBar() {
 
   return (
     <header
-      className="fixed top-0 left-0 right-0 z-50 glass border-b border-[var(--color-border)]"
-      style={{ paddingTop: "var(--safe-top)" }}
+      className="fixed top-0 left-0 right-0 z-50 glass border-b border-[var(--color-border)] will-change-none"
+      style={{ paddingTop: "var(--safe-top)", backfaceVisibility: "hidden" }}
     >
       <div
-        className="flex items-center px-4 gap-2"
+        className="flex items-center px-4 gap-2 will-change-none"
         style={{ height: "var(--nav-height)" }}
       >
         {/* Left: Back button or Logo */}
@@ -71,7 +71,7 @@ export default function TopBar() {
         ) : (
           <Link
             href="/auth"
-            className="btn btn-primary btn-sm text-[12px] py-1.5 px-3"
+            className="btn btn-primary btn-sm text-[11px] !py-1 !px-3 !min-h-0"
           >
             Sign in
           </Link>

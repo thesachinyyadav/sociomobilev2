@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
+import { useEvents } from "@/context/EventContext";
 import EventCard from "@/components/EventCard";
 import Skeleton from "@/components/Skeleton";
 import LoadingScreen from "@/components/LoadingScreen";
@@ -23,8 +24,6 @@ import {
 } from "lucide-react";
 import type { FetchedEvent } from "@/context/EventContext";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-
 interface Registration {
   event_id: string;
   event?: FetchedEvent;
@@ -32,40 +31,72 @@ interface Registration {
 
 export default function ProfilePage() {
   const { userData, isLoading, signOut, session, refreshUserData } = useAuth();
+  const { allEvents } = useEvents();
   const router = useRouter();
   const [registrations, setRegistrations] = useState<Registration[]>([]);
   const [regLoading, setRegLoading] = useState(true);
   const [showCampusSelector, setShowCampusSelector] = useState(false);
 
   useEffect(() => {
-    if (!userData?.email) {
+    if (!userData) {
       setRegLoading(false);
       return;
     }
+
+    const registerNumber =
+      userData.organization_type === "outsider"
+        ? userData.visitor_id || userData.register_number || ""
+        : userData.register_number || "";
+
+    if (!registerNumber && !userData.email) {
+      setRegLoading(false);
+      return;
+    }
+
     (async () => {
       try {
+        const params = new URLSearchParams();
+        if (registerNumber) params.set("registerNumber", registerNumber);
+        if (userData.email) params.set("email", userData.email);
+
         const res = await fetch(
-          `${API_URL}/api/registrations?email=${encodeURIComponent(userData.email)}`
+          `/api/pwa/registrations?${params.toString()}`,
+          { cache: "no-store" }
         );
         if (res.ok) {
           const data = await res.json();
-          setRegistrations(data.registrations ?? data ?? []);
+          const regs = Array.isArray(data) ? data : data.registrations ?? data ?? [];
+          const normalized = (Array.isArray(regs) ? regs : [])
+            .map((r: any) => ({
+              event_id: String(r?.event_id || r?.id || r?.event?.event_id || r?.event?.id || ""),
+              event: r?.event,
+            }))
+            .filter((r: Registration) => Boolean(r.event_id));
+          setRegistrations(normalized);
+        } else {
+          console.error("Failed to fetch registrations:", res.status);
+          setRegistrations([]);
         }
-      } catch {}
+      } catch (err) {
+        console.error("Error fetching registrations:", err);
+        setRegistrations([]);
+      }
       setRegLoading(false);
     })();
-  }, [userData?.email]);
+  }, [userData]);
 
-  // Deduplicate registrations by event_id
+  // Deduplicate registrations by event_id and enrich with event data
   const uniqueRegistrations = useMemo(() => {
     const seen = new Map<string, Registration>();
     for (const r of registrations) {
       if (!seen.has(r.event_id)) {
-        seen.set(r.event_id, r);
+        // Enrich with event data from context
+        const event = allEvents.find((e) => e.event_id === r.event_id);
+        seen.set(r.event_id, { ...r, event });
       }
     }
     return Array.from(seen.values());
-  }, [registrations]);
+  }, [registrations, allEvents]);
 
   useEffect(() => {
     if (!isLoading && !userData) router.replace("/auth");

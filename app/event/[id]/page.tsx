@@ -174,7 +174,7 @@ export default function EventDetailPage() {
 
     setIsRegistering(true);
     try {
-      const res = await fetch(`${API_URL}/api/register`, {
+      const res = await fetch(`/api/pwa/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -299,7 +299,7 @@ export default function EventDetailPage() {
   };
 
   return (
-    <div className="pb-28">
+    <div className="pb-28 pt-[calc(var(--nav-height)+var(--safe-top)+16px)]">
       {/* Back */}
       <div className="px-4 pt-3 pb-2">
         <button
@@ -330,9 +330,9 @@ export default function EventDetailPage() {
         {/* Chips */}
         <div className="absolute top-3 left-3 flex flex-wrap gap-1.5">
           {isFree ? (
-            <span className="chip bg-emerald-500 text-white">Free</span>
+            <span className="chip bg-white/90 text-[var(--color-primary)] font-bold">Free</span>
           ) : (
-            <span className="chip bg-[var(--color-accent)] text-[var(--color-primary-dark)]">
+            <span className="chip bg-white/90 text-[var(--color-primary)] font-bold">
               ₹{event.registration_fee}
             </span>
           )}
@@ -342,7 +342,7 @@ export default function EventDetailPage() {
             </span>
           )}
           {event.claims_applicable && (
-            <span className="chip bg-teal-500 text-white">Claims</span>
+            <span className="chip bg-white/90 text-[var(--color-primary)]">Claims</span>
           )}
         </div>
 
@@ -359,7 +359,7 @@ export default function EventDetailPage() {
 
       {/* Quick info pills */}
       <div className="px-4 mt-3 flex flex-wrap gap-2">
-        <div className="chip bg-blue-50 text-blue-700">
+        <div className="chip bg-[var(--color-primary-light)] text-[var(--color-primary)]">
           <CalendarDays size={12} />
           {formatDateUTC(event.event_date)}
           {event.end_date && event.end_date !== event.event_date && (
@@ -367,27 +367,27 @@ export default function EventDetailPage() {
           )}
         </div>
         {event.event_time && (
-          <div className="chip bg-purple-50 text-purple-700">
+          <div className="chip bg-[var(--color-primary-light)] text-[var(--color-primary)]">
             <Clock size={12} /> {formatTime(event.event_time)}
           </div>
         )}
-        <div className="chip bg-orange-50 text-orange-700">
+        <div className="chip bg-[var(--color-primary-light)] text-[var(--color-primary)]">
           <MapPin size={12} /> {event.venue || "TBD"}
         </div>
         {event.participants_per_team > 1 && (
-          <div className="chip bg-indigo-50 text-indigo-700">
+          <div className="chip bg-[var(--color-primary-light)] text-[var(--color-primary)]">
             <Users size={12} /> Team of {event.participants_per_team}
           </div>
         )}
         {event.category && (
-          <div className="chip bg-gray-100 text-gray-700">
+          <div className="chip bg-gray-100 text-[var(--color-text-muted)]">
             <Tag size={12} /> {event.category}
           </div>
         )}
         {daysLeft !== null && !isClosed && (
           <div
             className={`chip ${
-              daysLeft <= 3 ? "bg-red-50 text-red-600" : "bg-green-50 text-green-700"
+              daysLeft <= 3 ? "bg-red-50 text-red-600" : "bg-[var(--color-primary-light)] text-[var(--color-primary)]"
             }`}
           >
             <Ticket size={12} />
@@ -395,7 +395,7 @@ export default function EventDetailPage() {
           </div>
         )}
         {daysLeft === null && !isClosed && (
-          <div className="chip bg-emerald-50 text-emerald-700">
+          <div className="chip bg-[var(--color-primary-light)] text-[var(--color-primary)]">
             <Ticket size={12} /> Open Registration
           </div>
         )}
@@ -429,11 +429,11 @@ export default function EventDetailPage() {
         )}
 
         {schedule.length > 0 && (
-          <Section id="schedule" icon={<Clock size={16} className="text-purple-500" />} title="Schedule">
+          <Section id="schedule" icon={<Clock size={16} className="text-[var(--color-primary)]" />} title="Schedule">
             <div className="space-y-2">
               {schedule.map((s, i) => (
                 <div key={i} className="flex gap-3 items-start">
-                  <div className="shrink-0 w-14 text-xs font-mono font-semibold text-purple-600 pt-0.5">
+                  <div className="shrink-0 w-14 text-xs font-mono font-semibold text-[var(--color-primary)] pt-0.5">
                     {s.time || `#${i + 1}`}
                   </div>
                   <p className="text-[var(--color-text-muted)]">{s.activity}</p>
@@ -444,11 +444,11 @@ export default function EventDetailPage() {
         )}
 
         {prizes.length > 0 && (
-          <Section id="prizes" icon={<Trophy size={16} className="text-amber-500" />} title="Prizes">
+          <Section id="prizes" icon={<Trophy size={16} className="text-[var(--color-primary)]" />} title="Prizes">
             <ul className="space-y-1.5">
               {prizes.map((p, i) => (
                 <li key={i} className="flex items-center gap-2 text-[var(--color-text-muted)]">
-                  <Award size={14} className={i === 0 ? "text-amber-500" : i === 1 ? "text-gray-400" : "text-orange-400"} />
+                  <Award size={14} className="text-[var(--color-primary)]" />
                   {String(p)}
                 </li>
               ))}
@@ -463,7 +463,7 @@ export default function EventDetailPage() {
             rel="noopener noreferrer"
             className="card flex items-center gap-3 p-3.5 mb-2"
           >
-            <FileText size={20} className="text-red-500 shrink-0" />
+            <FileText size={20} className="text-[var(--color-primary)] shrink-0" />
             <div>
               <p className="text-sm font-semibold">Event Document</p>
               <p className="text-xs text-[var(--color-text-muted)]">Tap to view PDF</p>
@@ -502,7 +502,7 @@ export default function EventDetailPage() {
           <div
             ref={errorRef}
             tabIndex={-1}
-            className="mx-4 mt-3 rounded-xl bg-gradient-to-r from-red-50 to-orange-50 border-2 border-red-200 p-4 shadow-sm outline-none"
+            className="mx-4 mt-3 rounded-xl bg-red-50 border border-red-200 p-4 shadow-sm outline-none"
           >
             <div className="flex items-start gap-3">
               <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center shrink-0">

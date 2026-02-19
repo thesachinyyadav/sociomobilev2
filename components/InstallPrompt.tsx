@@ -75,34 +75,42 @@ export default function InstallPrompt() {
   if (isIOS && showIOSGuide) {
     return (
       <div className="modal-backdrop" onClick={() => setShowIOSGuide(false)}>
-        <div className="modal-card p-5" onClick={(e) => e.stopPropagation()}>
-          <h3 className="text-base font-extrabold mb-4">Install SOCIO</h3>
-          <div className="space-y-4">
-            <div className="flex items-start gap-3">
-              <div className="w-8 h-8 rounded-full bg-[var(--color-primary-light)] flex items-center justify-center shrink-0 text-sm font-bold text-[var(--color-primary)]">1</div>
+        <div className="modal-card p-6" onClick={(e) => e.stopPropagation()}>
+          <div className="flex items-center gap-3 mb-5">
+            <div className="w-12 h-12 rounded-[var(--radius-lg)] bg-blue-50 flex items-center justify-center">
+              <Image src="/logo.svg" alt="SOCIO" width={28} height={28} />
+            </div>
+            <h3 className="text-[16px] font-extrabold">Install SOCIO</h3>
+          </div>
+          <p className="text-[13px] text-[var(--color-text-muted)] mb-5 leading-relaxed">
+            Follow these simple steps to add SOCIO to your home screen
+          </p>
+          <div className="space-y-3.5">
+            <div className="flex gap-3 p-3.5 bg-gray-50 rounded-[var(--radius-lg)] border border-gray-200">
+              <div className="w-9 h-9 rounded-full bg-[var(--color-primary)] text-white flex items-center justify-center shrink-0 text-[13px] font-bold">1</div>
               <div>
                 <p className="text-[13px] font-semibold">Tap the Share button</p>
-                <p className="text-[12px] text-[var(--color-text-muted)] mt-0.5 flex items-center gap-1">
-                  Look for <Share size={14} className="text-[var(--color-info)]" /> in Safari toolbar
+                <p className="text-[12px] text-[var(--color-text-muted)] mt-1">
+                  Look for <Share size={13} className="inline text-[var(--color-info)]" /> in your Safari toolbar at the bottom
                 </p>
               </div>
             </div>
-            <div className="flex items-start gap-3">
-              <div className="w-8 h-8 rounded-full bg-[var(--color-primary-light)] flex items-center justify-center shrink-0 text-sm font-bold text-[var(--color-primary)]">2</div>
+            <div className="flex gap-3 p-3.5 bg-gray-50 rounded-[var(--radius-lg)] border border-gray-200">
+              <div className="w-9 h-9 rounded-full bg-[var(--color-primary)] text-white flex items-center justify-center shrink-0 text-[13px] font-bold">2</div>
               <div>
                 <p className="text-[13px] font-semibold">Select "Add to Home Screen"</p>
-                <p className="text-[12px] text-[var(--color-text-muted)] mt-0.5">Scroll down in share sheet if needed</p>
+                <p className="text-[12px] text-[var(--color-text-muted)] mt-1">Scroll down in the share menu if you don't see this option</p>
               </div>
             </div>
-            <div className="flex items-start gap-3">
-              <div className="w-8 h-8 rounded-full bg-[var(--color-primary-light)] flex items-center justify-center shrink-0 text-sm font-bold text-[var(--color-primary)]">3</div>
+            <div className="flex gap-3 p-3.5 bg-gray-50 rounded-[var(--radius-lg)] border border-gray-200">
+              <div className="w-9 h-9 rounded-full bg-[var(--color-primary)] text-white flex items-center justify-center shrink-0 text-[13px] font-bold">3</div>
               <div>
-                <p className="text-[13px] font-semibold">Tap "Add"</p>
-                <p className="text-[12px] text-[var(--color-text-muted)] mt-0.5">SOCIO will appear on your home screen</p>
+                <p className="text-[13px] font-semibold">Confirm with "Add"</p>
+                <p className="text-[12px] text-[var(--color-text-muted)] mt-1">SOCIO will appear on your home screen instantly</p>
               </div>
             </div>
           </div>
-          <button onClick={() => setShowIOSGuide(false)} className="btn btn-primary w-full mt-5">
+          <button onClick={() => setShowIOSGuide(false)} className="btn btn-primary w-full mt-5 font-bold">
             Got it
           </button>
         </div>
@@ -111,20 +119,53 @@ export default function InstallPrompt() {
   }
 
   return (
-    <div className="fixed bottom-[calc(var(--bottom-nav)+var(--safe-bottom)+12px)] left-4 right-4 z-40 animate-slide-up">
-      <div className="install-banner">
-        <Image src="/logo.svg" alt="SOCIO" width={40} height={40} className="shrink-0 rounded-[10px]" />
-        <div className="flex-1 min-w-0">
-          <p className="text-[13px] font-bold">Install app</p>
-          <p className="text-[11px] opacity-75 mt-0.5">Add SOCIO to your home screen for faster access</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <button onClick={handleInstall} className="btn btn-sm bg-white text-[var(--color-primary-dark)] font-bold text-[12px] px-3 py-1.5">
-            <Download size={14} /> Install app
-          </button>
-          <button onClick={handleDismiss} className="btn btn-sm btn-ghost text-white border-white/40 text-[12px] px-2.5 py-1.5">
-            Remind me later
-          </button>
+    <div className="fixed bottom-[calc(var(--bottom-nav)+var(--safe-bottom)+12px)] left-3 right-3 z-40 animate-slide-up">
+      <div className="relative overflow-hidden rounded-[var(--radius-lg)] bg-gradient-to-br from-[var(--color-primary-dark)] via-[var(--color-primary)] to-[#1a6bdb] text-white p-4 shadow-2xl border border-white/10">
+        {/* Decorative background elements */}
+        <div className="absolute -top-20 -right-20 w-40 h-40 rounded-full bg-white/5 blur-3xl" />
+        <div className="absolute -bottom-16 -left-16 w-32 h-32 rounded-full bg-white/5 blur-3xl" />
+        
+        {/* Content */}
+        <div className="relative z-10">
+          <div className="flex items-start gap-3 mb-3">
+            <div className="w-12 h-12 rounded-[var(--radius-lg)] bg-white/10 flex items-center justify-center shrink-0 ring-2 ring-white/20">
+              <Image src="/logo.svg" alt="SOCIO" width={28} height={28} />
+            </div>
+            <div className="flex-1 min-w-0 pt-0.5">
+              <p className="text-[14px] font-extrabold">Get SOCIO on your device</p>
+              <p className="text-[12px] opacity-80 mt-0.5 leading-snug">One-tap access to events, registrations & your network</p>
+            </div>
+          </div>
+          
+          {/* Quick benefits */}
+          <div className="grid grid-cols-3 gap-2 mb-3">
+            <div className="text-center text-[10px] opacity-75">
+              <p className="font-bold">Instant</p>
+            </div>
+            <div className="text-center text-[10px] opacity-75">
+              <p className="font-bold">Offline</p>
+            </div>
+            <div className="text-center text-[10px] opacity-75">
+              <p className="font-bold">Notifications</p>
+            </div>
+          </div>
+          
+          {/* Actions */}
+          <div className="flex gap-2">
+            <button 
+              onClick={handleInstall} 
+              className="flex-1 btn bg-white text-[var(--color-primary-dark)] font-bold text-[13px] py-2.5 rounded-[var(--radius-lg)] hover:bg-white/95 transition-all active:scale-95"
+            >
+              <Download size={15} className="inline mr-1" />
+              Install
+            </button>
+            <button 
+              onClick={handleDismiss} 
+              className="btn bg-white/15 text-white font-semibold text-[13px] py-2.5 px-3 rounded-[var(--radius-lg)] border border-white/20 hover:bg-white/20 transition-all"
+            >
+              Later
+            </button>
+          </div>
         </div>
       </div>
     </div>

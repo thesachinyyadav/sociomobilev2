@@ -224,14 +224,21 @@ export default function RegisterPage() {
     );
   }
 
-  if (!event || (!authLoading && !userData)) {
+  if (!authLoading && !userData) {
+    // Save current path so auth redirects back here after sign-in
+    if (typeof window !== "undefined") {
+      sessionStorage.setItem("returnTo", window.location.pathname);
+    }
+    router.replace("/auth");
+    return null;
+  }
+
+  if (!event) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3 px-6 text-center">
         <AlertCircle size={40} className="text-red-400" />
-        <p className="font-bold">{!event ? "Event not found" : "Please sign in first"}</p>
-        <Link href={!event ? "/discover" : "/auth"} className="btn btn-primary text-sm mt-2">
-          {!event ? "Back" : "Sign in"}
-        </Link>
+        <p className="font-bold">Event not found</p>
+        <Link href="/discover" className="btn btn-primary text-sm mt-2">Back</Link>
       </div>
     );
   }

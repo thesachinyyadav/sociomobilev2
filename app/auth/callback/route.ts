@@ -80,7 +80,8 @@ export async function GET(request: NextRequest) {
     const { data, error } = await supabase.auth.exchangeCodeForSession(code);
     if (error) throw error;
     if (data.user) createUserInDB(data.user);
-    return NextResponse.redirect(`${appOrigin}/discover`);
+    // Redirect to /auth so the auth page can pick up sessionStorage.returnTo
+    return NextResponse.redirect(`${appOrigin}/auth`);
   } catch (err) {
     console.error("Auth callback error:", err);
     try { await supabase.auth.signOut(); } catch {}

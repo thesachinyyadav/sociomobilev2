@@ -78,9 +78,7 @@ function findAnswer(input: string, qaList: QA[]): string | null {
 export default function ChatbotFab() {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
-  const [inputValue, setInputValue] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
   const pathname = usePathname();
 
   const pageQA = getPageQA(pathname);
@@ -90,14 +88,9 @@ export default function ChatbotFab() {
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
   }, [messages]);
-  useEffect(() => {
-    if (open && inputRef.current) setTimeout(() => inputRef.current?.focus(), 200);
-  }, [open]);
-
   const handleQuestion = (text: string) => {
     if (!text.trim()) return;
     setMessages((prev) => [...prev, { role: "user", content: text.trim() }]);
-    setInputValue("");
     const answer = findAnswer(text, allQA);
     setTimeout(() => {
       setMessages((prev) => [...prev, {
@@ -212,26 +205,7 @@ export default function ChatbotFab() {
             )}
           </div>
 
-          {/* Input */}
-          <div className="shrink-0 border-t border-gray-200 px-3 py-2.5 bg-white">
-            <form className="flex items-center gap-2" onSubmit={(e) => { e.preventDefault(); handleQuestion(inputValue); }}>
-              <input
-                ref={inputRef}
-                type="text"
-                value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-                placeholder="Type a question..."
-                className="flex-1 text-[14px] px-4 py-2.5 bg-gray-100 rounded-full border-none outline-none focus:ring-2 focus:ring-[var(--color-primary)]/30 transition-all"
-              />
-              <button type="submit" disabled={!inputValue.trim()}
-                className="w-10 h-10 rounded-full bg-[var(--color-primary)] text-white flex items-center justify-center shrink-0 disabled:opacity-40 transition-opacity active:scale-95"
-                aria-label="Send">
-                <svg className="w-4 h-4 translate-x-[1px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                </svg>
-              </button>
-            </form>
-          </div>
+
         </div>
       )}
     </>

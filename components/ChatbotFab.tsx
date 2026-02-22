@@ -255,7 +255,7 @@ export default function ChatbotFab() {
                 className="flex-1 text-[14px] px-4 py-2.5 bg-gray-100 rounded-full border-none outline-none focus:ring-2 focus:ring-[var(--color-primary)]/30 transition-all disabled:opacity-50"
               />
               <button
-                onClick={sendMessage}
+                onClick={() => sendMessage()}
                 disabled={!input.trim() || loading || !session}
                 className="w-10 h-10 rounded-full bg-[var(--color-primary)] text-white flex items-center justify-center shrink-0 disabled:opacity-40 transition-opacity active:scale-95"
                 aria-label="Send message"

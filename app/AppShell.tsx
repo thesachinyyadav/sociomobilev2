@@ -7,7 +7,7 @@ import TopBar from "@/components/TopBar";
 import BottomNav from "@/components/BottomNav";
 import InstallPrompt from "@/components/InstallPrompt";
 import BrowserNotificationPrompt from "@/components/BrowserNotificationPrompt";
-import ChatbotSoonFab from "@/components/ChatbotSoonFab";
+import ChatbotFab from "@/components/ChatbotFab";
 import CampusSelector, { isCampusDismissedRecently } from "@/components/CampusSelector";
 import { useAuth } from "@/context/AuthContext";
 
@@ -38,7 +38,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       <main>{children}</main>
       {!hide && <BottomNav />}
       {!hide && <InstallPrompt />}
-      {!hide && <ChatbotSoonFab />}
+      {!hide && <ChatbotFab />}
       {!hide && userData && <BrowserNotificationPrompt />}
       {needsCampus && !campusDismissed && userData && (
         <CampusSelector

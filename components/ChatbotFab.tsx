@@ -38,7 +38,7 @@ function getPageQA(pathname: string): QA[] {
   ];
   if (pathname === "/profile") return [
     { q: "Where are my registrations?", a: "Your registered events are shown on this page under the Registrations section. You can also see your attendance history." },
-    { q: "How do I edit my profile?", a: "Tap the Edit button on this page to update your name, bio, and other details." },
+    { q: "Can I edit my profile here?", a: "Profile editing is not available right now. You can use this page to view your details, registrations, attendance history, and QR codes." },
     { q: "Where is my QR code?", a: "Your QR codes appear in the Registrations section. Tap on a registration to view or screenshot your QR." },
   ];
   if (pathname === "/discover") return [
@@ -70,7 +70,7 @@ function findAnswer(input: string, qaList: QA[]): string | null {
   if (/cancel|refund/i.test(lower)) return "To cancel a registration, please contact the event organiser directly via the event page.";
   if (/contact|help|support/i.test(lower)) return "You can reach our support team via the Contact page.";
   if (/fest|festival/i.test(lower)) return "Fests are collections of related events. Visit the Fests tab to browse upcoming festivals.";
-  if (/profile|account/i.test(lower)) return "Visit your Profile to see registrations, attendance history, and edit your details.";
+  if (/profile|account/i.test(lower)) return "Visit your Profile to view your registrations, attendance history, and QR codes. Profile editing is not available right now.";
   return null;
 }
 
@@ -95,7 +95,7 @@ export default function ChatbotFab() {
     setTimeout(() => {
       setMessages((prev) => [...prev, {
         role: "assistant",
-        content: answer || "I'm not sure about that one. Try picking a question below, or check the Events/Fests pages for more info!",
+        content: answer || "I'm not sure about that one yet. Try another question below, or check the Events/Fests pages for more info!",
       }]);
     }, 350);
   };
@@ -167,7 +167,7 @@ export default function ChatbotFab() {
                 <div>
                   <p className="font-bold text-[15px] text-gray-900">Need help? 👋</p>
                   <p className="text-[13px] text-gray-500 mt-1">
-                    Pick a question or type your own!
+                    Pick a question below and I’ll help.
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-2 mt-2 justify-center">

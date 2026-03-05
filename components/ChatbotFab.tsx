@@ -78,6 +78,8 @@ function findAnswer(input: string, qaList: QA[]): string | null {
 export default function ChatbotFab() {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
+  const [typingIdx, setTypingIdx] = useState<number | null>(null);
+  const [displayedLen, setDisplayedLen] = useState(0);
   const scrollRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
 
@@ -87,20 +89,36 @@ export default function ChatbotFab() {
 
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-  }, [messages]);
+  }, [messages, displayedLen]);
+
+  /* Typewriter effect */
+  useEffect(() => {
+    if (typingIdx === null) return;
+    const msg = messages[typingIdx];
+    if (!msg) return;
+    const fullLen = msg.content.length;
+    if (displayedLen >= fullLen) { setTypingIdx(null); return; }
+    const id = setTimeout(() => setDisplayedLen((l: number) => Math.min(l + 1, fullLen)), 12);
+    return () => clearTimeout(id);
+  }, [typingIdx, displayedLen, messages]);
+
   const handleQuestion = (text: string) => {
-    if (!text.trim()) return;
+    if (!text.trim() || typingIdx !== null) return;
     setMessages((prev) => [...prev, { role: "user", content: text.trim() }]);
     const answer = findAnswer(text, allQA);
+    const reply = answer || "I'm not sure about that one yet. Try another question below, or check the Events/Fests pages for more info!";
     setTimeout(() => {
-      setMessages((prev) => [...prev, {
-        role: "assistant",
-        content: answer || "I'm not sure about that one yet. Try another question below, or check the Events/Fests pages for more info!",
-      }]);
+      setMessages((prev) => {
+        const next = [...prev, { role: "assistant" as const, content: reply }];
+        setTypingIdx(next.length - 1);
+        setDisplayedLen(0);
+        return next;
+      });
     }, 350);
   };
 
-  const clearChat = () => setMessages([]);
+  const clearChat = () => { setMessages([]); setTypingIdx(null); setDisplayedLen(0); };
+  const isTyping = typingIdx !== null;
   const asked = messages.filter((m) => m.role === "user").map((m) => m.content);
   const remaining = quickQuestions.filter((q) => !asked.includes(q));
 
@@ -125,8 +143,16 @@ export default function ChatbotFab() {
       {/* Chat Panel */}
       {open && (
         <div
-          className="fixed inset-0 z-50 flex flex-col bg-white"
-          style={{ paddingBottom: "calc(var(--bottom-nav) + var(--safe-bottom))" }}
+          className="fixed z-50 flex flex-col bg-white"
+          style={{
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            maxWidth: "100vw",
+            maxHeight: "100dvh",
+            paddingBottom: "calc(var(--bottom-nav, 0px) + var(--safe-bottom, 0px))",
+          }}
         >
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 bg-[var(--color-primary)] text-white shrink-0">
@@ -156,7 +182,7 @@ export default function ChatbotFab() {
           </div>
 
           {/* Messages */}
-          <div ref={scrollRef} className="flex-1 overflow-y-auto px-3 py-3 space-y-3">
+          <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-3 py-3 space-y-3">
             {messages.length === 0 && (
               <div className="flex flex-col items-center justify-center h-full text-center px-6 gap-3">
                 <div className="w-14 h-14 rounded-full bg-[var(--color-primary-light)] flex items-center justify-center">
@@ -170,10 +196,10 @@ export default function ChatbotFab() {
                     Pick a question below and I’ll help.
                   </p>
                 </div>
-                <div className="flex flex-wrap gap-2 mt-2 justify-center">
+                <div className="flex flex-wrap gap-2 mt-2 justify-center max-w-full px-2">
                   {quickQuestions.map((q) => (
                     <button key={q} onClick={() => handleQuestion(q)}
-                      className="text-[12px] px-3 py-1.5 rounded-full border border-[var(--color-border)] text-[var(--color-primary)] hover:bg-[var(--color-primary-light)] transition-colors">
+                      className="text-[12px] px-3 py-1.5 rounded-full border border-[var(--color-border)] text-[var(--color-primary)] hover:bg-[var(--color-primary-light)] transition-colors break-words max-w-full">
                       {q}
                     </button>
                   ))}
@@ -182,22 +208,34 @@ export default function ChatbotFab() {
             )}
 
             {messages.map((msg, i) => (
-              <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-                <div className={`max-w-[85%] px-3.5 py-2.5 rounded-2xl text-[13.5px] leading-relaxed whitespace-pre-wrap ${
+              <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"} w-full`}>
+                <div className={`max-w-[85%] px-3.5 py-2.5 rounded-2xl text-[13.5px] leading-relaxed whitespace-pre-wrap break-words overflow-hidden ${
                   msg.role === "user"
                     ? "bg-[var(--color-primary)] text-white rounded-br-md"
                     : "bg-gray-100 text-gray-900 rounded-bl-md"
                 }`}>
-                  {msg.content}
+                  {i === typingIdx ? msg.content.slice(0, displayedLen) : msg.content}
+                  {i === typingIdx && <span className="inline-block w-[2px] h-[14px] bg-gray-400 ml-0.5 align-middle animate-pulse" />}
                 </div>
               </div>
             ))}
 
-            {messages.length > 0 && remaining.length > 0 && (
-              <div className="flex flex-wrap gap-2 mt-1 justify-center">
+            {/* Typing indicator (before message arrives) */}
+            {messages.length > 0 && messages[messages.length - 1].role === "user" && typingIdx === null && (
+              <div className="flex justify-start">
+                <div className="px-3.5 py-2.5 rounded-2xl rounded-bl-md bg-gray-100 flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
+                  <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
+                  <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
+                </div>
+              </div>
+            )}
+
+            {messages.length > 0 && remaining.length > 0 && !isTyping && (
+              <div className="flex flex-wrap gap-2 mt-1 justify-center max-w-full px-1">
                 {remaining.map((q) => (
                   <button key={q} onClick={() => handleQuestion(q)}
-                    className="text-[11px] px-2.5 py-1 rounded-full border border-[var(--color-border)] text-[var(--color-primary)] hover:bg-[var(--color-primary-light)] transition-colors">
+                    className="text-[11px] px-2.5 py-1 rounded-full border border-[var(--color-border)] text-[var(--color-primary)] hover:bg-[var(--color-primary-light)] transition-colors break-words max-w-full">
                     {q}
                   </button>
                 ))}

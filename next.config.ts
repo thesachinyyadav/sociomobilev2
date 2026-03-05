@@ -25,6 +25,54 @@ const nextConfig: NextConfig = {
         { key: "Content-Type", value: "application/manifest+json" },
       ],
     },
+    /* ── Immutable Next.js build assets ── */
+    {
+      source: "/_next/static/:path*",
+      headers: [
+        {
+          key: "Cache-Control",
+          value: "public, max-age=31536000, immutable",
+        },
+      ],
+    },
+    /* ── Static public assets (images, icons, fonts) ── */
+    {
+      source: "/images/:path*",
+      headers: [
+        {
+          key: "Cache-Control",
+          value: "public, max-age=2592000, stale-while-revalidate=86400",
+        },
+      ],
+    },
+    {
+      source: "/:path*.png",
+      headers: [
+        {
+          key: "Cache-Control",
+          value: "public, max-age=2592000, stale-while-revalidate=86400",
+        },
+      ],
+    },
+    {
+      source: "/:path*.svg",
+      headers: [
+        {
+          key: "Cache-Control",
+          value: "public, max-age=2592000, stale-while-revalidate=86400",
+        },
+      ],
+    },
+    /* ── Google Fonts are already CDN-cached, but the CSS import needs a hint ── */
+    {
+      source: "/:path*.woff2",
+      headers: [
+        {
+          key: "Cache-Control",
+          value: "public, max-age=31536000, immutable",
+        },
+      ],
+    },
   ],
 };
 

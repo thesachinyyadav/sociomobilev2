@@ -2,6 +2,12 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 
+const COOKIE_OPTIONS = {
+  maxAge: 365 * 24 * 60 * 60,
+  path: "/",
+  sameSite: "lax" as const,
+};
+
 const protectedRoutes = ["/profile"];
 
 export async function middleware(request: NextRequest) {
@@ -17,12 +23,13 @@ export async function middleware(request: NextRequest) {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
+      cookieOptions: COOKIE_OPTIONS,
       cookies: {
         getAll: () =>
           request.cookies.getAll().map((c) => ({ name: c.name, value: c.value })),
         setAll: (cookies: { name: string; value: string; options?: any }[]) =>
           cookies.forEach(({ name, value, options }) =>
-            response.cookies.set(name, value, options)
+            response.cookies.set(name, value, { ...options, ...COOKIE_OPTIONS })
           ),
       },
     }

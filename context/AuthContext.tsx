@@ -6,10 +6,35 @@ import {
   useEffect,
   useState,
   useCallback,
+  useRef,
   type ReactNode,
 } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import type { Session, User } from "@supabase/supabase-js";
+
+/* ── Local-storage helpers for PWA session persistence ── */
+const LS_SESSION_KEY = "socio_pwa_session";
+
+function persistSessionToLS(session: Session | null) {
+  try {
+    if (session) {
+      localStorage.setItem(LS_SESSION_KEY, JSON.stringify(session));
+    } else {
+      localStorage.removeItem(LS_SESSION_KEY);
+    }
+  } catch {}
+}
+
+function restoreSessionFromLS(): Session | null {
+  try {
+    const raw = localStorage.getItem(LS_SESSION_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw) as Session;
+  } catch {
+    localStorage.removeItem(LS_SESSION_KEY);
+    return null;
+  }
+}
 
 /* ── Types ── */
 export interface UserData {
@@ -67,6 +92,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [userData, setUserData] = useState<UserData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  /* Schedule a proactive token refresh 60 s before the access token expires */
+  const scheduleTokenRefresh = useCallback((s: Session | null) => {
+    if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
+    if (!s) return;
+
+    const expiresAt = s.expires_at; // unix seconds
+    if (!expiresAt) return;
+
+    const msUntilExpiry = expiresAt * 1000 - Date.now() - 60_000; // 60 s buffer
+    if (msUntilExpiry <= 0) {
+      // Already (almost) expired — refresh now
+      supabase.auth.refreshSession();
+      return;
+    }
+
+    refreshTimerRef.current = setTimeout(() => {
+      supabase.auth.refreshSession();
+    }, msUntilExpiry);
+  }, []);
 
   /* Fetch profile from backend */
   const fetchUserData = useCallback(async (email: string) => {
@@ -138,21 +184,61 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   /* Auth state listener */
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session: s } }) => {
-      setSession(s);
-      setUser(s?.user ?? null);
+    let mounted = true;
+
+    async function bootstrap() {
+      // 1. Try Supabase cookie-based session first
+      const { data: { session: s } } = await supabase.auth.getSession();
+
       if (s?.user?.email) {
-        ensureUser(s.user).finally(() => setIsLoading(false));
-      } else {
+        if (mounted) {
+          setSession(s);
+          setUser(s.user);
+          persistSessionToLS(s);
+          scheduleTokenRefresh(s);
+        }
+        await ensureUser(s.user);
+        if (mounted) setIsLoading(false);
+        return;
+      }
+
+      // 2. Cookie session missing — try localStorage backup (PWA standalone)
+      const lsSession = restoreSessionFromLS();
+      if (lsSession?.refresh_token) {
+        const { data: refreshed } = await supabase.auth.setSession({
+          access_token: lsSession.access_token,
+          refresh_token: lsSession.refresh_token,
+        });
+
+        if (refreshed.session?.user?.email && mounted) {
+          setSession(refreshed.session);
+          setUser(refreshed.session.user);
+          persistSessionToLS(refreshed.session);
+          scheduleTokenRefresh(refreshed.session);
+          await ensureUser(refreshed.session.user);
+          setIsLoading(false);
+          return;
+        }
+      }
+
+      // 3. No valid session anywhere
+      if (mounted) {
+        persistSessionToLS(null);
         setIsLoading(false);
       }
-    });
+    }
+
+    bootstrap();
 
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, s) => {
+      if (!mounted) return;
       setSession(s);
       setUser(s?.user ?? null);
+      persistSessionToLS(s);
+      scheduleTokenRefresh(s);
+
       if (s?.user?.email) ensureUser(s.user);
       else {
         setUserData(null);
@@ -160,8 +246,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     });
 
-    return () => subscription.unsubscribe();
-  }, [ensureUser]);
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+      if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
+    };
+  }, [ensureUser, scheduleTokenRefresh]);
 
   /* Actions */
   const signInWithGoogle = useCallback(async () => {
@@ -177,6 +267,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setSession(null);
     setUser(null);
     setUserData(null);
+    persistSessionToLS(null);
   }, []);
 
   /* Derived: show campus selector for christ members without campus */

@@ -1,90 +1,198 @@
-const CACHE_NAME = "socio-pwa-v2";
+/* ──────────────────────────────────────────────────────────
+   SOCIO PWA — Service Worker v3
+   • Cache-first for immutable Next.js bundles (/_next/static/)
+   • Stale-while-revalidate for API data
+   • Network-first for navigations with offline fallback
+   • Cache-first for images / fonts / CSS
+   ────────────────────────────────────────────────────────── */
+
+const CACHE_STATIC = "socio-static-v3";   // Next.js chunks, fonts, CSS
+const CACHE_PAGES = "socio-pages-v3";     // HTML navigations
+const CACHE_IMAGES = "socio-images-v3";   // images
+const CACHE_API = "socio-api-v3";         // API data (stale-while-revalidate)
 const OFFLINE_URL = "/offline";
+
+const ALL_CACHES = [CACHE_STATIC, CACHE_PAGES, CACHE_IMAGES, CACHE_API];
 
 const PRECACHE_URLS = [
   "/",
   "/offline",
+  "/discover",
+  "/events",
+  "/fests",
   "/manifest.json",
 ];
 
-// Install — pre-cache shell
+/* ── Install — pre-cache shell ── */
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(PRECACHE_URLS))
+    caches.open(CACHE_PAGES).then((cache) => cache.addAll(PRECACHE_URLS))
   );
   self.skipWaiting();
 });
 
-// Activate — clean old caches
+/* ── Activate — clean old caches ── */
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
-      Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)))
+      Promise.all(
+        keys
+          .filter((k) => !ALL_CACHES.includes(k))
+          .map((k) => caches.delete(k))
+      )
     )
   );
   self.clients.claim();
 });
 
-// Fetch — network-first for navigations, cache-first for assets
+/* ── Helpers ── */
+function isNavigation(request) {
+  return request.mode === "navigate";
+}
+
+function isNextStatic(url) {
+  return url.includes("/_next/static/");
+}
+
+function isNextData(url) {
+  return url.includes("/_next/data/");
+}
+
+function isImage(request) {
+  return (
+    request.destination === "image" ||
+    /\.(png|jpg|jpeg|gif|webp|avif|svg|ico)(\?|$)/i.test(request.url)
+  );
+}
+
+function isStaticAsset(request) {
+  return ["style", "script", "font"].includes(request.destination);
+}
+
+function isAPIRoute(url) {
+  return url.includes("/api/pwa/");
+}
+
+/* ── Fetch handler ── */
 self.addEventListener("fetch", (event) => {
   const { request } = event;
 
   // Skip non-GET
   if (request.method !== "GET") return;
 
-  // Skip API calls and auth routes
-  if (request.url.includes("/api/") || request.url.includes("/auth/callback")) return;
+  // Never touch auth routes
+  if (request.url.includes("/auth/callback")) return;
 
-  // Never handle Next.js internals/chunks
-  if (request.url.includes("/_next/")) return;
+  const url = request.url;
 
-  // Navigation requests — network first, fallback to offline page
-  if (request.mode === "navigate") {
-    event.respondWith(
-      fetch(request)
-        .then((response) => {
-          const clone = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
-          return response;
-        })
-        .catch(() => caches.match(OFFLINE_URL).then((r) => r || caches.match("/")))
-    );
-    return;
-  }
-
-  // Static assets — cache first
-  if (
-    request.destination === "image" ||
-    request.destination === "style" ||
-    request.destination === "script" ||
-    request.destination === "font"
-  ) {
+  /* 1. Next.js immutable static bundles — cache-first (they're fingerprinted) */
+  if (isNextStatic(url)) {
     event.respondWith(
       caches.match(request).then(
         (cached) =>
           cached ||
-          fetch(request).then((response) => {
-            if (response.ok) {
-              const clone = response.clone();
-              caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+          fetch(request).then((res) => {
+            if (res.ok) {
+              const clone = res.clone();
+              caches.open(CACHE_STATIC).then((c) => c.put(request, clone));
             }
-            return response;
-          }).catch(() =>
-            caches.match(request).then(
-              (fallback) =>
-                fallback ||
-                new Response("", {
-                  status: 504,
-                  statusText: "Gateway Timeout",
-                })
-            )
-          )
+            return res;
+          })
+      )
+    );
+    return;
+  }
+
+  /* 2. API data — stale-while-revalidate */
+  if (isAPIRoute(url)) {
+    event.respondWith(
+      caches.open(CACHE_API).then((cache) =>
+        cache.match(request).then((cached) => {
+          const networkFetch = fetch(request)
+            .then((res) => {
+              if (res.ok) cache.put(request, res.clone());
+              return res;
+            })
+            .catch(() => cached || new Response("{}", { status: 504 }));
+
+          return cached || networkFetch;
+        })
+      )
+    );
+    return;
+  }
+
+  /* 3. Next.js data routes (ISR JSON) — network-first, cache fallback */
+  if (isNextData(url)) {
+    event.respondWith(
+      fetch(request)
+        .then((res) => {
+          const clone = res.clone();
+          caches.open(CACHE_PAGES).then((c) => c.put(request, clone));
+          return res;
+        })
+        .catch(() => caches.match(request))
+    );
+    return;
+  }
+
+  /* 4. Navigation — network-first, offline fallback */
+  if (isNavigation(request)) {
+    event.respondWith(
+      fetch(request)
+        .then((res) => {
+          const clone = res.clone();
+          caches.open(CACHE_PAGES).then((c) => c.put(request, clone));
+          return res;
+        })
+        .catch(() =>
+          caches
+            .match(request)
+            .then((r) => r || caches.match(OFFLINE_URL))
+            .then((r) => r || caches.match("/"))
+        )
+    );
+    return;
+  }
+
+  /* 5. Images — cache-first */
+  if (isImage(request)) {
+    event.respondWith(
+      caches.match(request).then(
+        (cached) =>
+          cached ||
+          fetch(request).then((res) => {
+            if (res.ok) {
+              const clone = res.clone();
+              caches.open(CACHE_IMAGES).then((c) => c.put(request, clone));
+            }
+            return res;
+          })
+      )
+    );
+    return;
+  }
+
+  /* 6. Other static assets (CSS, JS, fonts) — cache-first */
+  if (isStaticAsset(request)) {
+    event.respondWith(
+      caches.match(request).then(
+        (cached) =>
+          cached ||
+          fetch(request).then((res) => {
+            if (res.ok) {
+              const clone = res.clone();
+              caches.open(CACHE_STATIC).then((c) => c.put(request, clone));
+            }
+            return res;
+          })
       )
     );
     return;
   }
 });
 
+/* ── Push notifications ── */
 self.addEventListener("push", (event) => {
   const payload = (() => {
     try {

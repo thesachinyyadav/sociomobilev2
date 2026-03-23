@@ -138,8 +138,8 @@ export default function InstallPrompt() {
         {/* Content */}
         <div className="relative z-10">
           <div className="flex items-start gap-3 mb-3">
-            <div className="w-12 h-12 rounded-[var(--radius-lg)] bg-white/10 flex items-center justify-center shrink-0 ring-2 ring-white/20">
-              <Image src="/logo.svg" alt="SOCIO" width={28} height={28} />
+            <div className="w-12 h-12 rounded-[var(--radius-lg)] bg-white flex items-center justify-center shrink-0 ring-2 ring-white/30 shadow-sm">
+              <Image src="/applogo.png" alt="SOCIO" width={28} height={28} />
             </div>
             <div className="flex-1 min-w-0 pt-0.5">
               <p className="text-[14px] font-extrabold">Get SOCIO on your device</p>

@@ -326,7 +326,7 @@ export default function EventDetailPage() {
   };
 
   return (
-    <div className="pb-28 pt-[calc(var(--nav-height)+var(--safe-top)+16px)]">
+    <div className="pwa-page pb-[calc(var(--bottom-nav)+var(--safe-bottom)+120px)] pt-[calc(var(--nav-height)+var(--safe-top)+16px)]">
       {/* Back */}
       <div className="px-4 pt-3 pb-2">
         <button
@@ -559,7 +559,7 @@ export default function EventDetailPage() {
       )}
 
       {/* Sticky register bar */}
-      <div className="fixed bottom-[var(--bottom-nav)] left-0 right-0 z-40 glass border-t border-white/30 p-3 px-4 animate-slide-up">
+      <div className="fixed bottom-[calc(var(--bottom-nav)+var(--safe-bottom))] left-0 right-0 z-40 glass border-t border-white/30 p-3 px-4 animate-slide-up">
         <div className="flex items-center justify-between gap-3">
           <div>
             <p className="text-lg font-extrabold text-[var(--color-text)]">

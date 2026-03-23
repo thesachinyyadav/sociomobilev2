@@ -104,7 +104,7 @@ export default function FestDetailPage() {
   }
 
   return (
-    <div className="pb-28 pt-[calc(var(--nav-height)+var(--safe-top)+16px)]">
+    <div className="pwa-page pt-[calc(var(--nav-height)+var(--safe-top)+16px)]">
       {/* Back */}
       <div className="px-4 pt-3 pb-2">
         <button

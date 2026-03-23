@@ -51,7 +51,7 @@ html, body {
   -webkit-font-smoothing: antialiased;
 }
 @media all and (display-mode: standalone) {
-  body { padding-top: var(--safe-top); }
+  body { padding-top: 0; }
 }
 ::-webkit-scrollbar { width: 0; height: 0; }
 .no-scrollbar { scrollbar-width: none; }

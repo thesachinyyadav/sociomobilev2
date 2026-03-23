@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { usePathname } from "next/navigation";
+import { Bot, Sparkles, Trash2, X } from "lucide-react";
 
 /* ─── Types ─────────────────────────────────────────── */
 interface QA { q: string; a: string }
@@ -133,17 +134,14 @@ export default function ChatbotFab() {
           className="fixed right-3 z-40 w-12 h-12 rounded-full bg-[var(--color-primary)] text-white shadow-[var(--shadow-primary)] flex items-center justify-center hover:scale-110 active:scale-95 transition-transform"
           style={{ bottom: "calc(var(--bottom-nav) + var(--safe-bottom) + 10px)" }}
         >
-          {/* Chat bubble icon */}
-          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z"/>
-          </svg>
+          <Bot size={19} strokeWidth={2.2} />
         </button>
       )}
 
       {/* Chat Panel */}
       {open && (
         <div
-          className="fixed z-50 flex flex-col bg-white"
+          className="fixed z-50 flex flex-col bg-[var(--color-bg)]"
           style={{
             top: 0,
             left: 0,
@@ -151,32 +149,29 @@ export default function ChatbotFab() {
             bottom: 0,
             maxWidth: "100vw",
             maxHeight: "100dvh",
+            paddingTop: "var(--safe-top, 0px)",
             paddingBottom: "calc(var(--bottom-nav, 0px) + var(--safe-bottom, 0px))",
           }}
         >
           {/* Header */}
-          <div className="flex items-center justify-between px-4 py-3 bg-[var(--color-primary)] text-white shrink-0">
-            <div className="flex items-center gap-2">
-              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z"/>
-              </svg>
+          <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-[var(--color-primary-dark)] to-[var(--color-primary)] text-white shrink-0 border-b border-white/15">
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-[var(--radius)] bg-white/15 border border-white/25 flex items-center justify-center">
+                <Bot size={18} strokeWidth={2.2} />
+              </div>
               <div>
                 <h2 className="text-[15px] font-bold leading-tight">SocioAssist</h2>
-                <p className="text-[11px] opacity-75">Quick Help</p>
+                <p className="text-[11px] opacity-80">Event help and platform guidance</p>
               </div>
             </div>
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1.5">
               {messages.length > 0 && (
-                <button onClick={clearChat} className="p-2 rounded-full hover:bg-white/15 transition-colors" aria-label="Clear chat">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                  </svg>
+                <button onClick={clearChat} className="p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors" aria-label="Clear chat">
+                  <Trash2 size={16} />
                 </button>
               )}
-              <button onClick={() => setOpen(false)} className="p-2 rounded-full hover:bg-white/15 transition-colors" aria-label="Close">
-                <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
+              <button onClick={() => setOpen(false)} className="p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors" aria-label="Close">
+                <X size={18} />
               </button>
             </div>
           </div>
@@ -184,23 +179,22 @@ export default function ChatbotFab() {
           {/* Messages */}
           <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-3 py-3 space-y-3">
             {messages.length === 0 && (
-              <div className="flex flex-col items-center justify-center h-full text-center px-6 gap-3">
-                <div className="w-14 h-14 rounded-full bg-[var(--color-primary-light)] flex items-center justify-center">
-                  <svg className="w-6 h-6 text-[var(--color-primary)]" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z"/>
-                  </svg>
+              <div className="flex flex-col items-center justify-center h-full text-center px-4 gap-3">
+                <div className="w-14 h-14 rounded-[var(--radius-lg)] bg-[var(--color-primary-light)] flex items-center justify-center border border-[var(--color-border)]">
+                  <Bot size={24} className="text-[var(--color-primary)]" />
                 </div>
                 <div>
-                  <p className="font-bold text-[15px] text-gray-900">Need help? 👋</p>
-                  <p className="text-[13px] text-gray-500 mt-1">
-                    Pick a question below and I’ll help.
+                  <p className="font-bold text-[15px] text-[var(--color-text)]">How can we help?</p>
+                  <p className="text-[13px] text-[var(--color-text-muted)] mt-1">
+                    Select a common question to get instant guidance.
                   </p>
                 </div>
-                <div className="flex flex-wrap gap-2 mt-2 justify-center max-w-full px-2">
+                <div className="w-full mt-2 grid gap-2">
                   {quickQuestions.map((q) => (
                     <button key={q} onClick={() => handleQuestion(q)}
-                      className="text-[12px] px-3 py-1.5 rounded-full border border-[var(--color-border)] text-[var(--color-primary)] hover:bg-[var(--color-primary-light)] transition-colors break-words max-w-full">
-                      {q}
+                      className="text-[12px] text-left px-3 py-2 rounded-[var(--radius)] border border-[var(--color-border)] bg-white text-[var(--color-primary)] hover:bg-[var(--color-primary-light)] transition-colors break-words w-full flex items-center justify-between gap-2">
+                      <span className="min-w-0">{q}</span>
+                      <ArrowRightMini />
                     </button>
                   ))}
                 </div>
@@ -209,10 +203,10 @@ export default function ChatbotFab() {
 
             {messages.map((msg, i) => (
               <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"} w-full`}>
-                <div className={`max-w-[85%] px-3.5 py-2.5 rounded-2xl text-[13.5px] leading-relaxed whitespace-pre-wrap break-words overflow-hidden ${
+                <div className={`max-w-[88%] px-3.5 py-2.5 rounded-2xl text-[13.5px] leading-relaxed whitespace-pre-wrap break-words overflow-hidden shadow-xs ${
                   msg.role === "user"
                     ? "bg-[var(--color-primary)] text-white rounded-br-md"
-                    : "bg-gray-100 text-gray-900 rounded-bl-md"
+                    : "bg-white text-[var(--color-text)] rounded-bl-md border border-[var(--color-border)]"
                 }`}>
                   {i === typingIdx ? msg.content.slice(0, displayedLen) : msg.content}
                   {i === typingIdx && <span className="inline-block w-[2px] h-[14px] bg-gray-400 ml-0.5 align-middle animate-pulse" />}
@@ -232,13 +226,18 @@ export default function ChatbotFab() {
             )}
 
             {messages.length > 0 && remaining.length > 0 && !isTyping && (
-              <div className="flex flex-wrap gap-2 mt-1 justify-center max-w-full px-1">
+              <div className="pt-1">
+                <p className="text-[11px] text-[var(--color-text-light)] mb-2 flex items-center gap-1.5">
+                  <Sparkles size={12} className="text-[var(--color-primary)]" /> Suggested follow-ups
+                </p>
+                <div className="flex flex-wrap gap-2 max-w-full">
                 {remaining.map((q) => (
                   <button key={q} onClick={() => handleQuestion(q)}
                     className="text-[11px] px-2.5 py-1 rounded-full border border-[var(--color-border)] text-[var(--color-primary)] hover:bg-[var(--color-primary-light)] transition-colors break-words max-w-full">
                     {q}
                   </button>
                 ))}
+                </div>
               </div>
             )}
           </div>
@@ -247,5 +246,13 @@ export default function ChatbotFab() {
         </div>
       )}
     </>
+  );
+}
+
+function ArrowRightMini() {
+  return (
+    <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M9 5l7 7-7 7" />
+    </svg>
   );
 }

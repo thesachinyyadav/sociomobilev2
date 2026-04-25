@@ -79,6 +79,26 @@ const AuthContext = createContext<AuthCtx>({
 
 export const useAuth = () => useContext(AuthContext);
 
+function getFriendlyOutsiderNameError(rawError?: string | null) {
+  const normalized = String(rawError || "").trim().toLowerCase();
+  if (!normalized) return "We couldn't save your name right now. Please try again.";
+  if (normalized.includes("name edit already used")) {
+    return "Your one-time name update has already been used.";
+  }
+  if (normalized.includes("unauthorized")) {
+    return "Your session expired. Please sign in again and retry.";
+  }
+  if (normalized.includes("only outsider users can edit name")) {
+    return "This update option is available only for visitor accounts.";
+  }
+  if (normalized.includes("name must be a non-empty string") || normalized.includes("name cannot be empty")) {
+    return "Please enter your display name before saving.";
+  }
+  if (normalized.includes("network")) {
+    return "Network issue detected. Please check your connection and try again.";
+  }
+  return rawError || "We couldn't save your name right now. Please try again.";
+}
 
 function getOrgType(email: string): "christ_member" | "outsider" {
   return email.toLowerCase().endsWith("christuniversity.in")
@@ -93,6 +113,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [userData, setUserData] = useState<UserData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [showOutsiderWarning, setShowOutsiderWarning] = useState(false);
+  const [outsiderVisitorId, setOutsiderVisitorId] = useState<string | null>(null);
+  const [outsiderNameInput, setOutsiderNameInput] = useState("");
+  const [isEditingOutsiderName, setIsEditingOutsiderName] = useState(false);
+  const [isSavingOutsiderName, setIsSavingOutsiderName] = useState(false);
+  const [outsiderNameError, setOutsiderNameError] = useState<string | null>(null);
 
   /* Schedule a proactive token refresh 60 s before the access token expires */
   const scheduleTokenRefresh = useCallback((s: Session | null) => {
@@ -115,15 +141,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   /* Fetch profile from backend */
-  const fetchUserData = useCallback(async (email: string) => {
+  const fetchUserData = useCallback(async (email: string): Promise<UserData | null> => {
     try {
       const res = await fetch(`/api/pwa/users/${encodeURIComponent(email)}`);
       if (res.ok) {
         const data = await res.json();
-        setUserData(data.user ?? data);
+        const fetchedUser = data.user ?? data;
+        setUserData(fetchedUser);
+        return fetchedUser;
       }
     } catch (e) {
       console.error("Failed to fetch user data", e);
+    }
+    return null;
+  }, []);
+
+  const maybeShowOutsiderWelcome = useCallback((fetchedUser: UserData | null, authUserId?: string) => {
+    if (
+      fetchedUser?.organization_type === "outsider" &&
+      fetchedUser.visitor_id &&
+      !fetchedUser.outsider_name_edit_used
+    ) {
+      setOutsiderVisitorId(fetchedUser.visitor_id);
+      const warningKey = `outsider_warning_${authUserId || fetchedUser.email}`;
+      const hasSeenWarning = localStorage.getItem(warningKey);
+      if (!hasSeenWarning) {
+        setShowOutsiderWarning(true);
+        localStorage.setItem(warningKey, "true");
+      }
     }
   }, []);
 
@@ -177,9 +222,47 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         });
       } catch {}
 
-      await fetchUserData(email);
+      const fetchedUser = await fetchUserData(email);
+      maybeShowOutsiderWelcome(fetchedUser, supaUser.id);
     },
-    [fetchUserData]
+    [fetchUserData, maybeShowOutsiderWelcome]
+  );
+
+  const saveOutsiderName = useCallback(
+    async (name: string) => {
+      if (!userData?.email || !outsiderVisitorId) return;
+
+      setIsSavingOutsiderName(true);
+      setOutsiderNameError(null);
+      try {
+        const headers: Record<string, string> = { "Content-Type": "application/json" };
+        if (session?.access_token) headers.Authorization = `Bearer ${session.access_token}`;
+
+        const resp = await fetch(`/api/pwa/users/${encodeURIComponent(userData.email)}/name`, {
+          method: "PUT",
+          headers,
+          body: JSON.stringify({
+            name: name.trim(),
+            visitor_id: outsiderVisitorId,
+          }),
+        });
+
+        const data = await resp.json().catch(() => ({}));
+        if (!resp.ok) {
+          setOutsiderNameError(getFriendlyOutsiderNameError(data.error));
+          return;
+        }
+
+        setShowOutsiderWarning(false);
+        setIsEditingOutsiderName(false);
+        await fetchUserData(userData.email);
+      } catch {
+        setOutsiderNameError(getFriendlyOutsiderNameError("Network error"));
+      } finally {
+        setIsSavingOutsiderName(false);
+      }
+    },
+    [fetchUserData, outsiderVisitorId, session?.access_token, userData?.email]
   );
 
   /* Auth state listener */
@@ -282,6 +365,107 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       value={{ session, user, userData, isLoading, needsCampus, signInWithGoogle, signOut, refreshUserData }}
     >
       {children}
+      {showOutsiderWarning && outsiderVisitorId && userData && (
+        <div className="modal-backdrop">
+          <div className="modal-card overflow-hidden">
+            <div className="bg-[var(--color-primary-dark)] px-5 py-4">
+              <h3 className="text-lg font-bold text-white">Welcome, Visitor</h3>
+              <p className="text-blue-100 text-xs mt-0.5">External visitor access</p>
+            </div>
+
+            <div className="p-5 space-y-3">
+              <div className="flex items-center justify-between rounded-xl bg-[var(--color-primary-dark)] px-4 py-3">
+                <span className="text-xs text-blue-100">Visitor ID</span>
+                <span className="text-base font-bold text-[var(--color-accent)] tracking-wider">
+                  {outsiderVisitorId}
+                </span>
+              </div>
+
+              <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2">
+                <p className="text-[11px] leading-relaxed text-amber-800">
+                  Please confirm your display name before continuing. Visitor profiles can update it only once.
+                </p>
+              </div>
+
+              <div className="rounded-xl bg-gray-50 px-4 py-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[11px] font-medium text-[var(--color-text-light)] mb-1">Display Name</p>
+                    {!isEditingOutsiderName ? (
+                      <p className="text-sm font-semibold text-[var(--color-primary-dark)] truncate">
+                        {userData.name || session?.user?.user_metadata?.full_name || "--"}
+                      </p>
+                    ) : (
+                      <input
+                        type="text"
+                        value={outsiderNameInput}
+                        onChange={(e) => setOutsiderNameInput(e.target.value)}
+                        className="input w-full text-sm"
+                        placeholder="Enter your name"
+                        autoFocus
+                      />
+                    )}
+                  </div>
+                  {!isEditingOutsiderName && !isSavingOutsiderName && (
+                    <button
+                      onClick={() => {
+                        setOutsiderNameInput(userData.name || session?.user?.user_metadata?.full_name || "");
+                        setIsEditingOutsiderName(true);
+                        setOutsiderNameError(null);
+                      }}
+                      className="text-[var(--color-primary)] text-xs font-semibold shrink-0"
+                    >
+                      Change Name
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {outsiderNameError && (
+                <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2">
+                  <p className="text-red-700 text-xs text-center">{outsiderNameError}</p>
+                </div>
+              )}
+
+              {!isEditingOutsiderName ? (
+                <button
+                  onClick={() => saveOutsiderName(userData.name || session?.user?.user_metadata?.full_name || "")}
+                  disabled={isSavingOutsiderName}
+                  className="btn btn-primary w-full"
+                >
+                  {isSavingOutsiderName ? "Saving..." : "Name Is Correct, Continue"}
+                </button>
+              ) : (
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => {
+                      setIsEditingOutsiderName(false);
+                      setOutsiderNameError(null);
+                    }}
+                    disabled={isSavingOutsiderName}
+                    className="btn btn-ghost flex-1"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (!outsiderNameInput.trim()) {
+                        setOutsiderNameError(getFriendlyOutsiderNameError("Name cannot be empty"));
+                        return;
+                      }
+                      saveOutsiderName(outsiderNameInput);
+                    }}
+                    disabled={isSavingOutsiderName}
+                    className="btn btn-primary flex-1"
+                  >
+                    {isSavingOutsiderName ? "Saving..." : "Save Name"}
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </AuthContext.Provider>
   );
 }

@@ -2,16 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Compass, CalendarDays, User } from "lucide-react";
-
-import { Flame } from "lucide-react";
+import { Home, Compass, CalendarDays, Flame } from "lucide-react";
 
 const tabs = [
   { href: "/", icon: Home, label: "Home" },
   { href: "/discover", icon: Compass, label: "Discover" },
   { href: "/events", icon: CalendarDays, label: "Events" },
   { href: "/fests", icon: Flame, label: "Fests" },
-  { href: "/profile", icon: User, label: "Profile" },
 ] as const;
 
 export default function BottomNav() {
@@ -24,20 +21,20 @@ export default function BottomNav() {
 
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-50 glass border-t border-[var(--color-border)]"
-      style={{ paddingBottom: "var(--safe-bottom)" }}
+      className="fixed bottom-0 left-0 right-0 z-50 pointer-events-none"
+      style={{ paddingBottom: "calc(var(--safe-bottom) + 10px)" }}
     >
       <div
-        className="grid grid-cols-5"
-        style={{ height: "var(--bottom-nav)" }}
+        className="mx-auto w-[min(92vw,360px)] rounded-[22px] border border-[var(--color-border)] bg-[rgba(255,255,255,0.94)] shadow-[0_12px_34px_rgba(17,24,39,0.14)] backdrop-blur-xl pointer-events-auto"
       >
+        <div className="grid grid-cols-4 gap-1 p-1.5" style={{ minHeight: "var(--bottom-nav)" }}>
         {tabs.map(({ href, icon: Icon, label }) => {
           const active = isActive(href);
           return (
             <Link
               key={href}
               href={href}
-              className={`relative flex flex-col items-center justify-center gap-0.5 transition-all duration-200 rounded-[var(--radius-sm)] mx-1 my-1 ${
+              className={`relative flex flex-col items-center justify-center gap-0.5 rounded-[14px] py-2 transition-all duration-200 ${
                 active
                   ? "text-[var(--color-primary)] bg-[var(--color-primary-light)]"
                   : "text-[var(--color-text-light)]"
@@ -45,20 +42,24 @@ export default function BottomNav() {
             >
               <div className={`relative transition-transform duration-200 ${active ? "scale-110" : ""}`}>
                 <Icon
-                  size={22}
+                  size={20}
                   strokeWidth={active ? 2.4 : 1.6}
                 />
               </div>
               <span
                 className={`text-[10px] leading-none transition-all ${
-                  active ? "font-bold" : "font-medium"
+                  active ? "font-bold" : "font-semibold"
                 }`}
               >
                 {label}
               </span>
+              {active && (
+                <span className="absolute bottom-1 h-1 w-1 rounded-full bg-[var(--color-primary)]" aria-hidden="true" />
+              )}
             </Link>
           );
         })}
+        </div>
       </div>
     </nav>
   );

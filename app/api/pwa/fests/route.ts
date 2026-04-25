@@ -1,10 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const API_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000").replace(/\/$/, "");
+const API_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000")
+  .replace(/\/api\/?$/, "")
+  .replace(/\/$/, "");
 
-export async function GET(_request: NextRequest) {
+export async function GET(request: NextRequest) {
+  const authHeader = request.headers.get("Authorization");
+
   try {
     const res = await fetch(`${API_URL}/api/fests`, {
+      headers: authHeader ? { Authorization: authHeader } : undefined,
       cache: "no-store",
     });
 

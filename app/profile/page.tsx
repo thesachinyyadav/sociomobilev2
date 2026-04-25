@@ -20,7 +20,7 @@ import {
   Bell,
   Ticket,
   MapPin,
-  Settings,
+  Pencil,
 } from "lucide-react";
 import type { FetchedEvent } from "@/context/EventContext";
 
@@ -36,6 +36,10 @@ export default function ProfilePage() {
   const [registrations, setRegistrations] = useState<Registration[]>([]);
   const [regLoading, setRegLoading] = useState(true);
   const [showCampusSelector, setShowCampusSelector] = useState(false);
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [nameInput, setNameInput] = useState("");
+  const [isSubmittingName, setIsSubmittingName] = useState(false);
+  const [nameEditError, setNameEditError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!userData) {
@@ -105,12 +109,51 @@ export default function ProfilePage() {
   if (isLoading) return <LoadingScreen />;
   if (!userData) return <LoadingScreen />;
 
+  const isVisitor = userData.organization_type === "outsider";
+  const canEditName = isVisitor && !userData.outsider_name_edit_used;
+  const visitorId = userData.visitor_id || userData.register_number || "";
+
+  const submitNameEdit = async () => {
+    setNameEditError(null);
+    if (!nameInput.trim()) {
+      setNameEditError("Name cannot be empty");
+      return;
+    }
+
+    setIsSubmittingName(true);
+    try {
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      if (session?.access_token) headers.Authorization = `Bearer ${session.access_token}`;
+
+      const resp = await fetch(`/api/pwa/users/${encodeURIComponent(userData.email)}/name`, {
+        method: "PUT",
+        headers,
+        body: JSON.stringify({
+          name: nameInput.trim(),
+          visitor_id: visitorId,
+        }),
+      });
+      const data = await resp.json().catch(() => ({}));
+      if (!resp.ok) {
+        setNameEditError(data.error || "Failed to update name");
+        return;
+      }
+
+      setIsEditingName(false);
+      await refreshUserData();
+    } catch {
+      setNameEditError("Network error");
+    } finally {
+      setIsSubmittingName(false);
+    }
+  };
+
   const infoRows = [
     { icon: Mail, label: "Email", value: userData.email },
-    userData.register_number && { icon: Hash, label: "Register No.", value: userData.register_number },
-    userData.course && { icon: GraduationCap, label: "Course", value: userData.course },
-    userData.department && { icon: Building, label: "Department", value: userData.department },
-    userData.campus && { icon: MapPin, label: "Campus", value: userData.campus },
+    visitorId && { icon: Hash, label: isVisitor ? "Visitor ID" : "Register No.", value: visitorId },
+    !isVisitor && userData.course && { icon: GraduationCap, label: "Course", value: userData.course },
+    !isVisitor && userData.department && { icon: Building, label: "Department", value: userData.department },
+    !isVisitor && userData.campus && { icon: MapPin, label: "Campus", value: userData.campus },
   ].filter(Boolean) as { icon: any; label: string; value: string }[];
 
   return (
@@ -133,10 +176,31 @@ export default function ProfilePage() {
             </div>
           )}
           <div className="flex-1 min-w-0">
-            <h1 className="text-[17px] font-extrabold truncate">{userData.name}</h1>
+            <div className="flex items-center gap-2">
+              <h1 className="text-[17px] font-extrabold truncate">{userData.name}</h1>
+              {canEditName && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setNameInput(userData.name || "");
+                    setIsEditingName(true);
+                    setNameEditError(null);
+                  }}
+                  className="w-7 h-7 rounded-full bg-white/15 flex items-center justify-center shrink-0"
+                  aria-label="Edit display name"
+                >
+                  <Pencil size={13} />
+                </button>
+              )}
+            </div>
             <p className="text-[12px] opacity-75 mt-0.5">
-              {userData.organization_type === "christ_member" ? "Christ University" : "External"}
+              {isVisitor ? "External Visitor" : "Christ University"}
             </p>
+            {isVisitor && visitorId && (
+              <div className="mt-2 inline-flex items-center gap-1 rounded-full bg-[var(--color-accent)] px-2.5 py-1 text-[var(--color-primary-dark)] text-[11px] font-extrabold tracking-wide">
+                {visitorId}
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -255,6 +319,62 @@ export default function ProfilePage() {
           }}
           onDismiss={() => setShowCampusSelector(false)}
         />
+      )}
+
+      {isEditingName && (
+        <div className="modal-backdrop">
+          <div className="modal-card overflow-hidden">
+            <div className="bg-[var(--color-primary-dark)] px-5 py-4">
+              <h3 className="text-lg font-bold text-white">Edit Your Name</h3>
+              <p className="text-blue-100 text-xs mt-0.5">This can only be done once</p>
+            </div>
+            <div className="p-5">
+              <label className="block text-xs font-semibold text-[var(--color-text-muted)] mb-2">
+                Display Name
+              </label>
+              <input
+                type="text"
+                value={nameInput}
+                onChange={(e) => setNameInput(e.target.value)}
+                className="input w-full"
+                placeholder="Enter your full name"
+                autoFocus
+              />
+
+              {nameEditError && (
+                <div className="mt-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2">
+                  <p className="text-red-700 text-xs">{nameEditError}</p>
+                </div>
+              )}
+
+              <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2">
+                <p className="text-[11px] text-amber-800">
+                  Check the spelling carefully. Visitor names can be updated only once.
+                </p>
+              </div>
+
+              <div className="flex gap-2 mt-5">
+                <button
+                  onClick={() => {
+                    setIsEditingName(false);
+                    setNameEditError(null);
+                  }}
+                  className="btn btn-ghost flex-1"
+                  disabled={isSubmittingName}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={submitNameEdit}
+                  className="btn btn-primary flex-1"
+                  disabled={isSubmittingName || !nameInput.trim()}
+                >
+                  {isSubmittingName ? "Saving..." : "Save Name"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

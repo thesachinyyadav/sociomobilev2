@@ -1,0 +1,14 @@
+
+> socio-pwa@1.0.0 dev
+> next dev --port 3001
+
+   ▲ Next.js 15.5.12
+   - Local:        http://localhost:3001
+   - Network:      http://100.127.255.253:3001
+   - Environments: .env.local, .env
+
+ ✓ Starting...
+ ✓ Ready in 2.5s
+ ○ Compiling / ...
+ ✓ Compiled / in 2.4s (858 modules)
+ GET / 200 in 2667ms

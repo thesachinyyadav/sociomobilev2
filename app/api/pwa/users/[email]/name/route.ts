@@ -4,23 +4,23 @@ const API_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000")
   .replace(/\/api\/?$/, "")
   .replace(/\/$/, "");
 
-export async function PATCH(
+export async function PUT(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ email: string }> }
 ) {
-  const { id } = await params;
+  const { email } = await params;
+  const authHeader = request.headers.get("Authorization");
 
   try {
-    const authHeader = request.headers.get("authorization");
-    const payload = await request.json();
+    const body = await request.json();
 
-    const res = await fetch(`${API_URL}/api/notifications/${encodeURIComponent(id)}/read`, {
-      method: "PATCH",
+    const res = await fetch(`${API_URL}/api/users/${encodeURIComponent(email)}/name`, {
+      method: "PUT",
       headers: {
         "Content-Type": "application/json",
         ...(authHeader ? { Authorization: authHeader } : {}),
       },
-      body: JSON.stringify(payload),
+      body: JSON.stringify(body),
       cache: "no-store",
     });
 
@@ -30,6 +30,6 @@ export async function PATCH(
       headers: { "Content-Type": res.headers.get("Content-Type") || "application/json" },
     });
   } catch {
-    return NextResponse.json({ error: "Failed to mark notification as read" }, { status: 502 });
+    return NextResponse.json({ error: "Failed to update name" }, { status: 502 });
   }
 }

@@ -23,10 +23,10 @@ export default function TopBar() {
       style={{ paddingTop: "var(--safe-top)", backfaceVisibility: "hidden" }}
     >
       <div
-        className="flex items-center px-4 gap-2 will-change-none"
+        className="relative flex items-center px-4 gap-2 will-change-none"
         style={{ height: "var(--nav-height)" }}
       >
-        {/* Left: Back button or Logo */}
+        {/* Left: Back button or profile/avatar */}
         {showBack ? (
           <button
             onClick={() => router.back()}
@@ -35,39 +35,43 @@ export default function TopBar() {
           >
             <ArrowLeft size={18} strokeWidth={2.2} />
           </button>
+        ) : userData ? (
+          <Link href="/profile" className="shrink-0">
+            {userData.avatar_url ? (
+              <Image
+                src={userData.avatar_url}
+                alt={userData.name}
+                width={34}
+                height={34}
+                className="rounded-full object-cover ring-2 ring-white shadow-[0_4px_14px_rgba(21,76,179,0.12)]"
+              />
+            ) : (
+              <div className="w-[34px] h-[34px] rounded-full bg-[var(--color-primary)] text-white flex items-center justify-center text-xs font-bold shadow-[0_4px_14px_rgba(21,76,179,0.12)]">
+                {userData.name?.[0]?.toUpperCase() || "U"}
+              </div>
+            )}
+          </Link>
         ) : (
-          <Link href="/" className="flex items-center shrink-0">
-            <Image
-              src="/logo.svg"
-              alt="Socio"
-              width={34}
-              height={34}
-              priority
-            />
+          <Link href="/" className="w-[34px] h-[34px] rounded-full bg-[var(--color-primary-light)] text-[var(--color-primary)] flex items-center justify-center text-[11px] font-black shrink-0">
+            S
+          </Link>
+        )}
+
+        {!showBack && (
+          <Link
+            href="/"
+            className="absolute left-1/2 -translate-x-1/2 text-[17px] font-black tracking-tight text-[var(--color-primary)]"
+            aria-label="Go to home"
+          >
+            SOCIO
           </Link>
         )}
 
         <div className="flex-1" />
 
         {/* Right actions */}
-        {userData && <NotificationBell />}
-
         {userData ? (
-          <Link href="/profile" className="shrink-0">
-            {userData.avatar_url ? (
-              <Image
-                src={userData.avatar_url}
-                alt={userData.name}
-                width={32}
-                height={32}
-                className="rounded-full ring-2 ring-[var(--color-primary)]/15"
-              />
-            ) : (
-              <div className="w-8 h-8 rounded-full bg-[var(--color-primary)] text-white flex items-center justify-center text-xs font-bold">
-                {userData.name?.[0]?.toUpperCase() || "U"}
-              </div>
-            )}
-          </Link>
+          <NotificationBell />
         ) : (
           <Link
             href="/auth"

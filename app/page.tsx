@@ -1,24 +1,133 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
-import { useEvents } from "@/context/EventContext";
-import EventCard from "@/components/EventCard";
-import { CalendarDays, ArrowRight, Search } from "lucide-react";
-import { isDeadlinePassed } from "@/lib/dateUtils";
+import { useEvents, type FetchedEvent } from "@/context/EventContext";
+import { CalendarDays, Bell, Compass, ArrowRight, MapPin, Clock3, Flame, Ticket } from "lucide-react";
+import { formatDateShort, formatTime, isDeadlinePassed } from "@/lib/dateUtils";
 
-function SectionHeader({ title, href }: { title: string; href?: string }) {
+function getEventDateValue(event: FetchedEvent) {
+  return new Date(event.event_date || 0).getTime();
+}
+
+function getDaysFromToday(eventDate: string) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const target = new Date(eventDate);
+  target.setHours(0, 0, 0, 0);
+  return Math.round((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+}
+
+function getEventImage(event: FetchedEvent) {
   return (
-    <div className="section-header px-1">
-      <div className="section-title">
-        <span>{title}</span>
+    event.banner_url ||
+    event.event_image_url ||
+    "https://placehold.co/1200x800/e8effa/154CB3?text=SOCIO"
+  );
+}
+
+function getQuickActions(notificationCount: number) {
+  return [
+    {
+      href: "/discover",
+      label: "Discover",
+      icon: Compass,
+      tone: "bg-[var(--color-primary-light)] text-[var(--color-primary)]",
+    },
+    {
+      href: "/profile",
+      label: "Registrations",
+      icon: Ticket,
+      tone: "bg-[#eef0ff] text-[#4b5ab8]",
+    },
+    {
+      href: "/fests",
+      label: "University\nFests",
+      icon: Flame,
+      tone: "bg-[#fff4cf] text-[#745b00]",
+    },
+    {
+      href: "/notifications",
+      label: "Updates",
+      icon: Bell,
+      tone: "bg-[#fde8e8] text-[#ba1a1a]",
+      badge: notificationCount > 0 ? notificationCount : undefined,
+    },
+  ];
+}
+
+function UpcomingEventItem({ event }: { event: FetchedEvent }) {
+  const isFree = !event.registration_fee || event.registration_fee === 0;
+  const daysAway = getDaysFromToday(event.event_date);
+  const statusLabel =
+    daysAway === 0 ? "Today" : daysAway === 1 ? "Tomorrow" : daysAway > 1 && daysAway <= 3 ? "Closing Soon" : null;
+
+  return (
+    <Link
+      href={`/event/${event.event_id}`}
+      className="group flex items-center gap-3 rounded-[18px] border border-white bg-white/82 px-3 py-3 shadow-[0_6px_18px_rgba(21,76,179,0.06)] backdrop-blur-sm transition-all hover:shadow-[0_10px_28px_rgba(21,76,179,0.12)] active:scale-[0.99]"
+    >
+      <div className="relative h-18 w-18 shrink-0 overflow-hidden rounded-[16px] bg-[var(--color-primary-light)]">
+        <Image
+          src={getEventImage(event)}
+          alt={event.title}
+          fill
+          className="object-cover transition-transform duration-500 group-hover:scale-105"
+          sizes="72px"
+        />
       </div>
-      {href && (
-        <Link href={href} className="section-link">
-          See All <ArrowRight size={13} />
-        </Link>
-      )}
-    </div>
+
+      <div className="min-w-0 flex-1">
+        <div className="flex items-start gap-2">
+          <div className="min-w-0 flex-1">
+            <h3 className="truncate text-[14px] font-extrabold text-[var(--color-text)]">{event.title}</h3>
+            <p className="mt-0.5 truncate text-[11px] font-semibold text-[var(--color-text-muted)]">
+              {event.organizing_dept || event.fest || "Campus Event"}
+            </p>
+          </div>
+          <div className="flex shrink-0 items-center gap-1">
+            {statusLabel && (
+              <span className="rounded-full bg-[#fff4cf] px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.04em] text-[#745b00]">
+                {statusLabel}
+              </span>
+            )}
+            <ArrowRight size={14} className="mt-0.5 text-[var(--color-text-light)]" />
+          </div>
+        </div>
+
+        <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-[var(--color-text-muted)]">
+          <span className="flex items-center gap-1">
+            <CalendarDays size={11} className="text-[var(--color-primary)]" />
+            {formatDateShort(event.event_date)}
+          </span>
+          {event.event_time && (
+            <span className="flex items-center gap-1">
+              <Clock3 size={11} className="text-[var(--color-primary)]" />
+              {formatTime(event.event_time)}
+            </span>
+          )}
+          {event.venue && (
+            <span className="flex items-center gap-1 truncate">
+              <MapPin size={11} className="text-[var(--color-primary)]" />
+              {event.venue}
+            </span>
+          )}
+        </div>
+      </div>
+
+      <div className="shrink-0">
+        <span
+          className={`inline-flex rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.04em] ${
+            isFree
+              ? "bg-[#e7f8ec] text-[#15803d]"
+              : "bg-[#fff2db] text-[#b45309]"
+          }`}
+        >
+          {isFree ? "Free" : `Rs ${event.registration_fee}`}
+        </span>
+      </div>
+    </Link>
   );
 }
 
@@ -26,179 +135,204 @@ export default function HomePage() {
   const { userData } = useAuth();
   const { allEvents } = useEvents();
 
-  const openRegistrations = [...allEvents]
-    .filter((e) => !isDeadlinePassed(e.registration_deadline))
-    .sort((a, b) => new Date(a.event_date).getTime() - new Date(b.event_date).getTime())
-    .slice(0, 6);
-
-  const latestEvents = [...allEvents]
-    .sort((a, b) => {
-      const at = new Date(b.event_date).getTime();
-      const bt = new Date(a.event_date).getTime();
-      return at - bt;
+  const activeEvents = [...allEvents]
+    .filter((event) => {
+      const eventTime = getEventDateValue(event);
+      return Number.isFinite(eventTime);
     })
-    .slice(0, 6);
+    .sort((a, b) => getEventDateValue(a) - getEventDateValue(b));
 
-  const today = new Date(new Date().toDateString());
-  const happeningSoon = [...allEvents]
-    .filter((e) => {
-      const eventDate = new Date(e.event_date);
-      const diffDays = Math.ceil((eventDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-      return diffDays >= 0 && diffDays <= 7;
-    })
-    .sort((a, b) => new Date(a.event_date).getTime() - new Date(b.event_date).getTime())
-    .slice(0, 6);
+  const upcomingEvents = activeEvents
+    .filter((event) => getDaysFromToday(event.event_date) >= 0)
+    .slice(0, 5);
 
-  const festCount = new Set(
-    allEvents
-      .map((e) => e.fest)
-      .filter((value): value is string => !!value && value.toLowerCase() !== "none")
-  ).size;
+  const featuredEvent =
+    upcomingEvents.find((event) => !isDeadlinePassed(event.registration_deadline)) ||
+    activeEvents[0] ||
+    null;
 
-  const featuredEvents = openRegistrations.length > 0 ? openRegistrations : latestEvents;
-
-  // Get unique fest events for "Featured Fests" section
-  const festEvents = Array.from(
-    new Map(
-      allEvents
-        .filter((e) => e.fest && e.fest.toLowerCase() !== "none")
-        .map((e) => [e.fest, e])
-    ).values()
-  )
-    .sort((a, b) => new Date(b.event_date).getTime() - new Date(a.event_date).getTime())
-    .slice(0, 6);
-
-  // Deduplicate sections: track which events have been shown
-  const shownIds = new Set<string>();
-  
-  // Add open registrations to shown set
-  openRegistrations.forEach(e => shownIds.add(e.event_id));
-  
-  // Filter happening soon to exclude already shown events
-  const happeningSoonDedup = happeningSoon.filter(e => !shownIds.has(e.event_id));
-  happeningSoonDedup.forEach(e => shownIds.add(e.event_id));
-  
-  // Filter featured fests to exclude already shown events
-  const festEventsDedup = festEvents.filter(e => !shownIds.has(e.event_id));
+  const festSpotlight = activeEvents.find((event) => event.fest && event.fest.toLowerCase() !== "none") || null;
 
   const firstName = userData?.name?.split(" ")?.[0] || "there";
+  const campusLabel = userData?.campus || "Engineering Campus";
+  const notificationCount = 0;
+  const quickActions = getQuickActions(notificationCount);
 
   return (
-    <div className="pwa-page">
-      <div className="px-3 pt-3" style={{ paddingTop: "calc(var(--nav-height) + var(--safe-top) + 12px)" }}>
-        <section className="relative overflow-hidden rounded-[var(--radius-xl)] bg-gradient-to-br from-[var(--color-primary-dark)] to-[var(--color-primary)] text-white px-5 pt-6 pb-5">
-          {/* Subtle decorative shapes */}
-          <div className="absolute -top-10 -right-10 w-40 h-40 rounded-full bg-white/[0.06]" />
-          <div className="absolute -bottom-8 -left-8 w-32 h-32 rounded-full bg-white/[0.04]" />
+    <div
+      className="pwa-page relative overflow-hidden px-5 pb-[calc(var(--bottom-nav)+var(--safe-bottom)+96px)]"
+      style={{ paddingTop: "calc(var(--nav-height) + var(--safe-top) + 16px)" }}
+    >
+      <div
+        className="pointer-events-none absolute inset-0 opacity-[0.18]"
+        style={{
+          backgroundImage:
+            "radial-gradient(circle at 10% 20%, rgba(21,76,179,0.05) 0%, transparent 40%), radial-gradient(circle at 90% 80%, rgba(116,91,0,0.05) 0%, transparent 40%), repeating-linear-gradient(0deg, transparent, transparent 23px, rgba(0,0,0,0.02) 24px), repeating-linear-gradient(90deg, transparent, transparent 23px, rgba(0,0,0,0.02) 24px)",
+        }}
+      />
+      <div className="pointer-events-none absolute -top-10 right-[-60px] h-60 w-60 rounded-full bg-[var(--color-primary)]/10 blur-3xl" />
+      <div className="pointer-events-none absolute bottom-10 left-[-60px] h-56 w-56 rounded-full bg-[var(--color-accent)]/20 blur-3xl" />
 
-          <div className="relative z-10">
-            <p className="text-[13px] text-white/70 font-medium">Welcome back, {firstName}</p>
-            <h1 className="text-[24px] font-extrabold leading-tight mt-0.5">Find your next event</h1>
+      <div className="relative z-10 mx-auto max-w-[420px] space-y-6">
+        <section className="space-y-1 pt-2">
+          <div className="mb-1 inline-flex items-center gap-1.5 rounded-full bg-white/70 px-2.5 py-1 shadow-sm backdrop-blur-sm">
+            <span className="h-1.5 w-1.5 rounded-full bg-[var(--color-accent-dark)]" />
+            <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--color-text-muted)]">
+              {campusLabel}
+            </span>
+          </div>
+          <h1 className="text-[30px] font-black leading-tight tracking-[-0.03em] text-[var(--color-text)]">
+            Good evening, <span className="text-[var(--color-primary)]">{firstName}.</span>
+          </h1>
+          <p className="max-w-[320px] text-[13px] leading-relaxed text-[var(--color-text-muted)]">
+            Here&apos;s your curated feed of what&apos;s happening around campus this week.
+          </p>
+        </section>
+
+        {featuredEvent && (
+          <section>
+            <Link
+              href={`/event/${featuredEvent.event_id}`}
+              className="group relative block h-56 overflow-hidden rounded-[22px] shadow-[0_10px_30px_rgba(21,76,179,0.14)]"
+            >
+              <Image
+                src={getEventImage(featuredEvent)}
+                alt={featuredEvent.title}
+                fill
+                className="object-cover transition-transform duration-700 group-hover:scale-105"
+                sizes="(max-width: 480px) 100vw, 420px"
+                priority
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-[rgba(6,49,104,0.92)] via-[rgba(21,76,179,0.35)] to-transparent" />
+              <div className="absolute inset-x-0 bottom-0 h-40 backdrop-blur-md [mask-image:linear-gradient(to_bottom,transparent_0%,rgba(0,0,0,0.12)_18%,rgba(0,0,0,0.72)_48%,black_100%)]" />
+              <div className="absolute inset-x-0 bottom-0 p-4">
+                <div className="flex items-end justify-between gap-4">
+                  <div className="min-w-0">
+                    <span className="mb-2 inline-flex rounded-full bg-[#ffe08b] px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.08em] text-[#584400]">
+                      {featuredEvent.fest && featuredEvent.fest.toLowerCase() !== "none" ? "Major Fest" : "Featured Event"}
+                    </span>
+                    <h2 className="text-[22px] font-extrabold leading-tight text-white">
+                      {featuredEvent.title}
+                    </h2>
+                    <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] font-medium text-white/82">
+                      <span className="flex items-center gap-1">
+                        <CalendarDays size={13} />
+                        {formatDateShort(featuredEvent.event_date)}
+                      </span>
+                      {featuredEvent.venue && (
+                        <span className="flex items-center gap-1">
+                          <MapPin size={13} />
+                          {featuredEvent.venue}
+                        </span>
+                      )}
+                    </p>
+                  </div>
+                  <span className="shrink-0 rounded-xl bg-white px-4 py-2 text-[13px] font-extrabold text-[var(--color-primary)] shadow-sm">
+                    View Event
+                  </span>
+                </div>
+              </div>
+            </Link>
+          </section>
+        )}
+
+        <section>
+          <h2 className="mb-3 text-[18px] font-extrabold tracking-[-0.02em] text-[var(--color-text)]">
+            Quick Actions
+          </h2>
+          <div className="grid grid-cols-4 gap-2.5">
+            {quickActions.map(({ href, label, icon: Icon, tone, badge }) => (
+              <Link
+                key={href}
+                href={href}
+                className="relative flex h-[110px] min-w-0 flex-col items-center justify-center gap-2 rounded-[18px] border border-white bg-white/86 px-1.5 py-3 text-center shadow-[0_6px_18px_rgba(0,0,0,0.04)] backdrop-blur-sm transition-all hover:bg-white active:scale-[0.98]"
+              >
+                {badge ? (
+                  <span className="absolute top-2 right-2 min-w-[18px] rounded-full bg-[var(--color-primary)] px-1.5 py-0.5 text-[10px] font-bold text-white">
+                    {badge}
+                  </span>
+                ) : null}
+                <div className={`flex h-11 w-11 items-center justify-center rounded-full ${tone}`}>
+                  <Icon size={20} />
+                </div>
+                <span className="flex h-[25px] w-full items-center justify-center whitespace-pre-line text-center text-[9px] font-extrabold leading-[1.15] text-[var(--color-text)]">
+                  {label}
+                </span>
+              </Link>
+            ))}
+          </div>
+        </section>
+
+        {upcomingEvents.length > 0 && (
+          <section>
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="text-[18px] font-extrabold tracking-[-0.02em] text-[var(--color-text)]">
+                Upcoming Events
+              </h2>
+              <Link href="/events" className="flex items-center gap-1 text-[12px] font-bold text-[var(--color-primary)]">
+                See all <ArrowRight size={13} />
+              </Link>
+            </div>
+            <div className="space-y-3">
+              {upcomingEvents.map((event) => (
+                <UpcomingEventItem key={event.event_id} event={event} />
+              ))}
+            </div>
+          </section>
+        )}
+
+        {festSpotlight && (
+          <section>
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="text-[18px] font-extrabold tracking-[-0.02em] text-[var(--color-text)]">
+                Fest Spotlight
+              </h2>
+              <Link href="/fests" className="flex items-center gap-1 text-[12px] font-bold text-[var(--color-primary)]">
+                See Fest <ArrowRight size={13} />
+              </Link>
+            </div>
 
             <Link
-              href="/discover"
-              className="flex items-center gap-3 bg-white rounded-[var(--radius)] px-4 py-3 mt-4 active:scale-[0.98] transition-transform shadow-sm"
+              href={festSpotlight.fest ? "/fests" : `/event/${festSpotlight.event_id}`}
+              className="group relative block overflow-hidden rounded-[22px] border border-white bg-white/85 shadow-[0_8px_24px_rgba(21,76,179,0.08)] backdrop-blur-sm"
             >
-              <Search size={16} className="text-[var(--color-text-light)]" />
-              <span className="text-[14px] text-[var(--color-text-muted)]">Search events, fests, venues…</span>
+              <div className="relative h-40">
+                <Image
+                  src={getEventImage(festSpotlight)}
+                  alt={festSpotlight.fest || festSpotlight.title}
+                  fill
+                  className="object-cover transition-transform duration-700 group-hover:scale-105"
+                  sizes="(max-width: 480px) 100vw, 420px"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/15 to-transparent" />
+                <div className="absolute inset-x-0 bottom-0 p-4">
+                  <span className="mb-2 inline-flex rounded-full bg-[#dfe1fc] px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.08em] text-[#171a2e]">
+                    University Fest
+                  </span>
+                  <h3 className="text-[20px] font-extrabold leading-tight text-white">
+                    {festSpotlight.fest || festSpotlight.title}
+                  </h3>
+                  <p className="mt-1 text-[12px] text-white/80">
+                    {festSpotlight.organizing_dept || "Campus-wide spotlight"}
+                  </p>
+                </div>
+              </div>
             </Link>
+          </section>
+        )}
 
-            <div className="flex gap-2 mt-4">
-              <Link href="/discover" className="flex-1 flex items-center justify-center bg-white/15 rounded-[var(--radius)] px-3 py-2.5 border border-white/20 hover:bg-white/25 transition-colors active:scale-95">
-                <span className="text-[12px] font-bold">Discover</span>
-              </Link>
-              <Link href="/events" className="flex-1 flex items-center justify-center bg-white/15 rounded-[var(--radius)] px-3 py-2.5 border border-white/20 hover:bg-white/25 transition-colors active:scale-95">
-                <span className="text-[12px] font-bold">Events</span>
-              </Link>
-              <Link href="/fests" className="flex-1 flex items-center justify-center bg-white/15 rounded-[var(--radius)] px-3 py-2.5 border border-white/20 hover:bg-white/25 transition-colors active:scale-95">
-                <span className="text-[12px] font-bold">Fests</span>
-              </Link>
+        {allEvents.length === 0 && (
+          <section className="rounded-[22px] border border-white bg-white/85 px-5 py-8 text-center shadow-[0_8px_24px_rgba(21,76,179,0.06)]">
+            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-[var(--color-primary-light)]">
+              <CalendarDays className="h-7 w-7 text-[var(--color-primary)]" />
             </div>
-          </div>
-        </section>
+            <h2 className="text-[18px] font-extrabold text-[var(--color-text)]">No events yet</h2>
+            <p className="mt-1 text-[13px] text-[var(--color-text-muted)]">
+              Check back soon for upcoming campus events and fest announcements.
+            </p>
+          </section>
+        )}
       </div>
-
-      {allEvents.length > 0 && (
-        <section className="mx-5 mt-6">
-          <div className="grid grid-cols-3 gap-3">
-            <div className="card p-4 text-center rounded-[var(--radius-lg)]">
-              <p className="text-[20px] font-extrabold text-[var(--color-primary)]">{openRegistrations.length}</p>
-              <p className="text-[11px] text-[var(--color-text-muted)] font-semibold mt-1.5">Open Now</p>
-            </div>
-            <div className="card p-4 text-center rounded-[var(--radius-lg)]">
-              <p className="text-[20px] font-extrabold text-[var(--color-primary)]">{allEvents.length}</p>
-              <p className="text-[11px] text-[var(--color-text-muted)] font-semibold mt-1.5">Total Events</p>
-            </div>
-            <div className="card p-4 text-center rounded-[var(--radius-lg)]">
-              <p className="text-[20px] font-extrabold text-[var(--color-primary)]">{festCount}</p>
-              <p className="text-[11px] text-[var(--color-text-muted)] font-semibold mt-1.5">Active Fests</p>
-            </div>
-          </div>
-        </section>
-      )}
-
-      {featuredEvents.length > 0 && (
-        <section className="mt-6 mx-5">
-          <SectionHeader
-            title={openRegistrations.length > 0 ? "Open Registrations" : "Featured Events"}
-            href="/events"
-          />
-          <div className="h-scroll px-0 gap-3">
-            {featuredEvents.map((e) => (
-              <div key={e.event_id} className="w-[260px]">
-                <EventCard event={e} />
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {happeningSoonDedup.length > 0 && (
-        <section className="mt-7 mx-5">
-          <SectionHeader title="Happening This Week" href="/events" />
-          <div className="h-scroll px-0 gap-3">
-            {happeningSoonDedup.map((e) => (
-              <div key={e.event_id} className="w-[260px]">
-                <EventCard event={e} />
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {festEventsDedup.length > 0 && (
-        <section className="mt-7 mx-5">
-          <SectionHeader title="Featured Fests" href="/fests" />
-          <div className="h-scroll px-0 gap-3">
-            {festEventsDedup.map((e) => (
-              <div key={e.event_id} className="w-[260px]">
-                <EventCard event={e} />
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
-
-      <section className="mx-5 mt-7">
-        <Link href="/notifications" className="card p-5 flex items-center gap-4 rounded-[var(--radius-lg)] hover:shadow-lg transition-shadow active:scale-95">
-          <div className="flex-1 min-w-0">
-            <p className="text-[14px] font-extrabold">Stay Updated</p>
-            <p className="text-[12px] text-[var(--color-text-muted)]">Get reminders and registration alerts in Notifications</p>
-          </div>
-        </Link>
-      </section>
-
-      {allEvents.length === 0 && (
-        <div className="flex flex-col items-center justify-center py-24 text-center px-6">
-          <div className="w-16 h-16 rounded-full bg-[var(--color-primary-light)] flex items-center justify-center mb-4 animate-bounce-in">
-            <CalendarDays size={28} className="text-[var(--color-primary)]" />
-          </div>
-          <p className="text-base font-bold">No events yet</p>
-          <p className="text-sm text-[var(--color-text-muted)] mt-1">
-            Check back soon for upcoming campus events!
-          </p>
-        </div>
-      )}
     </div>
   );
 }

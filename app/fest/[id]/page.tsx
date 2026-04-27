@@ -45,7 +45,9 @@ export default function FestDetailPage() {
         return r.json();
       })
       .then((d) => {
-        const f = d.fest || d;
+        const f = d.fest || d.data || d;
+        if (!f || typeof f !== "object") throw new Error("Invalid fest data");
+
         // Normalize aliases for template usage
         f.name = f.name || f.fest_title;
         f.start_date = f.start_date || f.opening_date;
@@ -56,10 +58,10 @@ export default function FestDetailPage() {
         setFest(f);
 
         // Events for this fest: match by slugifying event.fest
-        const festSlug = (f.slug || f.fest_id || "").toLowerCase();
+        const festSlug = String(f.slug || f.fest_id || "").toLowerCase();
         const festEvents = allEvents.filter((e) => {
           if (!e.fest) return false;
-          const eventFestSlug = e.fest
+          const eventFestSlug = String(e.fest)
             .toLowerCase()
             .replace(/\s+/g, "-")
             .replace(/[^a-z0-9-]/g, "");
@@ -67,8 +69,8 @@ export default function FestDetailPage() {
         });
         if (festEvents.length > 0) {
           setEvents(festEvents);
-        } else if (d.events) {
-          setEvents(d.events);
+        } else if (f.events || d.events) {
+          setEvents(f.events || d.events);
         }
       })
       .catch(() => setError("Fest not found"))

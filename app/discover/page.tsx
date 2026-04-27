@@ -7,17 +7,36 @@ import { useEvents } from "@/context/EventContext";
 import EventCard from "@/components/EventCard";
 import Skeleton from "@/components/Skeleton";
 import EmptyState from "@/components/EmptyState";
-import { Search, X, Filter, ArrowRight, CalendarDays, MapPin, Sparkles } from "lucide-react";
+import { Search, X, Filter, ArrowRight, CalendarDays, MapPin, Sparkles, Users } from "lucide-react";
 import { formatDateShort, isDeadlinePassed } from "@/lib/dateUtils";
 import type { Fest } from "@/context/EventContext";
+import { useDebounce } from "@/lib/useDebounce";
 
 const ITEMS_PER_PAGE = 10;
 const QUICK_CATEGORY_LIMIT = 6;
 const GRID_CATEGORY_LIMIT = 4;
 
+function normalizeFestLabel(value: string | null | undefined): string {
+  return (value || "").trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+function formatCompactCount(count: number): string {
+  if (!Number.isFinite(count) || count <= 0) return "0";
+  if (count >= 1_000_000) {
+    const value = count / 1_000_000;
+    return `${parseFloat(value.toFixed(value >= 10 ? 0 : 1))}m`;
+  }
+  if (count >= 1_000) {
+    const value = count / 1_000;
+    return `${parseFloat(value.toFixed(value >= 10 ? 0 : 1))}k`;
+  }
+  return `${Math.round(count)}`;
+}
+
 export default function DiscoverPage() {
   const { allEvents, isLoading } = useEvents();
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebounce(search, 250);
   const [showOpen, setShowOpen] = useState(false);
   const [activeCategory, setActiveCategory] = useState("All");
   const [currentPage, setCurrentPage] = useState(1);
@@ -27,15 +46,21 @@ export default function DiscoverPage() {
   /* Fetch actual fests from API so we get proper fest_id/slug */
   useEffect(() => {
     (async () => {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 8000);
+
       try {
-        const res = await fetch("/api/pwa/fests");
+        const res = await fetch("/api/pwa/fests", { signal: controller.signal });
         if (res.ok) {
           const data = await res.json();
-          const arr = data.fests ?? data ?? [];
+          const arr = data.fests ?? data.data ?? data ?? [];
           setFests(Array.isArray(arr) ? arr : []);
         }
       } catch {}
-      setFestsLoading(false);
+      finally {
+        clearTimeout(timeoutId);
+        setFestsLoading(false);
+      }
     })();
   }, []);
 
@@ -56,24 +81,52 @@ export default function DiscoverPage() {
     [categories]
   );
 
+  const festRegistrationMap = useMemo(() => {
+    const map = new Map<string, number>();
+    allEvents.forEach((event) => {
+      const key = normalizeFestLabel(event.fest);
+      if (!key || key === "none") return;
+      const count = Math.max(0, event.total_participants ?? 0);
+      map.set(key, (map.get(key) ?? 0) + count);
+    });
+    return map;
+  }, [allEvents]);
+
+  const trendingFests = useMemo(() => {
+    return [...fests]
+      .map((fest) => {
+        const title = fest.fest_title || fest.name || "";
+        const key = normalizeFestLabel(title);
+        const registrations = key ? festRegistrationMap.get(key) ?? 0 : 0;
+        return { fest, registrations };
+      })
+      .sort((a, b) => {
+        if (b.registrations !== a.registrations) return b.registrations - a.registrations;
+        const aTitle = a.fest.fest_title || a.fest.name || "";
+        const bTitle = b.fest.fest_title || b.fest.name || "";
+        return aTitle.localeCompare(bTitle);
+      })
+      .slice(0, 6);
+  }, [fests, festRegistrationMap]);
+
   /* Filter events based on search and open status */
   const filtered = useMemo(() => {
     let list = allEvents;
-    if (search) {
-      const q = search.toLowerCase();
+    if (debouncedSearch) {
+      const q = debouncedSearch.toLowerCase();
       list = list.filter(
         (e) =>
-          e.title.toLowerCase().includes(q) ||
-          e.venue?.toLowerCase().includes(q) ||
-          e.fest?.toLowerCase().includes(q) ||
-          e.category?.toLowerCase().includes(q)
+          String(e.title || "").toLowerCase().includes(q) ||
+          String(e.venue || "").toLowerCase().includes(q) ||
+          String(e.fest || "").toLowerCase().includes(q) ||
+          String(e.category || "").toLowerCase().includes(q)
       );
     }
     if (activeCategory !== "All") {
       if (activeCategory === "Free") {
         list = list.filter((e) => !e.registration_fee || e.registration_fee === 0);
       } else {
-        list = list.filter((e) => (e.category || "").toLowerCase() === activeCategory.toLowerCase());
+        list = list.filter((e) => String(e.category || "").toLowerCase() === activeCategory.toLowerCase());
       }
     }
     if (showOpen) {
@@ -82,7 +135,7 @@ export default function DiscoverPage() {
     return list.sort(
       (a, b) => new Date(a.event_date).getTime() - new Date(b.event_date).getTime()
     );
-  }, [allEvents, search, activeCategory, showOpen]);
+  }, [allEvents, debouncedSearch, activeCategory, showOpen]);
 
   const allFiltered = filtered;
   const spotlightEvent =
@@ -128,7 +181,7 @@ export default function DiscoverPage() {
       }
     }, 3000);
     return () => clearInterval(id);
-  }, [fests]);
+  }, [trendingFests]);
 
   return (
     <div className="pwa-page pt-[calc(var(--nav-height)+var(--safe-top)+4px)] pb-8">
@@ -152,7 +205,7 @@ export default function DiscoverPage() {
               setSearch(e.target.value);
               setCurrentPage(1);
             }}
-            className="w-full h-[44px] pl-[42px] pr-10 text-[14px] bg-white border-[1.5px] border-[var(--color-border)] rounded-[var(--radius)] outline-none focus:border-[var(--color-primary)] focus:shadow-[0_0_0_3px_rgba(21,76,179,0.1)] transition-all placeholder:text-[var(--color-text-muted)]"
+            className="w-full h-[44px] pl-[42px] pr-10 text-[14px] bg-[var(--color-surface)] border border-[var(--color-border)] rounded-full outline-none shadow-[inset_0_1px_2px_rgba(17,24,39,0.06)] focus:border-[var(--color-primary)] focus:shadow-[0_0_0_3px_rgba(21,76,179,0.1),inset_0_1px_2px_rgba(17,24,39,0.06)] transition-all duration-200 placeholder:text-[var(--color-text-muted)]"
           />
           {search && (
             <button
@@ -172,10 +225,10 @@ export default function DiscoverPage() {
             setShowOpen(!showOpen);
             setCurrentPage(1);
           }}
-          className={`shrink-0 btn-active-state flex items-center justify-center gap-1.5 h-[44px] px-4 border text-[12px] font-bold rounded-[var(--radius)] ${
+          className={`shrink-0 btn-active-state flex items-center justify-center gap-1.5 h-[44px] px-4 border text-[12px] font-bold rounded-full transition-all duration-200 ${
             showOpen
-              ? "bg-[var(--color-primary-light)] text-[var(--color-primary)] border-[var(--color-primary)]"
-              : "bg-white text-[var(--color-text-muted)] border-[var(--color-border)]"
+              ? "bg-[var(--color-primary)] text-white border-[var(--color-primary)] shadow-[var(--shadow-primary)]"
+              : "bg-[var(--color-surface)] text-[var(--color-text-muted)] border-[var(--color-border)]"
           }`}
         >
           <Filter size={14} />
@@ -196,10 +249,10 @@ export default function DiscoverPage() {
                   setActiveCategory(category);
                   setCurrentPage(1);
                 }}
-                className={`chip btn-active-state px-3 py-1.5 text-[12px] font-semibold border ${
+                className={`chip btn-active-state px-3 py-1.5 text-[12px] font-semibold border transition-all duration-200 ${
                   active
                     ? "chip-active border-[var(--color-primary)]"
-                    : "bg-white text-[var(--color-text-muted)] border-[var(--color-border)]"
+                    : "bg-[var(--color-surface)] text-[var(--color-text-muted)] border-[var(--color-border)]"
                 }`}
               >
                 {category}
@@ -229,7 +282,7 @@ export default function DiscoverPage() {
 
               <Link
                 href={`/event/${spotlightEvent.event_id}`}
-                className="premium-card group relative block overflow-hidden rounded-[var(--radius-xl)] border-0 shadow-hero"
+                className="premium-card btn-active-state group relative block overflow-hidden rounded-[var(--radius-xl)] border-0 shadow-hero transition-all duration-200"
               >
                 <div className="relative aspect-[4/5] bg-[var(--color-primary-light)] overflow-hidden">
                   {spotlightEvent.banner_url || spotlightEvent.event_image_url ? (
@@ -246,14 +299,14 @@ export default function DiscoverPage() {
                     </div>
                   )}
 
-                  <div className="absolute inset-0 bg-gradient-to-t from-[rgba(6,49,104,0.98)] via-[rgba(6,49,104,0.65)] to-[rgba(6,49,104,0.08)]" />
-                  <div className="absolute inset-[1px] rounded-[18px] border border-white/20 bg-gradient-to-b from-white/15 via-transparent to-transparent pointer-events-none" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/78 via-black/36 to-transparent" />
+                  <div className="absolute inset-[1px] rounded-[18px] border border-white/24 bg-gradient-to-b from-white/20 via-white/4 to-transparent pointer-events-none" />
 
                   <div className="absolute inset-x-0 bottom-0 p-4 text-white">
                     <span className="chip bg-[var(--color-accent)] text-[var(--color-primary-dark)] text-[10px] font-extrabold uppercase tracking-[0.08em]">
-                      Featured Event
+                      Featured Fest
                     </span>
-                    <h3 className="mt-2 text-[34px] font-extrabold leading-[1.06] tracking-[-0.02em] text-white">
+                    <h3 className="mt-2 text-[38px] font-extrabold leading-[1.05] tracking-[-0.02em] text-white line-clamp-2">
                       {spotlightEvent.title}
                     </h3>
                     <p className="mt-2 text-[12px] font-medium text-white/85 line-clamp-1">
@@ -272,7 +325,7 @@ export default function DiscoverPage() {
                       )}
                     </p>
 
-                    <span className="btn btn-primary btn-active-state mt-4 !w-full !min-h-[44px] !rounded-[var(--radius)] !px-4 !py-2 !text-[14px] !font-extrabold">
+                    <span className="btn btn-active-state mt-4 !w-full !min-h-[44px] !rounded-full !px-4 !py-2 !text-[14px] !font-extrabold !bg-gradient-to-r !from-[var(--color-primary)] !to-[var(--color-primary-dark)] !text-white !shadow-[var(--shadow-primary)]">
                       View Event
                       <ArrowRight size={16} />
                     </span>
@@ -295,7 +348,7 @@ export default function DiscoverPage() {
                 ref={scrollRef}
                 onTouchStart={handleUserInteraction}
                 onMouseDown={handleUserInteraction}
-                className="flex overflow-x-auto gap-3 snap-x snap-mandatory scroll-smooth pb-1 no-scrollbar"
+                className="flex overflow-x-auto gap-3.5 snap-x snap-mandatory scroll-smooth pb-1 no-scrollbar"
               >
                 {/* left spacer */}
                 <div className="shrink-0 w-5" aria-hidden />
@@ -303,17 +356,17 @@ export default function DiscoverPage() {
                   ? Array.from({ length: 2 }).map((_, idx) => (
                       <div
                         key={`fest-skeleton-${idx}`}
-                        className="premium-card w-[min(280px,calc(100vw-86px))] shrink-0 snap-start overflow-hidden"
+                        className="premium-card shadow-soft w-[min(280px,calc(100vw-86px))] shrink-0 snap-start overflow-hidden"
                       >
                         <div className="skeleton aspect-[16/10]" />
-                        <div className="p-3.5 space-y-2">
+                        <div className="p-4 space-y-2">
                           <div className="skeleton h-4 w-3/4" />
                           <div className="skeleton h-3 w-2/3" />
                           <div className="skeleton h-9 w-28 rounded-[var(--radius)]" />
                         </div>
                       </div>
                     ))
-                  : fests.slice(0, 6).map((f) => {
+                  : trendingFests.map(({ fest: f, registrations }) => {
                       const img = f.fest_image_url || f.banner_url || f.image_url;
                       const title = f.fest_title || f.name || "Fest";
                       return (
@@ -321,7 +374,7 @@ export default function DiscoverPage() {
                           key={f.fest_id || f.id}
                           href={`/fest/${f.slug || f.fest_id}`}
                           data-fest-card
-                          className="premium-card btn-active-state group w-[min(280px,calc(100vw-86px))] flex-shrink-0 snap-start overflow-hidden"
+                          className="premium-card btn-active-state shadow-soft group w-[min(280px,calc(100vw-86px))] flex-shrink-0 snap-start overflow-hidden transition-all duration-200"
                         >
                           <div className="relative aspect-[16/10] bg-[var(--color-primary-light)] overflow-hidden">
                             {img ? (
@@ -343,15 +396,23 @@ export default function DiscoverPage() {
                             </span>
                           </div>
 
-                          <div className="p-3.5">
-                            <p className="text-[14px] font-extrabold leading-tight line-clamp-1">{title}</p>
+                          <div className="p-4">
+                            <p className="text-[15px] font-extrabold leading-tight line-clamp-1">{title}</p>
                             <p className="text-[11px] font-medium text-[var(--color-text-muted)] mt-1 line-clamp-1">
                               {f.organizing_dept || f.department || "Campus Fest"}
                             </p>
-                            <span className="btn-active-state mt-3 inline-flex items-center gap-1 rounded-[var(--radius)] bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-primary-dark)] px-3 py-2 text-[12px] font-bold text-white shadow-[var(--shadow-primary)]">
-                              Explore
-                              <ArrowRight size={13} />
-                            </span>
+                            <div className="mt-3.5 flex items-center gap-2">
+                              {registrations > 0 && (
+                                <span className="inline-flex items-center gap-1 rounded-full bg-black/50 px-2.5 py-1 text-[10px] font-semibold text-white/90 backdrop-blur-md whitespace-nowrap">
+                                  <Users size={12} />
+                                  {formatCompactCount(registrations)} going
+                                </span>
+                              )}
+                              <span className="btn-active-state ml-auto inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-primary-dark)] px-3.5 py-2 text-[12px] font-bold text-white shadow-[var(--shadow-primary)] transition-all duration-200">
+                                Register
+                                <ArrowRight size={13} />
+                              </span>
+                            </div>
                           </div>
                         </Link>
                       );
@@ -369,7 +430,7 @@ export default function DiscoverPage() {
                 <h2 className="text-[15px] font-extrabold tracking-[-0.01em]">Explore Categories</h2>
               </div>
 
-              <div className="px-5 grid grid-cols-2 gap-2.5">
+              <div className="px-5 grid grid-cols-2 gap-3">
                 {categoryGrid.map((category) => {
                   const active = activeCategory === category;
                   return (
@@ -379,7 +440,7 @@ export default function DiscoverPage() {
                         setActiveCategory(category);
                         setCurrentPage(1);
                       }}
-                      className={`premium-card btn-active-state flex items-center gap-3 px-3 py-3 text-left ${
+                      className={`premium-card btn-active-state shadow-soft flex items-center gap-3.5 px-3.5 py-3.5 text-left transition-all duration-200 ${
                         active
                           ? "bg-[var(--color-primary-light)] border-[var(--color-primary)]"
                           : "bg-[var(--color-surface)]"
@@ -388,8 +449,8 @@ export default function DiscoverPage() {
                       <span
                         className={`inline-flex h-9 w-9 items-center justify-center rounded-full ${
                           active
-                            ? "bg-[var(--color-primary)] text-white"
-                            : "bg-[var(--color-primary-light)] text-[var(--color-primary)]"
+                            ? "bg-[var(--color-primary)] text-white shadow-[var(--shadow-xs)]"
+                            : "bg-[var(--color-primary-light)] text-[var(--color-primary)] border border-[var(--color-border)]"
                         }`}
                       >
                         <Sparkles size={16} />

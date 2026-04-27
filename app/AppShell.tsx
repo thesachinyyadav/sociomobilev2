@@ -9,6 +9,7 @@ import InstallPrompt from "@/components/InstallPrompt";
 import BrowserNotificationPrompt from "@/components/BrowserNotificationPrompt";
 import ChatbotFab from "@/components/ChatbotFab";
 import CampusSelector, { isCampusDismissedRecently } from "@/components/CampusSelector";
+import PageTransition from "@/components/PageTransition";
 import { useAuth } from "@/context/AuthContext";
 
 const NO_SHELL = ["/auth", "/auth/callback", "/offline"];
@@ -35,7 +36,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     <>
       <DesktopGate />
       {!hide && <TopBar />}
-      <main>{children}</main>
+      <main>
+        <PageTransition>{children}</PageTransition>
+      </main>
       {!hide && <BottomNav />}
       {!hide && <InstallPrompt />}
       {!hide && <ChatbotFab />}

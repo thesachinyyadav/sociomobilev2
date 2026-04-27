@@ -7,6 +7,7 @@ import Skeleton from "@/components/Skeleton";
 import EmptyState from "@/components/EmptyState";
 import { Search, X, CalendarDays, Filter, ArrowDownAZ, TrendingUp, Clock } from "lucide-react";
 import { isDeadlinePassed } from "@/lib/dateUtils";
+import { useDebounce } from "@/lib/useDebounce";
 
 type SortKey = "date" | "popular" | "name";
 
@@ -21,19 +22,20 @@ const ITEMS_PER_PAGE = 8;
 export default function EventsPage() {
   const { allEvents, isLoading } = useEvents();
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebounce(search, 250);
   const [sort, setSort] = useState<SortKey>("date");
   const [onlyOpen, setOnlyOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
 
   const allFilteredEvents = useMemo(() => {
     let list = allEvents;
-    if (search) {
-      const q = search.toLowerCase();
+    if (debouncedSearch) {
+      const q = debouncedSearch.toLowerCase();
       list = list.filter(
         (e) =>
-          e.title.toLowerCase().includes(q) ||
-          e.venue?.toLowerCase().includes(q) ||
-          e.fest?.toLowerCase().includes(q)
+          String(e.title || "").toLowerCase().includes(q) ||
+          String(e.venue || "").toLowerCase().includes(q) ||
+          String(e.fest || "").toLowerCase().includes(q)
       );
     }
     if (onlyOpen) {
@@ -48,15 +50,17 @@ export default function EventsPage() {
         sorted.sort((a, b) => (b.total_participants ?? 0) - (a.total_participants ?? 0));
         break;
       case "name":
-        sorted.sort((a, b) => a.title.localeCompare(b.title));
+        sorted.sort((a, b) => String(a.title || "").localeCompare(String(b.title || "")));
         break;
     }
     return sorted;
-  }, [allEvents, search, sort, onlyOpen]);
+  }, [allEvents, debouncedSearch, sort, onlyOpen]);
 
   const totalPages = Math.ceil(allFilteredEvents.length / ITEMS_PER_PAGE);
   const startIdx = (currentPage - 1) * ITEMS_PER_PAGE;
   const events = allFilteredEvents.slice(0, startIdx + ITEMS_PER_PAGE);
+  const happeningSoonEvents = events.slice(0, 2);
+  const trendingEvents = events.slice(2);
   const hasMore = currentPage < totalPages;
 
   return (
@@ -75,8 +79,7 @@ export default function EventsPage() {
             placeholder="Search events…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full h-[44px] text-[14px] bg-white border-[1.5px] border-[var(--color-border)] rounded-[var(--radius)] outline-none focus:border-[var(--color-primary)] focus:shadow-[0_0_0_3px_rgba(21,76,179,0.1)] transition-all placeholder:text-[var(--color-text-muted)]"
-            style={{ paddingLeft: 42, paddingRight: 40 }}
+            className="w-full h-[44px] pl-[42px] pr-10 text-[14px] bg-white border-[1.5px] border-[var(--color-border)] rounded-[var(--radius)] outline-none focus:border-[var(--color-primary)] focus:shadow-[0_0_0_3px_rgba(21,76,179,0.1)] transition-all placeholder:text-[var(--color-text-muted)]"
           />
           {search && (
             <button 
@@ -98,9 +101,9 @@ export default function EventsPage() {
             setOnlyOpen(!onlyOpen);
             setCurrentPage(1);
           }}
-          className={`chip px-3 py-1.5 text-[12px] font-semibold border transition-colors ${
+          className={`chip btn-active-state px-3 py-1.5 text-[12px] font-semibold border transition-colors ${
             onlyOpen
-              ? "bg-green-50 text-green-700 border-green-200"
+              ? "chip-active border-[var(--color-primary)] shadow-[var(--shadow-primary)]"
               : "bg-white text-[var(--color-text-muted)] border-[var(--color-border)]"
           }`}
         >
@@ -113,9 +116,9 @@ export default function EventsPage() {
               setSort(key);
               setCurrentPage(1);
             }}
-            className={`chip px-3 py-1.5 text-[12px] font-semibold border transition-colors ${
+            className={`chip btn-active-state px-3 py-1.5 text-[12px] font-semibold border transition-colors ${
               sort === key
-                ? "bg-[var(--color-primary)] text-white border-[var(--color-primary)]"
+                ? "chip-active border-[var(--color-primary)] shadow-[var(--shadow-primary)]"
                 : "bg-white text-[var(--color-text-muted)] border-[var(--color-border)]"
             }`}
           >
@@ -138,10 +141,35 @@ export default function EventsPage() {
         />
       ) : (
         <>
-          <div className="px-4 space-y-3 stagger">
-            {events.map((e) => (
-              <EventCard key={e.event_id} event={e} />
-            ))}
+          <div className="px-4 space-y-6">
+            {happeningSoonEvents.length > 0 && (
+              <section className="space-y-3 animate-fade-up">
+                <h2 className="text-[22px] font-extrabold tracking-tight">Happening Soon</h2>
+
+                <div className="-mx-4 px-4">
+                  <div className="h-scroll gap-3 snap-x snap-mandatory">
+                    <div className="shrink-0 w-px" aria-hidden />
+                    {happeningSoonEvents.map((event) => (
+                      <div key={event.event_id} className="w-[calc(100vw-40px)] max-w-[420px] shrink-0 snap-start">
+                        <EventCard event={event} featured showAction />
+                      </div>
+                    ))}
+                    <div className="shrink-0 w-px" aria-hidden />
+                  </div>
+                </div>
+              </section>
+            )}
+
+            {trendingEvents.length > 0 && (
+              <section className="space-y-3">
+                <h2 className="text-[22px] font-extrabold tracking-tight">Trending Events</h2>
+                <div className="space-y-3 stagger">
+                  {trendingEvents.map((e) => (
+                    <EventCard key={e.event_id} event={e} showAction />
+                  ))}
+                </div>
+              </section>
+            )}
           </div>
 
           {/* Pagination info and load more button */}
@@ -153,7 +181,7 @@ export default function EventsPage() {
               {hasMore && (
                 <button
                   onClick={() => setCurrentPage(currentPage + 1)}
-                  className="btn btn-primary text-[12px] px-4 py-1.5"
+                  className="btn btn-primary btn-active-state text-[12px] px-4 py-1.5"
                 >
                   Load More
                 </button>

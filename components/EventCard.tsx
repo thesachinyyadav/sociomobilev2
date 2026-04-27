@@ -6,7 +6,20 @@ import { MapPin, Clock, Users, Heart } from "lucide-react";
 import type { FetchedEvent } from "@/context/EventContext";
 import { formatDateShort, formatTime, getDaysUntil, isDeadlinePassed } from "@/lib/dateUtils";
 
-export default function EventCard({ event, compact }: { event: FetchedEvent; compact?: boolean }) {
+export default function EventCard({
+  event,
+  compact,
+  featured,
+  showAction,
+}: {
+  event: FetchedEvent;
+  compact?: boolean;
+  featured?: boolean;
+  showAction?: boolean;
+}) {
+  // Guard: do not render a broken link if event has no valid ID
+  if (!event?.event_id) return null;
+
   const daysLeft = getDaysUntil(event.registration_deadline);
   const closed = isDeadlinePassed(event.registration_deadline);
   const isFree = !event.registration_fee || event.registration_fee === 0;
@@ -49,10 +62,26 @@ export default function EventCard({ event, compact }: { event: FetchedEvent; com
     );
   }
 
+  const cardClasses = `card premium-card block animate-fade-up group btn-active-state ${
+    featured ? "shadow-hero" : "shadow-soft"
+  }`;
+
+  const titleClasses = featured
+    ? "text-[28px] font-extrabold leading-[1.12] tracking-[-0.01em] line-clamp-2"
+    : showAction
+      ? "text-[20px] font-extrabold leading-[1.22] tracking-[-0.01em] line-clamp-2"
+      : "text-[15px] font-bold leading-snug line-clamp-1";
+
+  const bodyClasses = showAction
+    ? featured
+      ? "p-5"
+      : "p-4"
+    : "p-3";
+
   return (
-    <Link href={`/event/${event.event_id}`} className="card block animate-fade-up group">
+    <Link href={`/event/${event.event_id}`} className={cardClasses}>
       {/* Banner */}
-      <div className="relative aspect-[16/9] bg-gray-100 overflow-hidden">
+      <div className={`relative ${featured ? "aspect-[16/10]" : "aspect-[16/9]"} bg-gray-100 overflow-hidden`}>
         {event.event_image_url || event.banner_url ? (
           <Image
             src={(event.banner_url || event.event_image_url)!}
@@ -69,15 +98,27 @@ export default function EventCard({ event, compact }: { event: FetchedEvent; com
           </div>
         )}
 
+        {featured && (
+          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+        )}
+
         {/* Top badges */}
-        <div className="absolute top-2.5 left-2.5 flex gap-1.5 flex-wrap">
-          {isFree ? (
-            <span className="tag tag-free">FREE</span>
+        <div className="absolute top-2.5 left-2.5 flex gap-1.5 flex-wrap z-[1]">
+          {closed ? (
+            <span className="tag rounded-[var(--radius-sm)] border border-red-100 bg-red-50/95 text-red-600 shadow-[var(--shadow-xs)]">
+              SOLD OUT
+            </span>
+          ) : isFree ? (
+            <span className="tag rounded-[var(--radius-sm)] border border-emerald-100 bg-emerald-50/95 text-emerald-700 shadow-[var(--shadow-xs)]">
+              FREE
+            </span>
           ) : (
-            <span className="tag tag-paid">₹{event.registration_fee}</span>
+            <span className="tag rounded-[var(--radius-sm)] border border-amber-100 bg-amber-50/95 text-amber-700 shadow-[var(--shadow-xs)]">
+              ₹{event.registration_fee}
+            </span>
           )}
           {event.category && (
-            <span className="tag bg-white/90 text-[var(--color-secondary)]">
+            <span className="tag rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-white/92 text-[var(--color-secondary)] shadow-[var(--shadow-xs)]">
               {event.category}
             </span>
           )}
@@ -100,13 +141,13 @@ export default function EventCard({ event, compact }: { event: FetchedEvent; com
       </div>
 
       {/* Body */}
-      <div className="p-3">
-        <h3 className="text-[15px] font-extrabold leading-snug line-clamp-1">{event.title}</h3>
+      <div className={bodyClasses}>
+        <h3 className={titleClasses}>{event.title}</h3>
         <p className="mt-0.5 text-[12px] font-medium text-[var(--color-text-muted)] line-clamp-1">
           {event.organizing_dept || event.fest || event.category || "Campus Event"}
         </p>
 
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1.5 text-[11px] text-[var(--color-text-light)]">
+        <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] font-normal text-[var(--color-text-light)]">
           <span className="flex items-center gap-1">
             <Clock size={11} className="text-[var(--color-primary)]" />
             {formatDateShort(event.event_date)}
@@ -136,6 +177,24 @@ export default function EventCard({ event, compact }: { event: FetchedEvent; com
             </span>
           )}
         </div>
+
+        {showAction && (
+          <div className={featured ? "mt-4" : "mt-3"}>
+            {closed ? (
+              <span className="w-full inline-flex items-center justify-center rounded-[var(--radius)] border border-slate-200 bg-slate-100 py-3 text-[14px] font-bold text-slate-400 opacity-90 cursor-not-allowed shadow-none">
+                Registration Closed
+              </span>
+            ) : (
+              <span
+                className={`btn-active-state w-full inline-flex items-center justify-center rounded-[var(--radius)] bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-primary-dark)] text-white shadow-[var(--shadow-primary)] font-extrabold ${
+                  featured ? "py-3.5 text-[15px]" : "py-3 text-[14px]"
+                }`}
+              >
+                Register Now
+              </span>
+            )}
+          </div>
+        )}
       </div>
     </Link>
   );

@@ -6,6 +6,7 @@ import Skeleton from "@/components/Skeleton";
 import EmptyState from "@/components/EmptyState";
 import { Search, X, Sparkles } from "lucide-react";
 import type { Fest } from "@/context/EventContext";
+import { useDebounce } from "@/lib/useDebounce";
 
 const ITEMS_PER_PAGE = 8;
 
@@ -13,31 +14,37 @@ export default function FestsPage() {
   const [fests, setFests] = useState<Fest[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebounce(search, 250);
   const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
     (async () => {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 8000);
+
       try {
-        const res = await fetch(`/api/pwa/fests`);
+        const res = await fetch(`/api/pwa/fests`, { signal: controller.signal });
         if (res.ok) {
           const data = await res.json();
-          const festArray = data.fests ?? data ?? [];
+          const festArray = data.fests ?? data.data ?? data ?? [];
           setFests(Array.isArray(festArray) ? festArray : []);
         } else {
           console.error("Failed to fetch fests:", res.status);
         }
       } catch (err) {
         console.error("Error fetching fests:", err);
+      } finally {
+        clearTimeout(timeoutId);
+        setLoading(false);
       }
-      setLoading(false);
     })();
   }, []);
 
-  const filtered = search
+  const filtered = debouncedSearch
     ? fests.filter(
         (f) =>
-          (f.fest_title || f.name || "").toLowerCase().includes(search.toLowerCase()) ||
-          (f.organizing_dept || f.department || "").toLowerCase().includes(search.toLowerCase())
+          String(f.fest_title || f.name || "").toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+          String(f.organizing_dept || f.department || "").toLowerCase().includes(debouncedSearch.toLowerCase())
       )
     : fests;
 

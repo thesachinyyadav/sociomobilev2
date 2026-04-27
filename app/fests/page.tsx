@@ -182,7 +182,7 @@ export default function FestsPage() {
 
               <Link
                 href={`/fest/${featuredFest.slug || featuredFest.fest_id}`}
-                className="relative block w-full h-[400px] rounded-[1.25rem] overflow-hidden group shadow-[0_8px_30px_rgba(21,76,179,0.15)] cursor-pointer transition-transform duration-300 active:scale-[0.97] border border-white/40"
+                className="card-hero relative block w-full h-[400px] group cursor-pointer border border-white/40"
               >
                 <Image
                   src={
@@ -196,7 +196,7 @@ export default function FestsPage() {
                   priority
                 />
                 
-                <div className="absolute inset-0 bg-gradient-to-t from-[#001848]/95 via-[#001848]/60 to-transparent"></div>
+                <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent"></div>
                 <div className="absolute inset-0 p-6 flex flex-col justify-between z-10">
                   <div className="flex justify-between items-start">
                     <span className="bg-[#ffe08b] text-[#241a00] px-3 py-1 rounded-full text-xs font-bold uppercase tracking-widest shadow-sm">

@@ -62,8 +62,8 @@ export default function EventCard({
     );
   }
 
-  const cardClasses = `card premium-card block animate-fade-up group btn-active-state ${
-    featured ? "shadow-hero" : "shadow-soft"
+  const cardClasses = `block animate-fade-up group ${
+    featured ? "card-hero" : "card premium-card"
   }`;
 
   const titleClasses = featured
@@ -99,7 +99,7 @@ export default function EventCard({
         )}
 
         {featured && (
-          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
         )}
 
         {/* Top badges */}

@@ -209,44 +209,58 @@ html, body {
 .btn-sm { padding: 6px 14px; font-size: 13px; border-radius: var(--radius-sm); min-height: 32px; }
 .btn-xs { padding: 6px 12px; font-size: 12px; border-radius: var(--radius-xs); }
 
-/* ── Card ── */
-.card {
-  background: var(--color-surface); border-radius: var(--radius);
-  overflow: hidden; box-shadow: var(--shadow-card);
+/* ── Unified Card System ── */
+
+/* Level 3: Standard Cards (Lists) */
+.card, .premium-card {
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border); /* optional subtle outline */
+  box-shadow: var(--shadow-sm); /* very soft or none */
+  overflow: hidden;
   /* GPU-composited only: transform, NO box-shadow transitions */
-  transition: transform 150ms cubic-bezier(0.22, 1, 0.36, 1),
-              opacity   150ms ease;
+  transition: transform 200ms cubic-bezier(0.22, 1, 0.36, 1),
+              opacity   200ms ease;
   will-change: transform;
   -webkit-tap-highlight-color: transparent;
 }
-.card:active { transform: scale(0.972); opacity: 0.94; }
+.card:active, .premium-card:active { transform: scale(0.97); }
+
+/* Level 2: Elevated Cards (Trending / Fests) */
 .card-elevated {
-  background: var(--color-surface); border-radius: var(--radius);
-  overflow: hidden; box-shadow: var(--shadow);
+  background: var(--color-surface);
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  box-shadow: var(--shadow); /* shadow-soft */
+  transition: transform 200ms cubic-bezier(0.22, 1, 0.36, 1),
+              opacity   200ms ease;
+  will-change: transform;
+  -webkit-tap-highlight-color: transparent;
 }
+.card-elevated:active { transform: scale(0.97); }
+
+/* Level 1: Hero Card (Featured) */
+.card-hero {
+  background: var(--color-surface);
+  border-radius: 1.25rem; /* 2xl */
+  overflow: hidden;
+  box-shadow: var(--shadow-lg), var(--shadow-primary); /* shadow-hero */
+  transition: transform 200ms cubic-bezier(0.22, 1, 0.36, 1),
+              opacity   200ms ease;
+  will-change: transform;
+  -webkit-tap-highlight-color: transparent;
+}
+.card-hero:active { transform: scale(0.97); }
 
 /* ── Shared polish utilities ── */
 .shadow-soft { box-shadow: var(--shadow); }
 .shadow-hero { box-shadow: var(--shadow-lg), var(--shadow-primary); }
 
-.premium-card {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-card);
-  /* GPU only — no box-shadow animation */
-  transition: transform 150ms cubic-bezier(0.22, 1, 0.36, 1),
-              opacity   150ms ease;
-  will-change: transform;
-  -webkit-tap-highlight-color: transparent;
-}
-.premium-card:active { transform: scale(0.972); opacity: 0.94; }
-
 /* ── Active-state interaction (composited only) ───────────────────────── */
 .btn-active-state {
   /* GPU-composited properties only: transform & opacity */
-  transition: transform 150ms cubic-bezier(0.22, 1, 0.36, 1),
-              opacity   150ms cubic-bezier(0.22, 1, 0.36, 1);
+  transition: transform 200ms cubic-bezier(0.22, 1, 0.36, 1),
+              opacity   200ms cubic-bezier(0.22, 1, 0.36, 1);
   -webkit-tap-highlight-color: transparent;
   user-select: none;
 }

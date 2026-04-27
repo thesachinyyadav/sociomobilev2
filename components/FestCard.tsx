@@ -53,7 +53,7 @@ export default function FestCard({ fest }: { fest: Fest }) {
   return (
     <Link
       href={href}
-      className="relative block w-full h-[220px] rounded-[1.25rem] overflow-hidden group shadow-[0_8px_24px_rgba(21,76,179,0.12)] cursor-pointer transition-all duration-300 active:scale-[0.97] border border-white/40 bg-white"
+      className="card-elevated relative block w-full h-[220px] group cursor-pointer border border-white/40"
     >
       <Image
         src={
@@ -70,7 +70,7 @@ export default function FestCard({ fest }: { fest: Fest }) {
         className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
         sizes="(max-width:480px) 100vw, 50vw"
       />
-      <div className="absolute inset-0 bg-gradient-to-t from-[#171a2e] via-[#171a2e]/40 to-transparent"></div>
+      <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
       <div className="absolute inset-0 p-5 flex flex-col justify-between">
         <div className="flex justify-between items-start">
           {fest.category ? (

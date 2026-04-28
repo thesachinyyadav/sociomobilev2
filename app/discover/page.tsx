@@ -198,7 +198,7 @@ export default function DiscoverPage() {
   }, [trendingFests]);
 
   return (
-    <div className="pwa-page pt-[calc(var(--nav-height)+var(--safe-top)+4px)] pb-8 bg-[#f9fafb]">
+    <div className="pwa-page pt-[calc(var(--nav-height)+var(--safe-top)+4px)] pb-8 bg-[#f9fafb] max-w-[420px] mx-auto">
       {/* Header */}
       <div className="px-5 pt-3 pb-2 hidden">
         <h1 className="text-[22px] font-extrabold">Discover Events &amp; Fests</h1>
@@ -345,7 +345,7 @@ export default function DiscoverPage() {
                   ? Array.from({ length: 2 }).map((_, idx) => (
                       <div
                         key={`fest-skeleton-${idx}`}
-                        className="card-elevated w-[min(280px,calc(100vw-86px))] shrink-0 snap-start"
+                        className="card-elevated w-[calc(100vw-40px)] max-w-[380px] shrink-0 snap-center"
                       >
                         <div className="skeleton aspect-[16/10]" />
                         <div className="p-4 space-y-2">
@@ -363,7 +363,7 @@ export default function DiscoverPage() {
                           key={f.fest_id || f.id}
                           href={`/fest/${f.slug || f.fest_id}`}
                           data-fest-card
-                          className="card-elevated group w-[min(280px,calc(100vw-86px))] flex-shrink-0 snap-start"
+                          className="card-elevated group w-[calc(100vw-40px)] max-w-[380px] flex-shrink-0 snap-center"
                         >
                           <div className="relative aspect-[16/10] bg-[var(--color-primary-light)] overflow-hidden">
                             {img ? (

@@ -82,7 +82,7 @@ export default function EventsPage() {
   const hasMore = currentPage < totalPages;
 
   return (
-    <div className="pwa-page pt-[calc(var(--nav-height)+var(--safe-top)+8px)]">
+    <div className="pwa-page pt-[calc(var(--nav-height)+var(--safe-top)+8px)] max-w-[420px] mx-auto">
       {/* Header */}
       <div className="px-5 mb-4">
         <h1 className="text-lg font-extrabold">Events</h1>
@@ -115,7 +115,7 @@ export default function EventsPage() {
       <div className="h-scroll mb-6 gap-2.5">
         <div className="shrink-0 w-4" aria-hidden />
         <FilterChip
-          label={onlyOpen ? "Open" : "All"}
+          label="Open only"
           icon={<FilterIcon size={14} />}
           isActive={onlyOpen}
           onClick={() => {
@@ -159,11 +159,9 @@ export default function EventsPage() {
                 </div>
 
                 <div className="px-5">
-                  <div className="h-scroll gap-3 snap-x snap-mandatory -mx-5 px-5">
+                  <div className="space-y-4">
                     {happeningSoonEvents.map((event) => (
-                      <div key={event.event_id} className="w-[calc(100vw-40px)] max-w-[420px] shrink-0 snap-start">
-                        <EventCard event={event} featured showAction />
-                      </div>
+                      <EventCard key={event.event_id} event={event} featured showAction />
                     ))}
                   </div>
                 </div>

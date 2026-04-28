@@ -111,7 +111,7 @@ export default function FestsPage() {
   const upcomingFests = displayedFests.slice(1);
 
   return (
-    <div className="pwa-page pt-[calc(var(--nav-height)+var(--safe-top)+8px)] max-w-3xl mx-auto space-y-8">
+    <div className="pwa-page pt-[calc(var(--nav-height)+var(--safe-top)+8px)] max-w-[420px] mx-auto space-y-8">
       {/* Search */}
       <div className="px-5 pb-4">
         <div className="relative w-full">

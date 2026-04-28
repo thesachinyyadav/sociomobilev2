@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { MapPinIcon, ClockIcon } from "@/components/icons";
+import { MapPinIcon, ClockIcon, UsersIcon } from "@/components/icons";
 import type { FetchedEvent } from "@/context/EventContext";
 import { formatDateShort, formatTime, getDaysUntil, isDeadlinePassed } from "@/lib/dateUtils";
 
@@ -135,13 +135,8 @@ export default function EventCard({
           <div className="flex items-center gap-2">
             {(event.total_participants != null && event.total_participants > 0) ? (
               <>
-                <div className="avatar-group">
-                  <div className="w-6 h-6 rounded-full bg-gray-200 overflow-hidden border-2 border-white">
-                    <Image src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=64&h=64&fit=crop&crop=faces" alt="Avatar" width={24} height={24} className="object-cover" />
-                  </div>
-                  <div className="w-6 h-6 rounded-full bg-gray-200 overflow-hidden border-2 border-white -ml-2">
-                    <Image src="https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=64&h=64&fit=crop&crop=faces" alt="Avatar" width={24} height={24} className="object-cover" />
-                  </div>
+                <div className="flex items-center justify-center w-6 h-6 rounded-full bg-black/5 text-black/40 border border-black/10">
+                  <UsersIcon size={12} />
                 </div>
                 <span className="text-[11px] font-semibold text-[var(--color-text-muted)]">
                   +{event.total_participants} Attending

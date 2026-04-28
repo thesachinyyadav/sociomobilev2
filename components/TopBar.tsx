@@ -48,7 +48,9 @@ export default function TopBar() {
                 alt={userData.name}
                 width={34}
                 height={34}
-                className="rounded-full object-cover ring-2 ring-white shadow-[0_4px_14px_rgba(21,76,179,0.12)]"
+                className={`rounded-full object-cover shadow-[0_4px_14px_rgba(21,76,179,0.12)] ${
+                  isProfile ? "ring-2 ring-[var(--color-primary-light)]" : "ring-2 ring-white"
+                }`}
               />
             ) : (
               <div className="w-[34px] h-[34px] rounded-full bg-[var(--color-primary)] text-white flex items-center justify-center text-xs font-bold shadow-[0_4px_14px_rgba(21,76,179,0.12)]">

@@ -37,7 +37,7 @@ export default function DiscoverPage() {
   const { allEvents, isLoading } = useEvents();
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebounce(search, 250);
-  const [showOpen, setShowOpen] = useState(false);
+  const [showOpen, setShowOpen] = useState(true);
   const [activeCategory, setActiveCategory] = useState("All");
   const [currentPage, setCurrentPage] = useState(1);
   const [fests, setFests] = useState<Fest[]>([]);
@@ -132,16 +132,16 @@ export default function DiscoverPage() {
     if (showOpen) {
       list = list.filter((e) => !isDeadlinePassed(e.registration_deadline));
     }
-    return list.sort(
-      (a, b) => new Date(a.event_date).getTime() - new Date(b.event_date).getTime()
-    );
+    return list.sort((a, b) => {
+      const aClosed = isDeadlinePassed(a.registration_deadline);
+      const bClosed = isDeadlinePassed(b.registration_deadline);
+      if (aClosed !== bClosed) return aClosed ? 1 : -1;
+      return new Date(a.event_date).getTime() - new Date(b.event_date).getTime();
+    });
   }, [allEvents, debouncedSearch, activeCategory, showOpen]);
 
   const allFiltered = filtered;
-  const spotlightEvent =
-    allFiltered.find((e) => !isDeadlinePassed(e.registration_deadline)) ||
-    allFiltered[0] ||
-    null;
+  const spotlightEvents = allFiltered.slice(0, 4);
   const totalPages = Math.ceil(allFiltered.length / ITEMS_PER_PAGE);
   const startIdx = (currentPage - 1) * ITEMS_PER_PAGE;
   const displayedEvents = allFiltered.slice(0, startIdx + ITEMS_PER_PAGE);
@@ -270,68 +270,25 @@ export default function DiscoverPage() {
         </div>
       ) : (
         <>
-          {/* Spotlight Hero */}
-          {spotlightEvent && (
-            <div className="px-5 pb-6">
-              <div className="pb-3 flex items-center justify-between">
+          {/* Spotlight Carousel */}
+          {spotlightEvents.length > 0 && (
+            <div className="pb-6">
+              <div className="px-5 pb-3 flex items-center justify-between">
                 <h2 className="text-[15px] font-extrabold tracking-[-0.01em]">Spotlight</h2>
                 <Link href="/events" className="text-[12px] font-bold text-[var(--color-primary)] flex items-center gap-1 hover:gap-1.5 transition-all">
                   See All <ArrowRight size={13} />
                 </Link>
               </div>
 
-              <Link
-                href={`/event/${spotlightEvent.event_id}`}
-                className="premium-card btn-active-state group relative block overflow-hidden rounded-[var(--radius-xl)] border-0 shadow-hero transition-all duration-200"
-              >
-                <div className="relative aspect-[4/5] bg-[var(--color-primary-light)] overflow-hidden">
-                  {spotlightEvent.banner_url || spotlightEvent.event_image_url ? (
-                    <Image
-                      src={spotlightEvent.banner_url || spotlightEvent.event_image_url || ""}
-                      alt={spotlightEvent.title}
-                      fill
-                      className="object-cover transition-transform duration-700 group-hover:scale-105"
-                      sizes="(max-width:480px) 100vw, 420px"
-                    />
-                  ) : (
-                    <div className="w-full h-full bg-gradient-to-br from-[var(--color-primary-dark)] to-[var(--color-primary)] flex items-center justify-center">
-                      <span className="text-white font-black text-6xl opacity-30">{spotlightEvent.title.charAt(0)}</span>
-                    </div>
-                  )}
-
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/78 via-black/36 to-transparent" />
-                  <div className="absolute inset-[1px] rounded-[18px] border border-white/24 bg-gradient-to-b from-white/20 via-white/4 to-transparent pointer-events-none" />
-
-                  <div className="absolute inset-x-0 bottom-0 p-4 text-white">
-                    <span className="chip bg-[var(--color-accent)] text-[var(--color-primary-dark)] text-[10px] font-extrabold uppercase tracking-[0.08em]">
-                      Featured Fest
-                    </span>
-                    <h3 className="mt-2 text-[38px] font-extrabold leading-[1.05] tracking-[-0.02em] text-white line-clamp-2">
-                      {spotlightEvent.title}
-                    </h3>
-                    <p className="mt-2 text-[12px] font-medium text-white/85 line-clamp-1">
-                      {spotlightEvent.organizing_dept || spotlightEvent.fest || "Campus Highlight"}
-                    </p>
-                    <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] font-medium text-white/82">
-                      <span className="flex items-center gap-1">
-                        <CalendarDays size={13} />
-                        {formatDateShort(spotlightEvent.event_date)}
-                      </span>
-                      {spotlightEvent.venue && (
-                        <span className="flex items-center gap-1">
-                          <MapPin size={13} />
-                          {spotlightEvent.venue}
-                        </span>
-                      )}
-                    </p>
-
-                    <span className="btn btn-active-state mt-4 !w-full !min-h-[44px] !rounded-full !px-4 !py-2 !text-[14px] !font-extrabold !bg-gradient-to-r !from-[var(--color-primary)] !to-[var(--color-primary-dark)] !text-white !shadow-[var(--shadow-primary)]">
-                      View Event
-                      <ArrowRight size={16} />
-                    </span>
+              <div className="flex overflow-x-auto gap-3.5 snap-x snap-mandatory scroll-smooth pb-2 no-scrollbar">
+                <div className="shrink-0 w-5" aria-hidden />
+                {spotlightEvents.map((event) => (
+                  <div key={event.event_id} className="w-[calc(100vw-40px)] max-w-[420px] shrink-0 snap-start">
+                    <EventCard event={event} featured showAction />
                   </div>
-                </div>
-              </Link>
+                ))}
+                <div className="shrink-0 w-5" aria-hidden />
+              </div>
             </div>
           )}
 
@@ -356,7 +313,7 @@ export default function DiscoverPage() {
                   ? Array.from({ length: 2 }).map((_, idx) => (
                       <div
                         key={`fest-skeleton-${idx}`}
-                        className="premium-card shadow-soft w-[min(280px,calc(100vw-86px))] shrink-0 snap-start overflow-hidden"
+                        className="card-elevated w-[min(280px,calc(100vw-86px))] shrink-0 snap-start"
                       >
                         <div className="skeleton aspect-[16/10]" />
                         <div className="p-4 space-y-2">
@@ -374,7 +331,7 @@ export default function DiscoverPage() {
                           key={f.fest_id || f.id}
                           href={`/fest/${f.slug || f.fest_id}`}
                           data-fest-card
-                          className="premium-card btn-active-state shadow-soft group w-[min(280px,calc(100vw-86px))] flex-shrink-0 snap-start overflow-hidden transition-all duration-200"
+                          className="card-elevated group w-[min(280px,calc(100vw-86px))] flex-shrink-0 snap-start"
                         >
                           <div className="relative aspect-[16/10] bg-[var(--color-primary-light)] overflow-hidden">
                             {img ? (
@@ -390,7 +347,7 @@ export default function DiscoverPage() {
                                 <span className="text-white font-extrabold text-2xl opacity-35">{title.charAt(0)}</span>
                               </div>
                             )}
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/68 via-black/10 to-transparent" />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
                             <span className="absolute top-2.5 right-2.5 chip bg-white/92 text-[var(--color-primary)] text-[10px] font-bold">
                               Fest
                             </span>
@@ -480,7 +437,7 @@ export default function DiscoverPage() {
                   View More <ArrowRight size={13} />
                 </Link>
               </div>
-              <div className="px-5 space-y-3">
+              <div className="px-5 space-y-5">
                 {displayedEvents.map((e) => (
                   <EventCard key={e.event_id} event={e} />
                 ))}

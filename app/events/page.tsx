@@ -24,7 +24,7 @@ export default function EventsPage() {
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebounce(search, 250);
   const [sort, setSort] = useState<SortKey>("date");
-  const [onlyOpen, setOnlyOpen] = useState(false);
+  const [onlyOpen, setOnlyOpen] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
 
   const allFilteredEvents = useMemo(() => {
@@ -44,13 +44,28 @@ export default function EventsPage() {
     const sorted = [...list];
     switch (sort) {
       case "date":
-        sorted.sort((a, b) => new Date(a.event_date).getTime() - new Date(b.event_date).getTime());
+        sorted.sort((a, b) => {
+          const aClosed = isDeadlinePassed(a.registration_deadline);
+          const bClosed = isDeadlinePassed(b.registration_deadline);
+          if (aClosed !== bClosed) return aClosed ? 1 : -1;
+          return new Date(a.event_date).getTime() - new Date(b.event_date).getTime();
+        });
         break;
       case "popular":
-        sorted.sort((a, b) => (b.total_participants ?? 0) - (a.total_participants ?? 0));
+        sorted.sort((a, b) => {
+          const aClosed = isDeadlinePassed(a.registration_deadline);
+          const bClosed = isDeadlinePassed(b.registration_deadline);
+          if (aClosed !== bClosed) return aClosed ? 1 : -1;
+          return (b.total_participants ?? 0) - (a.total_participants ?? 0);
+        });
         break;
       case "name":
-        sorted.sort((a, b) => String(a.title || "").localeCompare(String(b.title || "")));
+        sorted.sort((a, b) => {
+          const aClosed = isDeadlinePassed(a.registration_deadline);
+          const bClosed = isDeadlinePassed(b.registration_deadline);
+          if (aClosed !== bClosed) return aClosed ? 1 : -1;
+          return String(a.title || "").localeCompare(String(b.title || ""));
+        });
         break;
     }
     return sorted;
@@ -66,12 +81,12 @@ export default function EventsPage() {
   return (
     <div className="pwa-page pt-[calc(var(--nav-height)+var(--safe-top)+8px)]">
       {/* Header */}
-      <div className="px-4 mb-3">
+      <div className="px-5 mb-4">
         <h1 className="text-lg font-extrabold">Events</h1>
       </div>
 
       {/* Search */}
-      <div className="px-5 mb-4">
+      <div className="px-5 mb-5">
         <div className="relative group min-w-0">
           <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--color-text-light)] group-focus-within:text-[var(--color-primary)] transition-colors pointer-events-none z-[1]" />
           <input

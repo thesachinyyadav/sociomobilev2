@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import FestCard from "@/components/FestCard";
@@ -9,7 +9,7 @@ import EmptyState from "@/components/EmptyState";
 import { Search, X, Sparkles, Heart, Calendar, Flame, ArrowRight } from "lucide-react";
 import type { Fest } from "@/context/EventContext";
 import { useDebounce } from "@/lib/useDebounce";
-import { formatDateRange } from "@/lib/dateUtils";
+import { formatDateRange, isDeadlinePassed } from "@/lib/dateUtils";
 
 const ITEMS_PER_PAGE = 8;
 
@@ -106,13 +106,22 @@ export default function FestsPage() {
     })();
   }, []);
 
-  const filtered = debouncedSearch
-    ? fests.filter(
-        (f) =>
-          String(f.fest_title || f.name || "").toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-          String(f.organizing_dept || f.department || "").toLowerCase().includes(debouncedSearch.toLowerCase())
-      )
-    : fests;
+  const filtered = useMemo(() => {
+    const list = debouncedSearch
+      ? fests.filter(
+          (f) =>
+            String(f.fest_title || f.name || "").toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+            String(f.organizing_dept || f.department || "").toLowerCase().includes(debouncedSearch.toLowerCase())
+        )
+      : fests;
+      
+    return [...list].sort((a, b) => {
+      const aClosed = isDeadlinePassed(a.closing_date || (a as any).end_date);
+      const bClosed = isDeadlinePassed(b.closing_date || (b as any).end_date);
+      if (aClosed !== bClosed) return aClosed ? 1 : -1;
+      return new Date(a.opening_date || (a as any).start_date || 0).getTime() - new Date(b.opening_date || (b as any).start_date || 0).getTime();
+    });
+  }, [fests, debouncedSearch]);
 
   const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE);
   const startIdx = (currentPage - 1) * ITEMS_PER_PAGE;

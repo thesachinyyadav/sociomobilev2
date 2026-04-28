@@ -11,22 +11,25 @@ import LoadingScreen from "@/components/LoadingScreen";
 import CampusSelector from "@/components/CampusSelector";
 import QRCodeDisplay from "@/components/QRCodeDisplay";
 import {
-  LogOut,
-  Mail,
-  Hash,
-  GraduationCap,
-  Building,
-  CalendarDays,
-  ChevronRight,
-  Bell,
-  Ticket,
-  MapPin,
-  Pencil,
-  QrCode,
-  Clock3,
-  CheckCircle2,
-  XCircle,
-} from "lucide-react";
+  LogOutIcon as LogOut,
+  MailIcon as Mail,
+  HashIcon as Hash,
+  GraduationCapIcon as GraduationCap,
+  BuildingIcon as Building,
+  CalendarIcon as CalendarDays,
+  ChevronRightIcon as ChevronRight,
+  BellIcon as Bell,
+  TicketIcon as Ticket,
+  MapPinIcon as MapPin,
+  PencilIcon as Pencil,
+  QrCodeIcon as QrCode,
+  ClockIcon as Clock3,
+  CheckCircleIcon as CheckCircle2,
+  XCircleIcon as XCircle,
+  SearchIcon,
+  XIcon,
+} from "@/components/icons";
+import { Button } from "@/components/Button";
 import type { FetchedEvent } from "@/context/EventContext";
 
 interface Registration {
@@ -45,6 +48,9 @@ export default function ProfilePage() {
   const router = useRouter();
   const [registrations, setRegistrations] = useState<Registration[]>([]);
   const [regLoading, setRegLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 5;
   const [showCampusSelector, setShowCampusSelector] = useState(false);
   const [isEditingName, setIsEditingName] = useState(false);
   const [nameInput, setNameInput] = useState("");
@@ -98,6 +104,17 @@ export default function ProfilePage() {
       return;
     }
 
+    const cacheKey = `regs_${registerNumber || userData.email}`;
+    const cachedData = sessionStorage.getItem(cacheKey);
+    if (cachedData) {
+      try {
+        setRegistrations(JSON.parse(cachedData));
+        setRegLoading(false);
+      } catch (err) {
+        // Ignore cache parsing error
+      }
+    }
+
     (async () => {
       try {
         const params = new URLSearchParams();
@@ -128,6 +145,7 @@ export default function ProfilePage() {
             }))
             .filter((r: Registration) => Boolean(r.event_id) && Boolean(r.registration_id));
           setRegistrations(normalized);
+          sessionStorage.setItem(cacheKey, JSON.stringify(normalized));
         } else {
           console.error("Failed to fetch registrations:", res.status);
           setRegistrations([]);
@@ -159,6 +177,21 @@ export default function ProfilePage() {
     }
     return Array.from(seen.values());
   }, [registrations, allEvents]);
+
+  const filteredRegistrations = useMemo(() => {
+    let result = uniqueRegistrations;
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter((r) =>
+        (r.title || "").toLowerCase().includes(q) ||
+        (r.department || "").toLowerCase().includes(q)
+      );
+    }
+    return result;
+  }, [uniqueRegistrations, searchQuery]);
+
+  const totalPages = Math.ceil(filteredRegistrations.length / ITEMS_PER_PAGE);
+  const paginatedRegistrations = filteredRegistrations.slice(0, currentPage * ITEMS_PER_PAGE);
 
   const handleCancelRegistration = async (registration: Registration) => {
     if (!session?.access_token || cancellingId) return;
@@ -257,10 +290,10 @@ export default function ProfilePage() {
               alt={userData.name}
               width={60}
               height={60}
-              className="rounded-full ring-3 ring-white/30"
+              className="rounded-full ring-4 ring-offset-2 ring-offset-[#1a6bdb] ring-[var(--color-accent)] object-cover"
             />
           ) : (
-            <div className="w-[60px] h-[60px] rounded-full bg-white/20 flex items-center justify-center text-xl font-bold">
+            <div className="w-[60px] h-[60px] rounded-full bg-white/20 flex items-center justify-center text-xl font-bold ring-4 ring-offset-2 ring-offset-[#1a6bdb] ring-[var(--color-accent)]">
               {userData.name?.[0]?.toUpperCase() || "U"}
             </div>
           )}
@@ -313,13 +346,14 @@ export default function ProfilePage() {
       {/* Detect Campus button for Christ members without campus */}
       {userData.organization_type === "christ_member" && !userData.campus && (
         <div className="px-4 mb-4">
-          <button
+          <Button
             onClick={() => setShowCampusSelector(true)}
-            className="btn btn-primary w-full flex items-center justify-center gap-2"
+            variant="primary"
+            fullWidth
+            leftIcon={<MapPin size={16} />}
           >
-            <MapPin size={16} />
             Detect Your Campus
-          </button>
+          </Button>
         </div>
       )}
 
@@ -364,8 +398,44 @@ export default function ProfilePage() {
             </p>
           </div>
         ) : (
-          <div className="space-y-2 stagger">
-            {uniqueRegistrations.map((r) => {
+          <>
+            {/* Search Input */}
+            {(uniqueRegistrations.length > 0 || searchQuery) && (
+              <div className="relative mb-3">
+                <SearchIcon size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] pointer-events-none" />
+                <input
+                  type="text"
+                  placeholder="Search registered events..."
+                  value={searchQuery}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  className="w-full bg-white text-[13px] border border-[var(--color-border)] rounded-xl py-2 pl-9 pr-8 focus:ring-2 focus:ring-[var(--color-primary-light)] focus:border-transparent outline-none shadow-sm transition-all"
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => {
+                      setSearchQuery("");
+                      setCurrentPage(1);
+                    }}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] hover:text-[var(--color-text)] p-1 rounded-full bg-gray-100"
+                  >
+                    <XIcon size={12} />
+                  </button>
+                )}
+              </div>
+            )}
+
+            {filteredRegistrations.length === 0 ? (
+               <div className="card p-6 text-center">
+                 <p className="text-[13px] font-semibold text-[var(--color-text-muted)]">
+                   No matching events found
+                 </p>
+               </div>
+            ) : (
+              <div className="space-y-2 stagger">
+                {paginatedRegistrations.map((r) => {
               const isUpcoming = r.status !== "completed";
               const tooLateToCancel = isEventSoon(r.raw_date);
               const eventTitle = r.title || `Event ${r.event_id}`;
@@ -403,35 +473,33 @@ export default function ProfilePage() {
                   </div>
 
                   <div className="mt-3 flex gap-2">
-                    <button
-                      type="button"
+                    <Button
+                      variant="primary"
+                      size="sm"
                       onClick={() => setActiveQR({ registrationId: r.registration_id, eventTitle })}
-                      className="btn btn-primary btn-sm flex-1"
+                      className="flex-1"
+                      leftIcon={<QrCode size={14} />}
                     >
-                      <QrCode size={14} /> Generate QR
-                    </button>
+                      Generate QR
+                    </Button>
 
                     {isUpcoming && (
-                      <button
-                        type="button"
+                      <Button
+                        variant={tooLateToCancel ? "ghost" : "danger"}
+                        size="sm"
                         onClick={() => setCancelConfirmId(r.registration_id)}
                         disabled={tooLateToCancel || cancellingId === r.registration_id}
-                        className={`btn btn-sm flex-1 ${
-                          tooLateToCancel
-                            ? "bg-gray-200 text-gray-500 cursor-not-allowed"
-                            : "btn-danger"
-                        }`}
+                        className={`flex-1 ${tooLateToCancel ? "bg-gray-200 text-gray-500 cursor-not-allowed" : ""}`}
+                        leftIcon={!tooLateToCancel && cancellingId !== r.registration_id ? <XCircle size={14} /> : undefined}
                       >
                         {cancellingId === r.registration_id ? (
                           "Cancelling..."
                         ) : tooLateToCancel ? (
                           "Locked <24h"
                         ) : (
-                          <>
-                            <XCircle size={14} /> Cancel
-                          </>
+                          "Cancel"
                         )}
-                      </button>
+                      </Button>
                     )}
                   </div>
 
@@ -444,18 +512,22 @@ export default function ProfilePage() {
                         This action cannot be undone.
                       </p>
                       <div className="mt-2 flex gap-2">
-                        <button
-                          className="btn btn-xs btn-ghost flex-1"
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="flex-1"
                           onClick={() => setCancelConfirmId(null)}
                         >
                           Keep
-                        </button>
-                        <button
-                          className="btn btn-xs btn-danger flex-1"
+                        </Button>
+                        <Button
+                          variant="danger"
+                          size="sm"
+                          className="flex-1"
                           onClick={() => handleCancelRegistration(r)}
                         >
                           Confirm Cancel
-                        </button>
+                        </Button>
                       </div>
                     </div>
                   )}
@@ -464,19 +536,33 @@ export default function ProfilePage() {
             })}
           </div>
         )}
+        
+        {currentPage < totalPages && (
+          <Button
+            variant="outline"
+            className="w-full mt-3 text-[13px] font-bold py-2 border-[var(--color-border)] text-[var(--color-text)] bg-white shadow-sm"
+            onClick={() => setCurrentPage((prev) => prev + 1)}
+          >
+          Load More Events
+          </Button>
+        )}
+        </>
+        )}
       </div>
 
       {/* Sign out */}
       <div className="px-4 mb-8">
-        <button
+        <Button
+          variant="danger"
+          fullWidth
           onClick={async () => {
             await signOut();
             router.replace("/auth");
           }}
-          className="btn btn-danger w-full"
+          leftIcon={<LogOut size={16} />}
         >
-          <LogOut size={16} /> Sign out
-        </button>
+          Sign out
+        </Button>
       </div>
 
       {/* Campus Selector modal */}
@@ -525,23 +611,25 @@ export default function ProfilePage() {
               </div>
 
               <div className="flex gap-2 mt-5">
-                <button
+                <Button
+                  variant="ghost"
+                  className="flex-1"
                   onClick={() => {
                     setIsEditingName(false);
                     setNameEditError(null);
                   }}
-                  className="btn btn-ghost flex-1"
                   disabled={isSubmittingName}
                 >
                   Cancel
-                </button>
-                <button
+                </Button>
+                <Button
+                  variant="primary"
+                  className="flex-1"
                   onClick={submitNameEdit}
-                  className="btn btn-primary flex-1"
                   disabled={isSubmittingName || !nameInput.trim()}
                 >
                   {isSubmittingName ? "Saving..." : "Save Name"}
-                </button>
+                </Button>
               </div>
             </div>
           </div>

@@ -7,15 +7,16 @@ import Image from "next/image";
 import { useEvents, type Fest, type FetchedEvent } from "@/context/EventContext";
 import EventCard from "@/components/EventCard";
 import {
-  ArrowLeft,
-  CalendarDays,
-  MapPin,
-  Tag,
-  Globe,
-  Loader2,
-  AlertCircle,
-  Search,
-} from "lucide-react";
+  ArrowLeftIcon as ArrowLeft,
+  CalendarIcon as CalendarDays,
+  MapPinIcon as MapPin,
+  TagIcon as Tag,
+  GlobeIcon as Globe,
+  Loader2Icon as Loader2,
+  AlertCircleIcon as AlertCircle,
+  SearchIcon as Search,
+} from "@/components/icons";
+import { Button } from "@/components/Button";
 import { formatDateRange } from "@/lib/dateUtils";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
@@ -98,8 +99,10 @@ export default function FestDetailPage() {
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3 px-6 text-center">
         <AlertCircle size={40} className="text-red-400" />
         <p className="font-bold text-lg">{error || "Not found"}</p>
-        <Link href="/fests" className="btn btn-primary text-sm mt-2">
-          Back to Fests
+        <Link href="/fests" className="block mt-2">
+          <Button variant="primary" size="sm">
+            Back to Fests
+          </Button>
         </Link>
       </div>
     );
@@ -111,7 +114,7 @@ export default function FestDetailPage() {
       <div className="px-4 pt-3 pb-2">
         <button
           onClick={() => router.back()}
-          className="flex items-center gap-1 text-sm text-[var(--color-text-muted)]"
+          className="flex items-center gap-1 text-sm text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors"
         >
           <ArrowLeft size={16} /> Back
         </button>

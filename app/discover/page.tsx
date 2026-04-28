@@ -7,7 +7,10 @@ import { useEvents } from "@/context/EventContext";
 import EventCard from "@/components/EventCard";
 import Skeleton from "@/components/Skeleton";
 import EmptyState from "@/components/EmptyState";
-import { Search, X, Filter, ArrowRight, CalendarDays, MapPin, Sparkles, Users } from "lucide-react";
+import { SearchIcon, XIcon, ArrowRightIcon, CalendarIcon, MapPinIcon, SparklesIcon, UsersIcon } from "@/components/icons";
+import { FilterChip } from "@/components/FilterChip";
+import { Button } from "@/components/Button";
+import { SectionContainer } from "@/components/SectionContainer";
 import { formatDateShort, isDeadlinePassed } from "@/lib/dateUtils";
 import type { Fest } from "@/context/EventContext";
 import { useDebounce } from "@/lib/useDebounce";
@@ -122,13 +125,24 @@ export default function DiscoverPage() {
           String(e.category || "").toLowerCase().includes(q)
       );
     }
-    if (activeCategory !== "All") {
-      if (activeCategory === "Free") {
-        list = list.filter((e) => !e.registration_fee || e.registration_fee === 0);
-      } else {
-        list = list.filter((e) => String(e.category || "").toLowerCase() === activeCategory.toLowerCase());
-      }
+    
+    // Apply new filter chips
+    if (activeCategory === "Today") {
+      const today = new Date().toDateString();
+      list = list.filter(e => new Date(e.event_date).toDateString() === today);
+    } else if (activeCategory === "This Week") {
+      const today = new Date();
+      today.setHours(0,0,0,0);
+      const nextWeek = new Date(today);
+      nextWeek.setDate(today.getDate() + 7);
+      list = list.filter(e => {
+        const d = new Date(e.event_date);
+        return d >= today && d <= nextWeek;
+      });
+    } else if (activeCategory === "Free") {
+      list = list.filter(e => !e.registration_fee || e.registration_fee === 0);
     }
+
     if (showOpen) {
       list = list.filter((e) => !isDeadlinePassed(e.registration_deadline));
     }
@@ -184,28 +198,28 @@ export default function DiscoverPage() {
   }, [trendingFests]);
 
   return (
-    <div className="pwa-page pt-[calc(var(--nav-height)+var(--safe-top)+4px)] pb-8">
+    <div className="pwa-page pt-[calc(var(--nav-height)+var(--safe-top)+4px)] pb-8 bg-[#f9fafb]">
       {/* Header */}
-      <div className="px-5 pt-3 pb-2">
+      <div className="px-5 pt-3 pb-2 hidden">
         <h1 className="text-[22px] font-extrabold">Discover Events &amp; Fests</h1>
       </div>
 
-      {/* Search + Filter row */}
-      <div className="px-5 pb-4 flex items-center gap-2.5">
+      {/* Search row */}
+      <div className="px-5 pb-4">
         <div className="relative group flex-1 min-w-0">
-          <Search
-            size={16}
-            className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--color-text-light)] group-focus-within:text-[var(--color-primary)] transition-colors pointer-events-none z-[1]"
+          <SearchIcon
+            size={18}
+            className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] pointer-events-none z-[1]"
           />
           <input
             type="text"
-            placeholder="Search events, fests, venues…"
+            placeholder="Search events, clubs, or workshops..."
             value={search}
             onChange={(e) => {
               setSearch(e.target.value);
               setCurrentPage(1);
             }}
-            className="w-full h-[44px] pl-[42px] pr-10 text-[14px] bg-[var(--color-surface)] border border-[var(--color-border)] rounded-full outline-none shadow-[inset_0_1px_2px_rgba(17,24,39,0.06)] focus:border-[var(--color-primary)] focus:shadow-[0_0_0_3px_rgba(21,76,179,0.1),inset_0_1px_2px_rgba(17,24,39,0.06)] transition-all duration-200 placeholder:text-[var(--color-text-muted)]"
+            className="w-full h-[46px] pl-[44px] pr-10 text-[14px] bg-[#e8e9ec] border-none rounded-xl outline-none transition-all duration-200 placeholder:text-[var(--color-text-muted)] font-medium"
           />
           {search && (
             <button
@@ -213,55 +227,34 @@ export default function DiscoverPage() {
                 setSearch("");
                 setCurrentPage(1);
               }}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-text-light)] hover:text-[var(--color-text)] transition-colors p-1.5 rounded-full hover:bg-black/5 z-[1]"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors p-1.5 rounded-full hover:bg-black/5 z-[1]"
               aria-label="Clear search"
             >
-              <X size={16} />
+              <XIcon size={16} />
             </button>
           )}
         </div>
-        <button
-          onClick={() => {
-            setShowOpen(!showOpen);
-            setCurrentPage(1);
-          }}
-          className={`shrink-0 btn-active-state flex items-center justify-center gap-1.5 h-[44px] px-4 border text-[12px] font-bold rounded-full transition-all duration-200 ${
-            showOpen
-              ? "bg-[var(--color-primary)] text-white border-[var(--color-primary)] shadow-[var(--shadow-primary)]"
-              : "bg-[var(--color-surface)] text-[var(--color-text-muted)] border-[var(--color-border)]"
-          }`}
-        >
-          <Filter size={14} />
-          {showOpen ? "Open" : "All"}
-        </button>
       </div>
 
-      {/* Quick category chips */}
-      {categories.length > 1 && (
-        <div className="h-scroll mb-4 gap-2">
-          <div className="shrink-0 w-5" aria-hidden />
-          {categories.map((category) => {
-            const active = category === activeCategory;
-            return (
-              <button
-                key={category}
-                onClick={() => {
-                  setActiveCategory(category);
-                  setCurrentPage(1);
-                }}
-                className={`chip btn-active-state px-3 py-1.5 text-[12px] font-semibold border transition-all duration-200 ${
-                  active
-                    ? "chip-active border-[var(--color-primary)]"
-                    : "bg-[var(--color-surface)] text-[var(--color-text-muted)] border-[var(--color-border)]"
-                }`}
-              >
-                {category}
-              </button>
-            );
-          })}
-          <div className="shrink-0 w-5" aria-hidden />
-        </div>
-      )}
+      {/* Filter chips */}
+      <div className="h-scroll mb-6 gap-2.5">
+        <div className="shrink-0 w-4" aria-hidden />
+        {["All", "Today", "This Week", "Free"].map((filter) => {
+          const active = filter === activeCategory;
+          return (
+            <FilterChip
+              key={filter}
+              label={filter}
+              isActive={active}
+              onClick={() => {
+                setActiveCategory(filter);
+                setCurrentPage(1);
+              }}
+            />
+          );
+        })}
+        <div className="shrink-0 w-4" aria-hidden />
+      </div>
 
       {isLoading ? (
         <div className="px-5 space-y-4">
@@ -270,35 +263,74 @@ export default function DiscoverPage() {
         </div>
       ) : (
         <>
-          {/* Spotlight Carousel */}
+          {/* Spotlight Hero Card */}
           {spotlightEvents.length > 0 && (
-            <div className="pb-6">
-              <div className="px-5 pb-3 flex items-center justify-between">
-                <h2 className="text-[15px] font-extrabold tracking-[-0.01em]">Spotlight</h2>
-                <Link href="/events" className="text-[12px] font-bold text-[var(--color-primary)] flex items-center gap-1 hover:gap-1.5 transition-all">
-                  See All <ArrowRight size={13} />
-                </Link>
-              </div>
-
-              <div className="flex overflow-x-auto gap-3.5 snap-x snap-mandatory scroll-smooth pb-2 no-scrollbar">
-                <div className="shrink-0 w-5" aria-hidden />
-                {spotlightEvents.map((event) => (
-                  <div key={event.event_id} className="w-[calc(100vw-40px)] max-w-[420px] shrink-0 snap-start">
-                    <EventCard event={event} featured showAction />
+            <SectionContainer title="Spotlight" actionLabel="See All" actionHref="/events">
+              <Link href={`/event/${spotlightEvents[0].event_id}`} className="group relative block overflow-hidden rounded-[24px] bg-gradient-to-br from-[#1b2533] to-[#0a1835] shadow-[0_12px_36px_rgba(10,24,53,0.3)] aspect-[4/5] max-h-[460px] btn-active-state">
+                {/* Background effects & Image */}
+                <div className="absolute inset-0 opacity-60 z-0">
+                  <div className="absolute top-[-20%] left-[-20%] w-[80%] h-[80%] bg-[var(--color-primary)] rounded-full blur-[100px] z-0" />
+                  <div className="absolute bottom-[-10%] right-[-10%] w-[60%] h-[60%] bg-[var(--color-accent)]/20 rounded-full blur-[80px] z-0" />
+                  {(spotlightEvents[0].banner_url || spotlightEvents[0].event_image_url) && (
+                    <Image
+                      src={(spotlightEvents[0].banner_url || spotlightEvents[0].event_image_url)!}
+                      alt={spotlightEvents[0].title}
+                      fill
+                      className="object-cover mix-blend-overlay group-hover:scale-[1.03] transition-transform duration-700 ease-out z-[1]"
+                      sizes="(max-width: 768px) 100vw, 800px"
+                    />
+                  )}
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#0a1835] via-[#0a1835]/60 to-transparent z-[2]" />
+                </div>
+                
+                <div className="absolute inset-0 p-6 flex flex-col justify-end z-10">
+                  <span className="self-start mb-4 chip bg-[#fff4cf] text-[#745b00] text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded">
+                    SPOTLIGHT
+                  </span>
+                  
+                  <h2 className="text-[32px] font-black leading-[1.1] text-white tracking-[-0.02em] mb-4 drop-shadow-md">
+                    {spotlightEvents[0].title}
+                  </h2>
+                  
+                  <div className="grid grid-cols-2 gap-4 mb-6">
+                    <div className="flex items-start gap-2">
+                      <CalendarIcon size={16} className="text-white/70 mt-0.5" />
+                      <div className="flex flex-col">
+                        <span className="text-white text-[13px] font-medium leading-tight">
+                          {formatDateShort(spotlightEvents[0].event_date)}
+                        </span>
+                        {spotlightEvents[0].event_time && (
+                          <span className="text-white/70 text-[11px] mt-0.5">
+                            {formatDateShort(spotlightEvents[0].event_date).split(',')[0]}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    {spotlightEvents[0].venue && (
+                      <div className="flex items-start gap-2">
+                        <MapPinIcon size={16} className="text-white/70 mt-0.5" />
+                        <span className="text-white text-[13px] font-medium leading-tight line-clamp-2">
+                          {spotlightEvents[0].venue}
+                        </span>
+                      </div>
+                    )}
                   </div>
-                ))}
-                <div className="shrink-0 w-5" aria-hidden />
-              </div>
-            </div>
+                  
+                  <Button variant="secondary" fullWidth rightIcon={<ArrowRightIcon size={16} />}>
+                    Secure Your Seat
+                  </Button>
+                </div>
+              </Link>
+            </SectionContainer>
           )}
 
           {/* Trending Fests - Horizontal Scroll */}
           {(festsLoading || fests.length > 0) && (
-            <div className="pb-6">
+            <div className="pb-8">
               <div className="px-5 pb-3 flex items-center justify-between">
-                <h2 className="text-[15px] font-extrabold tracking-[-0.01em]">Trending Now</h2>
-                <Link href="/fests" className="text-[12px] font-bold text-[var(--color-primary)] flex items-center gap-1 hover:gap-2 transition-all">
-                  View More <ArrowRight size={13} />
+                <h2 className="text-[20px] font-extrabold tracking-[-0.02em]">Trending Now</h2>
+                <Link href="/fests" className="text-[12px] font-bold text-[var(--color-primary-dark)] hover:underline">
+                  View All
                 </Link>
               </div>
               <div
@@ -361,13 +393,13 @@ export default function DiscoverPage() {
                             <div className="mt-3.5 flex items-center gap-2">
                               {registrations > 0 && (
                                 <span className="inline-flex items-center gap-1 rounded-full bg-black/50 px-2.5 py-1 text-[10px] font-semibold text-white/90 backdrop-blur-md whitespace-nowrap">
-                                  <Users size={12} />
+                                  <UsersIcon size={12} />
                                   {formatCompactCount(registrations)} going
                                 </span>
                               )}
                               <span className="btn-active-state ml-auto inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-primary-dark)] px-3.5 py-2 text-[12px] font-bold text-white shadow-[var(--shadow-primary)] transition-all duration-200">
                                 Register
-                                <ArrowRight size={13} />
+                                <ArrowRightIcon size={13} />
                               </span>
                             </div>
                           </div>
@@ -380,64 +412,68 @@ export default function DiscoverPage() {
             </div>
           )}
 
-          {/* Categories */}
+          {/* Browse by Vibe (Asymmetric Grid) */}
           {categoryGrid.length > 0 && (
-            <div className="pb-6">
-              <div className="px-5 pb-3">
-                <h2 className="text-[15px] font-extrabold tracking-[-0.01em]">Explore Categories</h2>
+            <SectionContainer title="Browse by Vibe" actionLabel="View All" actionHref="/events">
+              <div className="grid grid-cols-2 gap-3">
+                {/* Full Width Card */}
+                {categoryGrid[0] && (
+                  <button
+                    onClick={() => { setActiveCategory(categoryGrid[0]); setCurrentPage(1); }}
+                    className="col-span-2 relative bg-[#eef0ff] rounded-2xl p-5 overflow-hidden text-left btn-active-state border border-transparent hover:border-[#d0d6ff] transition-all min-h-[110px] flex flex-col justify-center"
+                  >
+                    <div className="relative z-10">
+                      <div className="w-8 h-8 rounded-full bg-[#3b5bdb] text-white flex items-center justify-center mb-2 shadow-sm">
+                        <SparklesIcon size={16} />
+                      </div>
+                      <h3 className="text-[18px] font-black text-[#263161] leading-tight mb-1">{categoryGrid[0]}</h3>
+                      <p className="text-[12px] text-[#55629c] font-medium">Explore the best</p>
+                    </div>
+                    {/* Decorative abstract shape */}
+                    <div className="absolute right-[-10%] bottom-[-20%] text-[#d0d6ff] opacity-50 rotate-[-15deg]">
+                      <SparklesIcon size={120} strokeWidth={1} />
+                    </div>
+                  </button>
+                )}
+                
+                {/* Half Width Cards */}
+                {categoryGrid[1] && (
+                  <button
+                    onClick={() => { setActiveCategory(categoryGrid[1]); setCurrentPage(1); }}
+                    className="col-span-1 relative bg-[#fff4cf] rounded-2xl p-4 overflow-hidden text-left btn-active-state border border-transparent hover:border-[#ffe18a] transition-all min-h-[120px] flex flex-col justify-between"
+                  >
+                    <div className="w-7 h-7 rounded-full bg-[#f59e0b] text-white flex items-center justify-center shadow-sm">
+                      <UsersIcon size={14} />
+                    </div>
+                    <div>
+                      <h3 className="text-[16px] font-black text-[#745b00] leading-tight mb-0.5">{categoryGrid[1]}</h3>
+                      <p className="text-[11px] text-[#a18627] font-medium">12 Active</p>
+                    </div>
+                  </button>
+                )}
+                
+                {categoryGrid[2] && (
+                  <button
+                    onClick={() => { setActiveCategory(categoryGrid[2]); setCurrentPage(1); }}
+                    className="col-span-1 relative bg-[#f1edfc] rounded-2xl p-4 overflow-hidden text-left btn-active-state border border-transparent hover:border-[#dbcefc] transition-all min-h-[120px] flex flex-col justify-between"
+                  >
+                    <div className="w-7 h-7 rounded-full bg-[#7c3aed] text-white flex items-center justify-center shadow-sm">
+                      <CalendarIcon size={14} />
+                    </div>
+                    <div>
+                      <h3 className="text-[16px] font-black text-[#3d1880] leading-tight mb-0.5">{categoryGrid[2]}</h3>
+                      <p className="text-[11px] text-[#6b4ab0] font-medium">45 Active</p>
+                    </div>
+                  </button>
+                )}
               </div>
-
-              <div className="px-5 grid grid-cols-2 gap-3">
-                {categoryGrid.map((category) => {
-                  const active = activeCategory === category;
-                  return (
-                    <button
-                      key={`grid-${category}`}
-                      onClick={() => {
-                        setActiveCategory(category);
-                        setCurrentPage(1);
-                      }}
-                      className={`premium-card btn-active-state shadow-soft flex items-center gap-3.5 px-3.5 py-3.5 text-left transition-all duration-200 ${
-                        active
-                          ? "bg-[var(--color-primary-light)] border-[var(--color-primary)]"
-                          : "bg-[var(--color-surface)]"
-                      }`}
-                    >
-                      <span
-                        className={`inline-flex h-9 w-9 items-center justify-center rounded-full ${
-                          active
-                            ? "bg-[var(--color-primary)] text-white shadow-[var(--shadow-xs)]"
-                            : "bg-[var(--color-primary-light)] text-[var(--color-primary)] border border-[var(--color-border)]"
-                        }`}
-                      >
-                        <Sparkles size={16} />
-                      </span>
-                      <span
-                        className={`text-[13px] leading-snug ${
-                          active
-                            ? "font-bold text-[var(--color-primary)]"
-                            : "font-semibold text-[var(--color-text)]"
-                        }`}
-                      >
-                        {category}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
+            </SectionContainer>
           )}
 
           {/* Events Section - Vertical List */}
           {allFiltered.length > 0 && (
-            <div>
-              <div className="px-5 pb-3 flex items-center justify-between">
-                <h2 className="text-[15px] font-extrabold tracking-[-0.01em]">All Upcoming</h2>
-                <Link href="/events" className="text-[12px] font-bold text-[var(--color-primary)] flex items-center gap-1 hover:gap-2 transition-all">
-                  View More <ArrowRight size={13} />
-                </Link>
-              </div>
-              <div className="px-5 space-y-5">
+            <SectionContainer title="Curated For You">
+              <div className="space-y-5">
                 {displayedEvents.map((e) => (
                   <EventCard key={e.event_id} event={e} />
                 ))}
@@ -474,31 +510,33 @@ export default function DiscoverPage() {
 
                   {/* Next/Prev buttons */}
                   <div className="flex items-center gap-2 mt-1">
-                    <button
+                    <Button
+                      variant="ghost"
+                      size="sm"
                       onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
                       disabled={currentPage === 1}
-                      className="btn btn-ghost btn-sm btn-active-state !rounded-[var(--radius-lg)] !px-4 !py-2 !text-[12px] !font-bold disabled:opacity-40 disabled:cursor-not-allowed"
                     >
                       Previous
-                    </button>
-                    <button
+                    </Button>
+                    <Button
+                      variant="primary"
+                      size="sm"
                       onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
                       disabled={currentPage === totalPages}
-                      className="btn btn-primary btn-sm btn-active-state !rounded-[var(--radius-lg)] !px-4 !py-2 !text-[12px] !font-bold disabled:opacity-40 disabled:cursor-not-allowed"
                     >
                       Next
-                    </button>
+                    </Button>
                   </div>
                 </div>
               )}
-            </div>
+            </SectionContainer>
           )}
 
           {/* Empty state */}
           {allFiltered.length === 0 && (
             <div className="px-5 py-12">
               <EmptyState
-                icon={<Search size={32} className="text-[var(--color-primary)]" />}
+                icon={<SearchIcon size={32} className="text-[var(--color-primary)]" />}
                 title="No events found"
                 subtitle="Try adjusting your search or filters to see more results"
               />

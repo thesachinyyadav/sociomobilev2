@@ -264,7 +264,7 @@ html, body {
   -webkit-tap-highlight-color: transparent;
   user-select: none;
 }
-.btn-active-state:active { transform: scale(0.97); opacity: 0.92; }
+.btn-active-state:active { transform: scale(0.96); opacity: 0.95; }
 
 /* ── FAB — GPU-only animation, no box-shadow changes ─────────────────── */
 .fab-glow {
@@ -457,3 +457,8 @@ html, body {
 .tag-paid { background: #fef3c7; color: #92400e; }
 .tag-live { background: #fee2e2; color: #dc2626; }
 .tag-closed { background: #f3f4f6; color: #6b7280; }
+
+/* ── Avatar Group ── */
+.avatar-group { display: flex; align-items: center; }
+.avatar-group > * { margin-left: -8px; border: 2px solid white; border-radius: 9999px; position: relative; }
+.avatar-group > *:first-child { margin-left: 0; }

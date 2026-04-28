@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { Calendar, Users, ArrowRight } from "lucide-react";
+import { CalendarIcon, UsersIcon } from "@/components/icons";
 import type { Fest } from "@/context/EventContext";
 import { formatDateRange } from "@/lib/dateUtils";
 
@@ -81,8 +81,9 @@ export default function FestCard({ fest }: { fest: Fest }) {
             <div />
           )}
           {attendeeCount > 0 && (
-            <span className="bg-black/80 backdrop-blur-sm text-white/90 px-3 py-1 rounded-lg text-[10px] font-bold tracking-wide uppercase">
-              {attendeeLabel} attending
+            <span className="bg-black/50 backdrop-blur text-white/90 px-3 py-1 rounded-full text-[11px] font-bold tracking-wide flex items-center gap-1.5 shadow-sm">
+              <UsersIcon size={12} />
+              {attendeeLabel} going
             </span>
           )}
         </div>
@@ -96,7 +97,7 @@ export default function FestCard({ fest }: { fest: Fest }) {
             {title}
           </h3>
           <div className="flex items-center gap-2 text-[#e2e2e2] text-xs font-medium">
-            <Calendar size={16} className="opacity-80" />
+            <CalendarIcon size={16} className="opacity-80" />
             <span>
               {formatDateRange(
                 fest.opening_date || fest.start_date,

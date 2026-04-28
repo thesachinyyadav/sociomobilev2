@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import NotificationBell from "@/components/NotificationBell";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeftIcon, UserIcon } from "@/components/icons";
 
 // Pages that show back button instead of logo
 const BACK_PAGES = ["/event/", "/fest/", "/notifications"];
@@ -33,7 +33,7 @@ export default function TopBar() {
             className="back-btn"
             aria-label="Go back"
           >
-            <ArrowLeft size={18} strokeWidth={2.2} />
+            <ArrowLeftIcon size={18} strokeWidth={2.2} />
           </button>
         ) : userData ? (
           <Link href="/profile" className="shrink-0">
@@ -52,8 +52,8 @@ export default function TopBar() {
             )}
           </Link>
         ) : (
-          <Link href="/" className="w-[34px] h-[34px] rounded-full bg-[var(--color-primary-light)] text-[var(--color-primary)] flex items-center justify-center text-[11px] font-black shrink-0">
-            S
+          <Link href="/auth" className="w-[34px] h-[34px] rounded-full bg-[var(--color-primary-light)] text-[var(--color-primary)] flex items-center justify-center shrink-0">
+            <UserIcon size={18} />
           </Link>
         )}
 

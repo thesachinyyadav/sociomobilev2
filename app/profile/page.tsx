@@ -11,22 +11,23 @@ import LoadingScreen from "@/components/LoadingScreen";
 import CampusSelector from "@/components/CampusSelector";
 import QRCodeDisplay from "@/components/QRCodeDisplay";
 import {
-  LogOut,
-  Mail,
-  Hash,
-  GraduationCap,
-  Building,
-  CalendarDays,
-  ChevronRight,
-  Bell,
-  Ticket,
-  MapPin,
-  Pencil,
-  QrCode,
-  Clock3,
-  CheckCircle2,
-  XCircle,
-} from "lucide-react";
+  LogOutIcon as LogOut,
+  MailIcon as Mail,
+  HashIcon as Hash,
+  GraduationCapIcon as GraduationCap,
+  BuildingIcon as Building,
+  CalendarIcon as CalendarDays,
+  ChevronRightIcon as ChevronRight,
+  BellIcon as Bell,
+  TicketIcon as Ticket,
+  MapPinIcon as MapPin,
+  PencilIcon as Pencil,
+  QrCodeIcon as QrCode,
+  ClockIcon as Clock3,
+  CheckCircleIcon as CheckCircle2,
+  XCircleIcon as XCircle,
+} from "@/components/icons";
+import { Button } from "@/components/Button";
 import type { FetchedEvent } from "@/context/EventContext";
 
 interface Registration {
@@ -313,13 +314,14 @@ export default function ProfilePage() {
       {/* Detect Campus button for Christ members without campus */}
       {userData.organization_type === "christ_member" && !userData.campus && (
         <div className="px-4 mb-4">
-          <button
+          <Button
             onClick={() => setShowCampusSelector(true)}
-            className="btn btn-primary w-full flex items-center justify-center gap-2"
+            variant="primary"
+            fullWidth
+            leftIcon={<MapPin size={16} />}
           >
-            <MapPin size={16} />
             Detect Your Campus
-          </button>
+          </Button>
         </div>
       )}
 
@@ -403,35 +405,33 @@ export default function ProfilePage() {
                   </div>
 
                   <div className="mt-3 flex gap-2">
-                    <button
-                      type="button"
+                    <Button
+                      variant="primary"
+                      size="sm"
                       onClick={() => setActiveQR({ registrationId: r.registration_id, eventTitle })}
-                      className="btn btn-primary btn-sm flex-1"
+                      className="flex-1"
+                      leftIcon={<QrCode size={14} />}
                     >
-                      <QrCode size={14} /> Generate QR
-                    </button>
+                      Generate QR
+                    </Button>
 
                     {isUpcoming && (
-                      <button
-                        type="button"
+                      <Button
+                        variant={tooLateToCancel ? "ghost" : "danger"}
+                        size="sm"
                         onClick={() => setCancelConfirmId(r.registration_id)}
                         disabled={tooLateToCancel || cancellingId === r.registration_id}
-                        className={`btn btn-sm flex-1 ${
-                          tooLateToCancel
-                            ? "bg-gray-200 text-gray-500 cursor-not-allowed"
-                            : "btn-danger"
-                        }`}
+                        className={`flex-1 ${tooLateToCancel ? "bg-gray-200 text-gray-500 cursor-not-allowed" : ""}`}
+                        leftIcon={!tooLateToCancel && cancellingId !== r.registration_id ? <XCircle size={14} /> : undefined}
                       >
                         {cancellingId === r.registration_id ? (
                           "Cancelling..."
                         ) : tooLateToCancel ? (
                           "Locked <24h"
                         ) : (
-                          <>
-                            <XCircle size={14} /> Cancel
-                          </>
+                          "Cancel"
                         )}
-                      </button>
+                      </Button>
                     )}
                   </div>
 
@@ -444,18 +444,22 @@ export default function ProfilePage() {
                         This action cannot be undone.
                       </p>
                       <div className="mt-2 flex gap-2">
-                        <button
-                          className="btn btn-xs btn-ghost flex-1"
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="flex-1"
                           onClick={() => setCancelConfirmId(null)}
                         >
                           Keep
-                        </button>
-                        <button
-                          className="btn btn-xs btn-danger flex-1"
+                        </Button>
+                        <Button
+                          variant="danger"
+                          size="sm"
+                          className="flex-1"
                           onClick={() => handleCancelRegistration(r)}
                         >
                           Confirm Cancel
-                        </button>
+                        </Button>
                       </div>
                     </div>
                   )}
@@ -468,15 +472,17 @@ export default function ProfilePage() {
 
       {/* Sign out */}
       <div className="px-4 mb-8">
-        <button
+        <Button
+          variant="danger"
+          fullWidth
           onClick={async () => {
             await signOut();
             router.replace("/auth");
           }}
-          className="btn btn-danger w-full"
+          leftIcon={<LogOut size={16} />}
         >
-          <LogOut size={16} /> Sign out
-        </button>
+          Sign out
+        </Button>
       </div>
 
       {/* Campus Selector modal */}
@@ -525,23 +531,25 @@ export default function ProfilePage() {
               </div>
 
               <div className="flex gap-2 mt-5">
-                <button
+                <Button
+                  variant="ghost"
+                  className="flex-1"
                   onClick={() => {
                     setIsEditingName(false);
                     setNameEditError(null);
                   }}
-                  className="btn btn-ghost flex-1"
                   disabled={isSubmittingName}
                 >
                   Cancel
-                </button>
-                <button
+                </Button>
+                <Button
+                  variant="primary"
+                  className="flex-1"
                   onClick={submitNameEdit}
-                  className="btn btn-primary flex-1"
                   disabled={isSubmittingName || !nameInput.trim()}
                 >
                   {isSubmittingName ? "Saving..." : "Save Name"}
-                </button>
+                </Button>
               </div>
             </div>
           </div>

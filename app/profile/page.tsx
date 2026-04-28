@@ -59,7 +59,6 @@ export default function ProfilePage() {
   const [activeQR, setActiveQR] = useState<{ registrationId: string; eventTitle: string } | null>(null);
   const [cancelConfirmId, setCancelConfirmId] = useState<string | null>(null);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
-  const [isSearchOpen, setIsSearchOpen] = useState(false);
 
   const formatDate = (rawDate?: string) => {
     if (!rawDate) return "Date TBA";
@@ -390,18 +389,9 @@ export default function ProfilePage() {
           <Ticket size={15} className="text-[var(--color-primary)]" />
           <h2 className="text-[15px] font-extrabold">Registered Events</h2>
           {uniqueRegistrations.length > 0 && (
-            <span className="ml-auto mr-1 text-[11px] font-bold text-[var(--color-text-muted)] bg-gray-100 px-2 py-0.5 rounded-full">
+            <span className="ml-auto text-[11px] font-bold text-[var(--color-text-muted)] bg-gray-100 px-2 py-0.5 rounded-full">
               {uniqueRegistrations.length}
             </span>
-          )}
-          {(uniqueRegistrations.length > 0 || searchQuery) && !isSearchOpen && (
-            <button
-              onClick={() => setIsSearchOpen(true)}
-              className="shrink-0 w-7 h-7 rounded-full bg-[#e8e9ec] flex items-center justify-center text-[var(--color-text)] transition-transform active:scale-95 hover:bg-[#d1d3d8]"
-              aria-label="Open search"
-            >
-              <SearchIcon size={13} strokeWidth={2.5} />
-            </button>
           )}
         </div>
         {regLoading ? (
@@ -421,43 +411,30 @@ export default function ProfilePage() {
         ) : (
           <>
             {/* Search Input */}
-            {(uniqueRegistrations.length > 0 || searchQuery) && isSearchOpen && (
-              <div className="flex items-center gap-2 mb-3 animate-fade-in">
-                <div className="relative flex-1">
-                  <SearchIcon size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] pointer-events-none" />
-                  <input
-                    autoFocus
-                    type="text"
-                    placeholder="Search registered events..."
-                    value={searchQuery}
-                    onChange={(e) => {
-                      setSearchQuery(e.target.value);
-                      setCurrentPage(1);
-                    }}
-                    className="w-full bg-white text-[13px] border border-[var(--color-border)] rounded-[10px] py-2 pl-9 pr-8 focus:ring-2 focus:ring-[var(--color-primary-light)] focus:border-transparent outline-none shadow-sm transition-all"
-                  />
-                  {searchQuery && (
-                    <button
-                      onClick={() => {
-                        setSearchQuery("");
-                        setCurrentPage(1);
-                      }}
-                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] hover:text-[var(--color-text)] p-1 rounded-full bg-gray-100"
-                    >
-                      <XIcon size={12} />
-                    </button>
-                  )}
-                </div>
-                <button
-                  onClick={() => {
-                    setIsSearchOpen(false);
-                    setSearchQuery("");
+            {(uniqueRegistrations.length > 0 || searchQuery) && (
+              <div className="relative mb-3">
+                <SearchIcon size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] pointer-events-none" />
+                <input
+                  type="text"
+                  placeholder="Search registered events..."
+                  value={searchQuery}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
                     setCurrentPage(1);
                   }}
-                  className="text-[12px] font-bold text-[var(--color-primary-dark)] px-1 shrink-0"
-                >
-                  Cancel
-                </button>
+                  className="w-full bg-white text-[13px] border border-[var(--color-border)] rounded-xl py-2 pl-9 pr-8 focus:ring-2 focus:ring-[var(--color-primary-light)] focus:border-transparent outline-none shadow-sm transition-all"
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => {
+                      setSearchQuery("");
+                      setCurrentPage(1);
+                    }}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] hover:text-[var(--color-text)] p-1 rounded-full bg-gray-100"
+                  >
+                    <XIcon size={12} />
+                  </button>
+                )}
               </div>
             )}
 

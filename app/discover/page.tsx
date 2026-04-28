@@ -5,7 +5,6 @@ import Link from "next/link";
 import Image from "next/image";
 import { useEvents } from "@/context/EventContext";
 import EventCard from "@/components/EventCard";
-import FestCard from "@/components/FestCard";
 import Skeleton from "@/components/Skeleton";
 import EmptyState from "@/components/EmptyState";
 import { SearchIcon, XIcon, ArrowRightIcon, CalendarIcon, MapPinIcon, SparklesIcon, UsersIcon, ClockIcon, FlameIcon, TrendingUpIcon } from "@/components/icons";
@@ -260,10 +259,10 @@ export default function DiscoverPage() {
         {!isSearchOpen && (
           <button
             onClick={() => setIsSearchOpen(true)}
-            className="shrink-0 w-9 h-9 rounded-full bg-[#e8e9ec] flex items-center justify-center text-[var(--color-text)] transition-transform active:scale-95 hover:bg-[#d1d3d8] mr-1"
+            className="shrink-0 p-2 -ml-2 mr-1 flex items-center justify-center text-[var(--color-text)] transition-transform active:scale-95"
             aria-label="Open search"
           >
-            <SearchIcon size={17} strokeWidth={2.5} />
+            <SearchIcon size={20} strokeWidth={2.5} />
           </button>
         )}
         {["All", "Today", "This Week", "Free"].map((filter) => {
@@ -293,7 +292,61 @@ export default function DiscoverPage() {
           {/* Spotlight Hero Card */}
           {spotlightEvents.length > 0 && (
             <SectionContainer title="Spotlight" actionLabel="See All" actionHref="/events">
-              <EventCard event={spotlightEvents[0]} tier="hero" />
+              <Link href={`/event/${spotlightEvents[0].event_id}`} className="group relative block overflow-hidden rounded-[24px] bg-gradient-to-br from-[#1b2533] to-[#0a1835] shadow-[0_12px_36px_rgba(10,24,53,0.3)] aspect-[4/5] max-h-[460px] btn-active-state">
+                {/* Background effects & Image */}
+                <div className="absolute inset-0 opacity-60 z-0">
+                  <div className="absolute top-[-20%] left-[-20%] w-[80%] h-[80%] bg-[var(--color-primary)] rounded-full blur-[100px] z-0" />
+                  <div className="absolute bottom-[-10%] right-[-10%] w-[60%] h-[60%] bg-[var(--color-accent)]/20 rounded-full blur-[80px] z-0" />
+                  {(spotlightEvents[0].banner_url || spotlightEvents[0].event_image_url) && (
+                    <Image
+                      src={(spotlightEvents[0].banner_url || spotlightEvents[0].event_image_url)!}
+                      alt={spotlightEvents[0].title}
+                      fill
+                      className="object-cover mix-blend-overlay group-hover:scale-[1.03] transition-transform duration-700 ease-out z-[1]"
+                      sizes="(max-width: 768px) 100vw, 800px"
+                    />
+                  )}
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#0a1835] via-[#0a1835]/60 to-transparent z-[2]" />
+                </div>
+                
+                <div className="absolute inset-0 p-6 flex flex-col justify-end z-10">
+                  <span className="self-start mb-4 chip bg-[#fff4cf] text-[#745b00] text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded">
+                    SPOTLIGHT
+                  </span>
+                  
+                  <h2 className="text-[32px] font-black leading-[1.1] text-white tracking-[-0.02em] mb-4 drop-shadow-md">
+                    {spotlightEvents[0].title}
+                  </h2>
+                  
+                  <div className="grid grid-cols-2 gap-4 mb-6">
+                    <div className="flex items-start gap-2">
+                      <CalendarIcon size={16} className="text-white/70 mt-0.5" />
+                      <div className="flex flex-col">
+                        <span className="text-white text-[13px] font-medium leading-tight">
+                          {formatDateShort(spotlightEvents[0].event_date)}
+                        </span>
+                        {spotlightEvents[0].event_time && (
+                          <span className="text-white/70 text-[11px] mt-0.5">
+                            {formatDateShort(spotlightEvents[0].event_date).split(',')[0]}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    {spotlightEvents[0].venue && (
+                      <div className="flex items-start gap-2">
+                        <MapPinIcon size={16} className="text-white/70 mt-0.5" />
+                        <span className="text-white text-[13px] font-medium leading-tight line-clamp-2">
+                          {spotlightEvents[0].venue}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                  
+                  <Button variant="secondary" fullWidth rightIcon={<ArrowRightIcon size={16} />}>
+                    Secure Your Seat
+                  </Button>
+                </div>
+              </Link>
             </SectionContainer>
           )}
 
@@ -332,12 +385,57 @@ export default function DiscoverPage() {
                       const img = f.fest_image_url || f.banner_url || f.image_url;
                       const title = f.fest_title || f.name || "Fest";
                       return (
-                        <div
+                        <Link
                           key={f.fest_id || f.id}
-                          className="w-[calc(100vw-40px)] max-w-[380px] shrink-0 snap-center"
+                          href={`/fest/${f.slug || f.fest_id}`}
+                          data-fest-card
+                          className="card-elevated group w-[calc(100vw-40px)] max-w-[380px] flex-shrink-0 snap-center"
                         >
-                          <FestCard fest={{ ...f, registrations } as any} tier="elevated" isTrending />
-                        </div>
+                          <div className="relative aspect-[16/10] bg-[var(--color-primary-light)] overflow-hidden">
+                            {img ? (
+                              <Image
+                                src={img}
+                                alt={title}
+                                fill
+                                className="object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+                                sizes="(max-width:480px) 70vw, 280px"
+                              />
+                            ) : (
+                              <div className="w-full h-full bg-gradient-to-br from-[var(--color-primary-dark)] to-[var(--color-primary)] flex items-center justify-center">
+                                <span className="text-white font-extrabold text-2xl opacity-35">{title.charAt(0)}</span>
+                              </div>
+                            )}
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
+                            
+                            <div className="absolute top-2 left-2 bg-black/50 backdrop-blur-md rounded-full px-2 py-1 flex items-center gap-1 z-10 shadow-sm border border-white/10">
+                              <TrendingUpIcon className="w-3.5 h-3.5 text-orange-400 animate-badge-pulse" />
+                              <span className="text-white text-[10px] font-medium tracking-wide">Trending</span>
+                            </div>
+
+                            <span className="absolute top-2.5 right-2.5 chip bg-white/92 text-[var(--color-primary)] text-[10px] font-bold">
+                              Fest
+                            </span>
+                          </div>
+
+                          <div className="p-4">
+                            <p className="text-[15px] font-extrabold leading-tight line-clamp-1">{title}</p>
+                            <p className="text-[11px] font-medium text-[var(--color-text-muted)] mt-1 line-clamp-1">
+                              {f.organizing_dept || f.department || "Campus Fest"}
+                            </p>
+                            <div className="mt-3.5 flex items-center gap-2">
+                              {registrations > 0 && (
+                                <span className="inline-flex items-center gap-1 rounded-full bg-black/50 px-2.5 py-1 text-[10px] font-semibold text-white/90 backdrop-blur-md whitespace-nowrap">
+                                  <UsersIcon size={12} />
+                                  {formatCompactCount(registrations)} going
+                                </span>
+                              )}
+                              <span className="btn-active-state ml-auto inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-primary-dark)] px-3.5 py-2 text-[12px] font-bold text-white shadow-[var(--shadow-primary)] transition-all duration-200">
+                                Register
+                                <ArrowRightIcon size={13} />
+                              </span>
+                            </div>
+                          </div>
+                        </Link>
                       );
                     })}
                 {/* right spacer */}
@@ -354,7 +452,7 @@ export default function DiscoverPage() {
                 {categoryGrid[0] && (
                   <button
                     onClick={() => { setActiveCategory(categoryGrid[0]); setCurrentPage(1); }}
-                    className="col-span-2 relative bg-[#eef0ff] rounded-[18px] p-5 overflow-hidden text-left border border-transparent hover:border-[#d0d6ff] transition-all duration-150 active:scale-[0.97] will-change-transform min-h-[110px] flex flex-col justify-center"
+                    className="col-span-2 relative bg-[#eef0ff] rounded-2xl p-5 overflow-hidden text-left btn-active-state border border-transparent hover:border-[#d0d6ff] transition-all min-h-[110px] flex flex-col justify-center"
                   >
                     <div className="relative z-10">
                       <div className="w-8 h-8 rounded-full bg-[#3b5bdb] text-white flex items-center justify-center mb-2 shadow-sm">
@@ -374,7 +472,7 @@ export default function DiscoverPage() {
                 {categoryGrid[1] && (
                   <button
                     onClick={() => { setActiveCategory(categoryGrid[1]); setCurrentPage(1); }}
-                    className="col-span-1 relative bg-[#fff4cf] rounded-[18px] p-5 overflow-hidden text-left border border-transparent hover:border-[#ffe18a] transition-all duration-150 active:scale-[0.97] will-change-transform min-h-[110px] flex flex-col justify-between"
+                    className="col-span-1 relative bg-[#fff4cf] rounded-2xl p-4 overflow-hidden text-left btn-active-state border border-transparent hover:border-[#ffe18a] transition-all min-h-[120px] flex flex-col justify-between"
                   >
                     <div className="w-7 h-7 rounded-full bg-[#f59e0b] text-white flex items-center justify-center shadow-sm">
                       <UsersIcon size={14} />
@@ -389,7 +487,7 @@ export default function DiscoverPage() {
                 {categoryGrid[2] && (
                   <button
                     onClick={() => { setActiveCategory(categoryGrid[2]); setCurrentPage(1); }}
-                    className="col-span-1 relative bg-[#f1edfc] rounded-[18px] p-5 overflow-hidden text-left border border-transparent hover:border-[#dbcefc] transition-all duration-150 active:scale-[0.97] will-change-transform min-h-[110px] flex flex-col justify-between"
+                    className="col-span-1 relative bg-[#f1edfc] rounded-2xl p-4 overflow-hidden text-left btn-active-state border border-transparent hover:border-[#dbcefc] transition-all min-h-[120px] flex flex-col justify-between"
                   >
                     <div className="w-7 h-7 rounded-full bg-[#7c3aed] text-white flex items-center justify-center shadow-sm">
                       <CalendarIcon size={14} />
@@ -407,18 +505,9 @@ export default function DiscoverPage() {
           {/* Events Section - Vertical List */}
           {allFiltered.length > 0 && (
             <SectionContainer title="Curated For You">
-              {/* Personalization Signal */}
-              <div className="mb-4">
-                <p className="text-[12px] font-bold text-[var(--color-primary)] flex items-center gap-1.5 bg-[var(--color-primary-light)] w-max px-2.5 py-1 rounded-full shadow-sm">
-                  <SparklesIcon size={12} />
-                  {activeCategory === "All" || activeCategory === "Free" || activeCategory === "Today" || activeCategory === "This Week" 
-                    ? "Recommended based on your activity" 
-                    : `Because you are interested in ${activeCategory}`}
-                </p>
-              </div>
-              <div className="space-y-4">
+              <div className="space-y-5">
                 {displayedEvents.map((e) => (
-                  <EventCard key={e.event_id} event={e} tier="standard" />
+                  <EventCard key={e.event_id} event={e} />
                 ))}
               </div>
 

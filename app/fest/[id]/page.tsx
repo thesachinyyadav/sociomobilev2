@@ -32,7 +32,6 @@ export default function FestDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
-  const [isSearchOpen, setIsSearchOpen] = useState(false);
 
   useEffect(() => {
     if (!festId) {
@@ -171,45 +170,22 @@ export default function FestDetailPage() {
 
       {/* Events */}
       <div className="px-4 mt-4">
-        <div className="flex items-center gap-2 mb-3">
-          <h2 className="font-bold text-base flex-1">
-            Events{events.length > 0 && ` (${events.length})`}
-          </h2>
-          {events.length > 3 && !isSearchOpen && (
-            <button
-              onClick={() => setIsSearchOpen(true)}
-              className="shrink-0 w-8 h-8 rounded-full bg-[#e8e9ec] flex items-center justify-center text-[var(--color-text)] transition-transform active:scale-95 hover:bg-[#d1d3d8]"
-              aria-label="Open search"
-            >
-              <Search size={14} strokeWidth={2.5} />
-            </button>
-          )}
-        </div>
+        <h2 className="font-bold text-base mb-2">
+          Events{events.length > 0 && ` (${events.length})`}
+        </h2>
 
-        {events.length > 3 && isSearchOpen && (
-          <div className="flex items-center gap-2 mb-4 animate-fade-in">
-            <div className="relative flex-1">
-              <Search
-                size={16}
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-              />
-              <input
-                autoFocus
-                className="input pl-9 text-sm"
-                placeholder="Search events..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
-            </div>
-            <button
-              onClick={() => {
-                setIsSearchOpen(false);
-                setSearch("");
-              }}
-              className="text-[13px] font-bold text-[var(--color-primary-dark)] px-1 shrink-0"
-            >
-              Cancel
-            </button>
+        {events.length > 3 && (
+          <div className="relative mb-3">
+            <Search
+              size={16}
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+            />
+            <input
+              className="input pl-9 text-sm"
+              placeholder="Search events..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
           </div>
         )}
 

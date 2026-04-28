@@ -27,7 +27,15 @@ type FestWithAttendance = Fest & {
   attendee_count?: number | null;
 };
 
-export default function FestCard({ fest, isTrending }: { fest: Fest; isTrending?: boolean }) {
+export default function FestCard({
+  fest,
+  tier = "elevated",
+  isTrending,
+}: {
+  fest: Fest;
+  tier?: "hero" | "elevated" | "standard";
+  isTrending?: boolean;
+}) {
   const rawId = fest.slug || fest.fest_id;
   // Guard: do not render a broken link if the fest has no navigable ID
   if (!rawId) return null;
@@ -50,11 +58,20 @@ export default function FestCard({ fest, isTrending }: { fest: Fest; isTrending?
     : 0;
   const attendeeLabel = formatCompactCount(attendeeCount);
 
+  // Tier-based styles
+  const isHero = tier === "hero";
+  const isElevated = tier === "elevated";
+
+  const cardClasses = `relative block w-full group cursor-pointer overflow-hidden rounded-2xl transition-all duration-150 active:scale-[0.97] will-change-transform ${
+    isHero 
+      ? "h-[280px] shadow-xl border-none" 
+      : isElevated
+        ? "h-[220px] shadow-md border border-white/20"
+        : "h-[180px] shadow-sm border border-[var(--color-border)]"
+  }`;
+
   return (
-    <Link
-      href={href}
-      className="card-elevated relative block w-full h-[220px] group cursor-pointer border border-white/40"
-    >
+    <Link href={href} className={cardClasses}>
       <Image
         src={
           img ||
@@ -67,45 +84,53 @@ export default function FestCard({ fest, isTrending }: { fest: Fest; isTrending?
         }
         alt={title}
         fill
-        className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
+        className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 ease-out will-change-transform group-hover:scale-[1.03]"
         sizes="(max-width:480px) 100vw, 50vw"
       />
-      <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
       
-      {isTrending && (
-        <div className="absolute top-2 left-2 bg-black/50 backdrop-blur-md rounded-full px-2 py-1 flex items-center gap-1 z-10 shadow-sm">
-          <TrendingUpIcon className="w-3.5 h-3.5 text-orange-400 animate-badge-pulse" />
-          <span className="text-white text-[10px] font-medium">Trending</span>
-        </div>
-      )}
+      {/* Gradient Overlay */}
+      <div className={`absolute inset-0 bg-gradient-to-t ${isHero ? "from-black/90 via-black/40 to-transparent" : "from-black/60 to-transparent"}`}></div>
+      
+      {/* Top Badges */}
+      <div className="absolute top-3 left-3 flex flex-col items-start gap-2 z-10">
+        {isTrending && (
+          <div className="bg-black/50 backdrop-blur-md rounded-full px-2.5 py-1 flex items-center gap-1.5 shadow-sm border border-white/10">
+            <TrendingUpIcon className="w-3.5 h-3.5 text-orange-400" />
+            <span className="text-white text-[10px] font-bold capitalize">Trending</span>
+          </div>
+        )}
+      </div>
 
-      <div className="absolute inset-0 p-5 flex flex-col justify-between">
+      <div className={`absolute inset-0 flex flex-col justify-between ${isHero ? "p-5" : "p-4"}`}>
         <div className="flex justify-between items-start">
-          {fest.category ? (
-            <span className="bg-[#154cb3] text-white px-3 py-1 rounded-full text-xs font-bold uppercase tracking-widest shadow-sm">
-              {fest.category}
-            </span>
-          ) : (
-            <div />
-          )}
+          {/* Badge 2 (Category/Department fallback) */}
+          <div className="mt-8">
+            {fest.category ? (
+              <span className="bg-[#154cb3]/90 backdrop-blur text-white px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest shadow-sm">
+                {fest.category}
+              </span>
+            ) : dept ? (
+              <span className="bg-black/40 backdrop-blur text-white px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest shadow-sm">
+                {dept}
+              </span>
+            ) : null}
+          </div>
+          
+          {/* Attendee Indicator */}
           {attendeeCount > 0 && (
-            <span className="bg-black/50 backdrop-blur text-white/90 px-3 py-1 rounded-full text-[11px] font-bold tracking-wide flex items-center gap-1.5 shadow-sm">
+            <div className="absolute top-3 right-3 bg-black/50 backdrop-blur-md text-white/90 px-2.5 py-1 rounded-full text-[11px] font-bold tracking-wide flex items-center gap-1.5 shadow-sm">
               <UsersIcon size={12} />
               {attendeeLabel} going
-            </span>
+            </div>
           )}
         </div>
+        
         <div>
-          {dept && (
-            <p className="text-[#dae2ff] font-semibold text-xs uppercase tracking-wider mb-1">
-              {dept}
-            </p>
-          )}
-          <h3 className="text-2xl font-bold text-white leading-tight mb-1 drop-shadow-md">
+          <h3 className={`${isHero ? "text-[28px] drop-shadow-lg" : "text-xl drop-shadow-md"} font-black text-white leading-tight mb-2`}>
             {title}
           </h3>
-          <div className="flex items-center gap-2 text-[#e2e2e2] text-xs font-medium">
-            <CalendarIcon size={16} className="opacity-80" />
+          <div className={`flex items-center gap-1.5 text-white/80 ${isHero ? "text-[13px]" : "text-[11px]"} font-bold tracking-wider uppercase`}>
+            <CalendarIcon size={14} />
             <span>
               {formatDateRange(
                 fest.opening_date || fest.start_date,

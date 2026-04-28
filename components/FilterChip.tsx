@@ -16,9 +16,9 @@ export function FilterChip({
   return (
     <button
       type="button"
-      className={`inline-flex items-center justify-center gap-1.5 px-4 py-2 text-[13px] font-bold rounded-full transition-all duration-200 active:scale-[0.97] ${
+      className={`inline-flex items-center justify-center gap-1.5 px-4 py-2 text-[13px] font-bold rounded-full transition-all duration-150 active:scale-[0.97] will-change-transform ${
         isActive
-          ? "bg-[var(--color-primary-dark)] text-white shadow-md"
+          ? "bg-[var(--color-primary)] text-white shadow-sm"
           : "bg-[#f3f4f6] text-[var(--color-text-muted)] hover:bg-[#e5e7eb]"
       } ${className}`}
       {...props}

@@ -6,16 +6,6 @@ import { Capacitor } from "@capacitor/core";
 import { useRouter } from "next/navigation";
 import { toast } from "react-hot-toast";
 
-// Try to import OneSignal natively
-let OneSignal: any;
-if (typeof window !== "undefined") {
-  try {
-    OneSignal = require("onesignal-cordova-plugin").default;
-  } catch (e) {
-    console.log("OneSignal native plugin not available.");
-  }
-}
-
 export interface Notification {
   id: string;
   title: string;
@@ -68,101 +58,106 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(false);
   const [panelOpen, setPanelOpen] = useState(false);
   const [isOneSignalInitialized, setIsOneSignalInitialized] = useState(false);
+  const [oneSignal, setOneSignal] = useState<any>(null);
   const router = useRouter();
 
-  // 1. Initialize OneSignal
+  // 1. Load OneSignal dynamically and Initialize
   useEffect(() => {
-    if (!Capacitor.isNativePlatform() || !OneSignal || isOneSignalInitialized) return;
+    if (!Capacitor.isNativePlatform() || isOneSignalInitialized) return;
 
-    const appId = process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID;
-    if (!appId || appId === "placeholder_onesignal_id_here") {
-      console.warn("OneSignal App ID missing or is placeholder.");
-      return;
-    }
+    async function initOneSignal() {
+      try {
+        const OS = (await import("onesignal-cordova-plugin")).default;
+        setOneSignal(OS);
 
-    try {
-      OneSignal.initialize(appId);
-
-      // Deep linking listener
-      OneSignal.Notifications.addEventListener("click", (event: any) => {
-        const data = event.notification.additionalData;
-        if (data?.route) {
-          router.push(data.route);
+        const appId = process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID;
+        if (!appId || appId === "placeholder_onesignal_id_here") {
+          console.warn("OneSignal App ID missing or is placeholder.");
+          return;
         }
-      });
 
-      // Foreground listener
-      OneSignal.Notifications.addEventListener("foregroundWillDisplay", (event: any) => {
-        event.preventDefault(); // Prevent OS from displaying standard notification in foreground
-        const notif = event.notification;
-        
-        // Show non-intrusive toast instead
-        toast.custom((t) => (
-          <div
-            onClick={() => {
-              toast.dismiss(t.id);
-              if (notif.additionalData?.route) {
-                router.push(notif.additionalData.route);
-              }
-            }}
-            className={`${
-              t.visible ? "animate-enter" : "animate-leave"
-            } max-w-md w-full bg-white shadow-lg rounded-xl pointer-events-auto flex ring-1 ring-black ring-opacity-5 cursor-pointer active:scale-95 transition-transform`}
-          >
-            <div className="flex-1 w-0 p-4">
-              <div className="flex items-start">
-                <div className="ml-3 flex-1">
-                  <p className="text-sm font-bold text-[var(--color-primary)]">
-                    {notif.title || "New Notification"}
-                  </p>
-                  <p className="mt-1 text-xs text-gray-500">
-                    {notif.body}
-                  </p>
+        OS.initialize(appId);
+
+        // Deep linking listener
+        OS.Notifications.addEventListener("click", (event: any) => {
+          const data = event.notification.additionalData;
+          if (data?.route) {
+            router.push(data.route);
+          }
+        });
+
+        // Foreground listener
+        OS.Notifications.addEventListener("foregroundWillDisplay", (event: any) => {
+          event.preventDefault();
+          const notif = event.notification;
+          
+          toast.custom((t) => (
+            <div
+              onClick={() => {
+                toast.dismiss(t.id);
+                if (notif.additionalData?.route) {
+                  router.push(notif.additionalData.route);
+                }
+              }}
+              className={`${
+                t.visible ? "animate-enter" : "animate-leave"
+              } max-w-md w-full bg-white shadow-lg rounded-xl pointer-events-auto flex ring-1 ring-black ring-opacity-5 cursor-pointer active:scale-95 transition-transform`}
+            >
+              <div className="flex-1 w-0 p-4">
+                <div className="flex items-start">
+                  <div className="ml-3 flex-1">
+                    <p className="text-sm font-bold text-[var(--color-primary)]">
+                      {notif.title || "New Notification"}
+                    </p>
+                    <p className="mt-1 text-xs text-gray-500">
+                      {notif.body}
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        ), { duration: 5000, position: "top-center" });
-      });
+          ), { duration: 5000, position: "top-center" });
+        });
 
-      setIsOneSignalInitialized(true);
-    } catch (e) {
-      console.error("Failed to initialize OneSignal", e);
+        setIsOneSignalInitialized(true);
+      } catch (e) {
+        console.error("Failed to load or initialize OneSignal", e);
+      }
     }
+
+    initOneSignal();
   }, [isOneSignalInitialized, router]);
 
   // 2. Identify User & Apply Segments
   useEffect(() => {
-    if (!isOneSignalInitialized || !userData?.id || !OneSignal) return;
+    if (!isOneSignalInitialized || !userData?.id || !oneSignal) return;
 
-    // Map user to OneSignal
     try {
-      OneSignal.login(userData.id.toString());
+      oneSignal.login(userData.id.toString());
 
-      // Segment tags for personalization
       const tags: Record<string, string> = {
         department: userData.department || "none",
         org_type: userData.organization_type || "outsider",
         campus: userData.campus || "none",
       };
-      OneSignal.User.addTags(tags);
+      oneSignal.User.addTags(tags);
     } catch (e) {
       console.error("Failed to set OneSignal tags", e);
     }
-  }, [userData, isOneSignalInitialized]);
+  }, [userData, isOneSignalInitialized, oneSignal]);
 
   // 3. Request permissions explicitly
   const requestPushPermissions = useCallback(async () => {
-    if (!isOneSignalInitialized || !OneSignal) return;
+    if (!isOneSignalInitialized || !oneSignal) return;
     try {
-      const granted = await OneSignal.Notifications.requestPermission(true);
+      const granted = await oneSignal.Notifications.requestPermission(true);
       if (granted) {
         toast.success("Push notifications enabled!");
       }
     } catch (e) {
       console.error("Error requesting push permissions", e);
     }
-  }, [isOneSignalInitialized]);
+  }, [isOneSignalInitialized, oneSignal]);
 
   // PWA Polling
   const fetchNotifications = useCallback(async () => {

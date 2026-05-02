@@ -8,7 +8,7 @@ import { useAuth } from "@/context/AuthContext";
 import EventCard from "@/components/EventCard";
 import Skeleton from "@/components/Skeleton";
 import EmptyState from "@/components/EmptyState";
-import { SearchIcon, XIcon, ArrowRightIcon, CalendarIcon, MapPinIcon, SparklesIcon, UsersIcon, ClockIcon, FlameIcon, TrendingUpIcon } from "@/components/icons";
+import { SearchIcon, XIcon, ArrowRightIcon, CalendarIcon, MapPinIcon, SparklesIcon, UsersIcon, FlameIcon, TrendingUpIcon } from "@/components/icons";
 import { FilterChip } from "@/components/FilterChip";
 import { Button } from "@/components/Button";
 import { SectionContainer } from "@/components/SectionContainer";

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { AlertCircleIcon, ArrowRightIcon, GlobeIcon, HelpCircleIcon, Loader2Icon, SchoolIcon, WifiOffIcon } from "@/components/icons";
+import { AlertCircleIcon, ArrowRightIcon, HelpCircleIcon, Loader2Icon, SchoolIcon, WifiOffIcon } from "@/components/icons";
 import { useAuth } from "@/context/AuthContext";
 
 function GoogleMark() {

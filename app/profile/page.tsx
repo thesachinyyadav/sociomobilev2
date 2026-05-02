@@ -69,15 +69,15 @@ export default function ProfilePage() {
     announcements: true,
   });
 
-  const togglePref = (key: keyof typeof notificationPrefs) => {
+  const togglePref = async (key: keyof typeof notificationPrefs) => {
     const newVal = !notificationPrefs[key];
     setNotificationPrefs(prev => ({ ...prev, [key]: newVal }));
     
     // Sync with OneSignal segment tags
     try {
-      const OneSignal = require("onesignal-cordova-plugin").default;
-      if (OneSignal && OneSignal.User) {
-        OneSignal.User.addTag(`opt_out_${key}`, newVal ? "false" : "true");
+      const OS = (await import("onesignal-cordova-plugin")).default;
+      if (OS && OS.User) {
+        OS.User.addTag(`opt_out_${key}`, newVal ? "false" : "true");
       }
     } catch (e) {
       // Ignore if not native
@@ -656,7 +656,7 @@ export default function ProfilePage() {
         <CampusSelector
           email={userData.email}
           accessToken={session.access_token}
-          onComplete={async (campus) => {
+          onComplete={async () => {
             setShowCampusSelector(false);
             await refreshUserData();
           }}

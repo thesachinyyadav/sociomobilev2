@@ -198,6 +198,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   /* Fetch profile from backend */
   const fetchUserData = useCallback(async (email: string, accessToken?: string): Promise<UserData | null> => {
+    console.log(`fetchUserData called for ${email}, accessToken present: ${!!accessToken}`);
     try {
       const headers: Record<string, string> = {};
       if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
@@ -218,6 +219,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             ? data.volunteerEvents
             : [];
         fetchedUser.roles = fetchedUser.roles ?? data.roles ?? {};
+        
+        // If volunteerEvents is empty, try fetching from the dedicated endpoint
+        if (fetchedUser.volunteerEvents.length === 0 && accessToken) {
+          try {
+            const volRes = await fetch("/api/pwa/volunteer/events", {
+              headers: { Authorization: `Bearer ${accessToken}` },
+              cache: "no-store",
+            });
+            if (volRes.ok) {
+              const volData = await volRes.json();
+              fetchedUser.volunteerEvents = volData.events || [];
+            }
+          } catch (err) {
+            console.error("Failed to fetch volunteer events during /me fetch", err);
+          }
+        }
+
+        console.log(`User fetched via /me. Volunteer events count: ${fetchedUser.volunteerEvents?.length || 0}`);
         setUserData(fetchedUser);
         persistUserDataToLS(fetchedUser);
         return fetchedUser;
@@ -231,7 +250,52 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         });
         if (fallbackRes.ok) {
           const data = await fallbackRes.json();
+          console.log(`Fallback user data keys: ${Object.keys(data).join(", ")}`);
+          if (data.user) console.log(`Fallback data.user keys: ${Object.keys(data.user).join(", ")}`);
           const fetchedUser = data.user ?? data;
+          console.log(`Volunteer events raw data: ${JSON.stringify(data.volunteerEvents || [])}`);
+          fetchedUser.volunteerEvents = Array.isArray(fetchedUser.volunteerEvents)
+            ? fetchedUser.volunteerEvents
+            : Array.isArray(data.volunteerEvents)
+              ? data.volunteerEvents
+              : [];
+          fetchedUser.roles = fetchedUser.roles ?? data.roles ?? {};
+          
+          // If volunteerEvents is empty, try fetching from the dedicated endpoint
+          if (fetchedUser.volunteerEvents.length === 0) {
+            try {
+              // Try token-based first if we have one
+              let volData: any = null;
+              if (accessToken) {
+                const volRes = await fetch("/api/pwa/volunteer/events", {
+                  headers: { Authorization: `Bearer ${accessToken}` },
+                  cache: "no-store",
+                });
+                if (volRes.ok) {
+                  volData = await volRes.json();
+                }
+              }
+
+              // If token-based failed or returned empty, try email-based fallback
+              if (!volData || !volData.events || volData.events.length === 0) {
+                console.log(`Trying email-based volunteer fetch for ${email}`);
+                const emailVolRes = await fetch(`/api/pwa/volunteer/events?email=${encodeURIComponent(email)}`, {
+                  cache: "no-store",
+                });
+                if (emailVolRes.ok) {
+                  volData = await emailVolRes.json();
+                }
+              }
+
+              if (volData && volData.events) {
+                fetchedUser.volunteerEvents = volData.events;
+              }
+            } catch (err) {
+              console.error("Failed to fetch volunteer events during fallback", err);
+            }
+          }
+
+          console.log(`User fetched via fallback. Volunteer events count: ${fetchedUser.volunteerEvents?.length || 0}`);
           setUserData(fetchedUser);
           persistUserDataToLS(fetchedUser);
           return fetchedUser;

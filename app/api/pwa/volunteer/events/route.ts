@@ -7,18 +7,18 @@ const API_URL = (process.env.NEXT_PUBLIC_API_URL || process.env.API_URL || "http
 export async function GET(request: NextRequest) {
   try {
     const authHeader = request.headers.get("authorization");
-    if (!authHeader) {
-      return NextResponse.json({ error: "Authorization header required" }, { status: 401 });
-    }
+    const { searchParams } = new URL(request.url);
+    const email = searchParams.get("email");
+    const url = new URL(`${API_URL}/api/volunteer/events`);
+    if (email) url.searchParams.set("email", email);
 
-    const res = await fetch(`${API_URL}/api/volunteer/events`, {
-      headers: {
-        Authorization: authHeader,
-      },
+    const res = await fetch(url.toString(), {
+      headers: authHeader ? { Authorization: authHeader } : {},
       cache: "no-store",
     });
 
     const bodyText = await res.text();
+    console.log(`Backend GET /api/volunteer/events response: ${res.status} ${bodyText}`);
     return new NextResponse(bodyText, {
       status: res.status,
       headers: {

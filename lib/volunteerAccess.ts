@@ -25,11 +25,22 @@ export function getVolunteerEventEndDate(event: VolunteerEvent) {
 
 export function isVolunteerEventActive(event: VolunteerEvent, now = new Date()) {
   const assignmentExpiry = new Date(event.volunteer_assignment?.expires_at || "");
-  if (Number.isNaN(assignmentExpiry.getTime()) || now >= assignmentExpiry) return false;
+  if (Number.isNaN(assignmentExpiry.getTime())) {
+    console.log(`Volunteer event ${event.event_id} inactive: Invalid expiry date`);
+    return false;
+  }
+  if (now >= assignmentExpiry) {
+    console.log(`Volunteer event ${event.event_id} inactive: Already expired at ${assignmentExpiry}`);
+    return false;
+  }
 
   const eventEndDate = getVolunteerEventEndDate(event);
-  if (eventEndDate && now >= eventEndDate) return false;
+  if (eventEndDate && now >= eventEndDate) {
+    console.log(`Volunteer event ${event.event_id} inactive: Event already ended at ${eventEndDate}`);
+    return false;
+  }
 
+  console.log(`Volunteer event ${event.event_id} is ACTIVE`);
   return true;
 }
 

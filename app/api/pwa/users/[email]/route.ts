@@ -16,6 +16,7 @@ export async function GET(
     });
 
     const bodyText = await res.text();
+    console.log(`Backend GET /api/users/${email} response: ${res.status} ${bodyText}`);
     return new NextResponse(bodyText, {
       status: res.status,
       headers: {

@@ -89,10 +89,14 @@ export default function ClubDetailPage() {
 
     (async () => {
       try {
-        const res = await fetch(`/api/pwa/clubs/${encodeURIComponent(id)}`);
-        if (!res.ok) throw new Error("Club not found");
-        const data = await res.json();
-        if (isMounted) setClub(data.club ?? null);
+        const { data, error } = await supabase
+          .from("clubs")
+          .select("*")
+          .or(`slug.eq.${id},club_id.eq.${id}`)
+          .maybeSingle();
+
+        if (error) throw error;
+        if (isMounted) setClub(data ?? null);
       } catch (e: any) {
         if (isMounted) setError(e.message || "Failed to load club");
       } finally {
@@ -189,45 +193,46 @@ export default function ClubDetailPage() {
 
     setIsSubmitting(true);
     try {
-      const response = await fetch(
-        `/api/pwa/clubs/${encodeURIComponent(club.slug || club.club_id)}/apply`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${session.access_token}`,
-          },
-          body: JSON.stringify({
-            role: selectedRole,
-            name: userData?.name ?? "",
-            email: currentEmail,
-            regno: registerNumber,
-          }),
-        }
-      );
+      // 1. Get current applicants
+      const existingApplicants = parseClubApplicants(club.clubs_applicants ?? club.clubs_applicant);
+      
+      // 2. Build new entry
+      const newApplicant = {
+        regno: normalizedRegno,
+        name: userData?.name ?? "",
+        email: currentEmail,
+        role_applied_for: selectedRole,
+        applied_at: new Date().toISOString(),
+      };
 
-      const body = await response.json().catch(() => ({}));
-      if (!response.ok) {
-        toast.error(body?.error || "Failed to submit application.");
-        return;
-      }
+      const updatedApplicants = [...existingApplicants, newApplicant];
 
-      // Optimistically update local state
-      const newApplicant = { regno: normalizedRegno, email: currentEmail };
+      // 3. Update Supabase directly
+      const { error: updateError } = await supabase
+        .from("clubs")
+        .update({
+          clubs_applicants: updatedApplicants,
+          clubs_applicant: updatedApplicants,
+        })
+        .eq("club_id", club.club_id);
+
+      if (updateError) throw updateError;
+
+      // 4. Update local state
       setClub((prev) => {
         if (!prev) return prev;
-        const existing = parseClubApplicants(prev.clubs_applicants ?? prev.clubs_applicant);
         return {
           ...prev,
-          clubs_applicants: [...existing, newApplicant],
-          clubs_applicant: [...existing, newApplicant],
+          clubs_applicants: updatedApplicants,
+          clubs_applicant: updatedApplicants,
         };
       });
 
       toast.success("Application submitted successfully! 🎉");
       setIsApplyModalOpen(false);
-    } catch {
-      toast.error("Failed to submit application. Please try again.");
+    } catch (err: any) {
+      console.error("Apply Error:", err);
+      toast.error(err.message || "Failed to submit application. Please try again.");
     } finally {
       setIsSubmitting(false);
     }

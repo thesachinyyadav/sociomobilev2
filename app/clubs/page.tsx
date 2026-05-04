@@ -7,6 +7,7 @@ import { SearchIcon, XIcon, UsersIcon, ArrowRightIcon, SparklesIcon } from "@/co
 import EmptyState from "@/components/EmptyState";
 import Skeleton from "@/components/Skeleton";
 import { useDebounce } from "@/lib/useDebounce";
+import { supabase } from "@/lib/supabaseClient";
 
 export interface ClubRecord {
   club_id: string;
@@ -65,25 +66,22 @@ export default function ClubsPage() {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
 
   useEffect(() => {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 8000);
-
     (async () => {
       try {
-        const res = await fetch("/api/pwa/clubs", { signal: controller.signal });
-        if (res.ok) {
-          const data = await res.json();
-          const arr = data.clubs ?? data ?? [];
-          setClubs(Array.isArray(arr) ? arr : []);
+        const { data, error } = await supabase
+          .from("clubs")
+          .select("*")
+          .order("club_name", { ascending: true });
+
+        if (!error && data) {
+          setClubs(data);
         }
-      } catch {}
-      finally {
-        clearTimeout(timeoutId);
+      } catch (err) {
+        console.error("Failed to fetch clubs:", err);
+      } finally {
         setLoading(false);
       }
     })();
-
-    return () => controller.abort();
   }, []);
 
   const filtered = useMemo(() => {

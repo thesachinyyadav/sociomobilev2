@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { SearchIcon, XIcon, UsersIcon, ArrowRightIcon, SparklesIcon } from "@/components/icons";
@@ -84,6 +84,8 @@ export default function ClubsPage() {
     })();
   }, []);
 
+  const [hasLoadedMore, setHasLoadedMore] = useState(false);
+
   const filtered = useMemo(() => {
     let list = clubs;
 
@@ -105,11 +107,17 @@ export default function ClubsPage() {
     return list;
   }, [clubs, typeFilter, debouncedSearch]);
 
-  const openClubs = filtered.filter((c) => c.club_registrations);
-  const closedClubs = filtered.filter((c) => !c.club_registrations);
+  // Reset state on filter change
+  useEffect(() => {
+    setHasLoadedMore(false);
+  }, [typeFilter, debouncedSearch]);
+
+  const pagedList = hasLoadedMore ? filtered : filtered.slice(0, 10);
+  const openClubs = pagedList.filter((c) => c.club_registrations);
+  const closedClubs = pagedList.filter((c) => !c.club_registrations);
 
   return (
-    <div className="pwa-page pt-[calc(var(--nav-height)+var(--safe-top))] pb-8 bg-[#f9fafb] max-w-[420px] mx-auto">
+    <div className="pwa-page pt-[calc(var(--nav-height)+var(--safe-top))] pb-24 bg-[#f9fafb] max-w-[420px] mx-auto">
       {/* Search Bar Row — Only visible when searching */}
       {isSearchOpen && (
         <div className="px-5 h-[48px] flex flex-col justify-center animate-fade-in">
@@ -210,7 +218,7 @@ export default function ClubsPage() {
               <div className="flex items-center gap-2 mb-3">
                 <h2 className="text-[18px] font-extrabold tracking-tight">Open Now</h2>
                 <span className="bg-[#dcfce7] text-[#15803d] text-[10px] font-bold px-2 py-0.5 rounded-full">
-                  {openClubs.length}
+                  {filtered.filter(c => c.club_registrations).length}
                 </span>
               </div>
               <div className="space-y-3">
@@ -229,15 +237,28 @@ export default function ClubsPage() {
                   Applications Closed
                 </h2>
                 <span className="bg-[#f3f4f6] text-[var(--color-text-muted)] text-[10px] font-bold px-2 py-0.5 rounded-full">
-                  {closedClubs.length}
+                  {filtered.filter(c => !c.club_registrations).length}
                 </span>
               </div>
-              <div className="space-y-3 opacity-75">
+              <div className="space-y-3">
                 {closedClubs.map((club) => (
                   <ClubCard key={club.club_id} club={club} />
                 ))}
               </div>
             </section>
+          )}
+
+          {/* Load More Button */}
+          {!hasLoadedMore && filtered.length > 10 && (
+            <div className="pt-4 pb-8 flex justify-center">
+              <button
+                onClick={() => setHasLoadedMore(true)}
+                className="flex items-center gap-2 px-8 py-3 rounded-2xl bg-white border border-[var(--color-border)] text-[var(--color-primary)] text-[14px] font-black shadow-sm transition-all active:scale-95 hover:bg-[var(--color-primary-light)]"
+              >
+                Load More
+                <ArrowRightIcon size={16} />
+              </button>
+            </div>
           )}
         </div>
       )}
@@ -252,7 +273,7 @@ function ClubCard({ club }: { club: ClubRecord }) {
   return (
     <Link
       href={href}
-      className="card flex gap-3.5 p-3.5 btn-active-state will-change-transform group"
+      className="bg-white border border-[var(--color-border)] rounded-[28px] flex gap-3.5 p-4 shadow-sm btn-active-state will-change-transform group"
     >
       {/* Image */}
       <div className="w-[72px] h-[72px] rounded-xl overflow-hidden bg-[var(--color-primary-light)] shrink-0 relative">

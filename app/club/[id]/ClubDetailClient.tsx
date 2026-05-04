@@ -272,13 +272,13 @@ export default function ClubDetailClient({ id }: { id: string }) {
         </div>
       </div>
 
-      <div className="px-5 pt-5 space-y-5">
-        <div className="card p-4 flex items-center justify-between gap-4">
+      <div className="px-5 pt-6 space-y-8">
+        <div className="bg-white border border-[var(--color-border)] rounded-[32px] p-5 flex items-center justify-between gap-4 shadow-sm">
           <div>
-            <p className="text-[12px] text-[var(--color-text-muted)] font-semibold uppercase tracking-wide">
+            <p className="text-[11px] text-[var(--color-text-muted)] font-bold uppercase tracking-widest">
               Registrations
             </p>
-            <p className={`text-[15px] font-extrabold mt-0.5 ${club.club_registrations ? "text-[#15803d]" : "text-[#dc2626]"}`}>
+            <p className={`text-[16px] font-black mt-0.5 ${club.club_registrations ? "text-[#15803d]" : "text-[#dc2626]"}`}>
               {club.club_registrations ? "Open" : "Closed"}
             </p>
           </div>
@@ -287,32 +287,44 @@ export default function ClubDetailClient({ id }: { id: string }) {
             <button
               onClick={handleJoinClick}
               disabled={isAlreadyApplicant}
-              className={`btn btn-sm shrink-0 ${isAlreadyApplicant ? "bg-[#dcfce7] text-[#15803d] border border-[#86efac] cursor-default" : "btn-primary"}`}
+              className={`h-11 px-6 rounded-full shrink-0 text-[13px] font-black transition-all active:scale-95 flex items-center gap-2 ${
+                isAlreadyApplicant 
+                  ? "bg-[#dcfce7] text-[#15803d] border border-[#86efac] cursor-default" 
+                  : "bg-[var(--color-accent)] text-[var(--color-primary-dark)] shadow-[0_4px_12px_rgba(255,224,139,0.4)]"
+              }`}
             >
               {isAlreadyApplicant ? (
-                <span className="flex items-center gap-1.5"><CheckCircleIcon size={14} /> Applied</span>
+                <>
+                  <CheckCircleIcon size={16} />
+                  Applied
+                </>
               ) : (
-                <span className="flex items-center gap-1.5">Apply Now <ArrowRightIcon size={14} /></span>
+                <>
+                  Apply Now
+                  <ArrowRightIcon size={16} />
+                </>
               )}
             </button>
           ) : (
-            <span className="text-[12px] font-semibold text-[#dc2626] bg-[#fee2e2] px-3 py-1.5 rounded-full">Closed</span>
+            <span className="text-[12px] font-bold text-[#dc2626] bg-[#fee2e2] px-4 py-2 rounded-full">
+              Closed
+            </span>
           )}
         </div>
 
         {club.club_description && (
           <div>
-            <h2 className="text-[17px] font-extrabold mb-2">About</h2>
+            <h2 className="text-[18px] font-black tracking-tight mb-2">About</h2>
             <p className="text-[13px] text-[var(--color-text-muted)] leading-relaxed">{club.club_description}</p>
           </div>
         )}
 
         {categories.length > 0 && (
           <div>
-            <h2 className="text-[17px] font-extrabold mb-2">Categories</h2>
+            <h2 className="text-[18px] font-black tracking-tight mb-3">Categories</h2>
             <div className="flex flex-wrap gap-2">
               {categories.map((cat) => (
-                <span key={cat} className="text-[12px] font-semibold bg-[var(--color-primary-light)] text-[var(--color-primary)] px-3 py-1 rounded-full">{cat}</span>
+                <span key={cat} className="text-[12px] font-bold bg-[var(--color-primary-light)] text-[var(--color-primary)] px-3.5 py-1.5 rounded-full">{cat}</span>
               ))}
             </div>
           </div>
@@ -320,10 +332,10 @@ export default function ClubDetailClient({ id }: { id: string }) {
 
         {availableRoles.length > 0 && (
           <div>
-            <h2 className="text-[17px] font-extrabold mb-2">Open Roles</h2>
+            <h2 className="text-[18px] font-black tracking-tight mb-3">Open Roles</h2>
             <div className="flex flex-wrap gap-2">
               {availableRoles.map((role) => (
-                <span key={role} className="text-[12px] font-semibold border border-[var(--color-border)] text-[var(--color-text)] px-3 py-1 rounded-full">{role}</span>
+                <span key={role} className="text-[12px] font-bold border border-[var(--color-border)] text-[var(--color-text)] px-3.5 py-1.5 rounded-full">{role}</span>
               ))}
             </div>
           </div>

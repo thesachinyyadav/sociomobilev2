@@ -561,7 +561,7 @@ export default function DiscoverPage() {
                 {/* Clubs Card */}
                 <Link
                   href="/clubs"
-                  className="col-span-2 relative bg-[#ecfdf5] rounded-2xl p-5 overflow-hidden text-left btn-active-state border border-transparent hover:border-[#a7f3d0] transition-all min-h-[100px] flex flex-col justify-center will-change-transform"
+                  className="col-span-2 relative bg-[#ecfdf5] rounded-[28px] p-5 overflow-hidden text-left btn-active-state border border-transparent hover:border-[#a7f3d0] transition-all min-h-[100px] flex flex-col justify-center will-change-transform"
                 >
                   <div className="relative z-10 flex items-center gap-4">
                     <div className="w-10 h-10 rounded-full bg-[#059669] text-white flex items-center justify-center shadow-md">

@@ -86,6 +86,12 @@ html, body {
   0%, 100% { transform: scale(1); }
   50% { transform: scale(1.15); }
 }
+@keyframes scanner-laser {
+  0% { top: 2rem; opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { top: calc(100% - 2rem); opacity: 0; }
+}
 
 /* ── Page transition (fade + subtle upward slide) ─────────────────────────
    Composited on GPU: only opacity + transform, NO layout props.
@@ -126,6 +132,7 @@ html, body {
 .animate-pulse-soft { animation: pulse-soft 2s ease-in-out infinite; }
 .animate-gradient   { background-size:200% 200%; animation: gradient-x 4s ease infinite; }
 .animate-badge-pulse { animation: badge-pulse 1.5s ease-in-out infinite; will-change: transform; }
+.animate-scanner-laser { animation: scanner-laser 2.5s cubic-bezier(0.4, 0, 0.2, 1) infinite alternate; will-change: top, opacity; }
 
 .text-glow {
   text-shadow: 0 0 6px rgba(255, 255, 255, 0.3);

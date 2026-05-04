@@ -4,15 +4,13 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { useNotifications } from "@/context/NotificationContext";
-import CampusSelector from "@/components/CampusSelector";
 import { Button } from "@/components/Button";
-import { LogOutIcon, BellIcon, MapPinIcon } from "@/components/icons";
+import { LogOutIcon, BellIcon } from "@/components/icons";
 
 export default function SettingsPage() {
   const { userData, session, signOut, refreshUserData } = useAuth();
   const router = useRouter();
   const { requestPushPermissions } = useNotifications();
-  const [showCampusSelector, setShowCampusSelector] = useState(false);
 
   const [notificationPrefs, setNotificationPrefs] = useState({
     events: true,
@@ -39,28 +37,6 @@ export default function SettingsPage() {
 
   return (
     <div className="pwa-page min-h-screen px-4 pb-[calc(var(--bottom-nav)+var(--safe-bottom)+96px)] pt-[calc(var(--nav-height)+var(--safe-top)+20px)] animate-fade-in">
-      {/* Campus Settings */}
-      {userData.organization_type === "christ_member" && (
-        <div className="mb-4">
-          <div className="card p-4">
-            <h2 className="text-[15px] font-extrabold flex items-center gap-2 mb-3">
-              <MapPinIcon size={15} className="text-[var(--color-primary)]" />
-              Campus Management
-            </h2>
-            <p className="text-[12px] text-[var(--color-text-muted)] mb-4">
-              Update your registered campus and department. This affects which events you can access.
-            </p>
-            <Button
-              onClick={() => setShowCampusSelector(true)}
-              variant="outline"
-              fullWidth
-              className="border-[var(--color-border)] text-[var(--color-text)]"
-            >
-              {userData.campus ? "Change Campus/Department" : "Detect Your Campus"}
-            </Button>
-          </div>
-        </div>
-      )}
 
       {/* Notification Preferences */}
       <div className="mb-4">
@@ -143,18 +119,6 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      {/* Campus Selector modal */}
-      {showCampusSelector && userData?.email && session?.access_token && (
-        <CampusSelector
-          email={userData.email}
-          accessToken={session.access_token}
-          onComplete={async () => {
-            setShowCampusSelector(false);
-            await refreshUserData();
-          }}
-          onDismiss={() => setShowCampusSelector(false)}
-        />
-      )}
     </div>
   );
 }

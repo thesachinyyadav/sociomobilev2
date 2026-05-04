@@ -38,6 +38,15 @@ export default function AuthCallbackPage() {
           const { data: { session: existingSession } } = await supabase.auth.getSession();
           if (existingSession) {
             await refreshUserData();
+
+            // If coming from Capacitor app, redirect back via deep link
+            if (searchParams.get("source") === "capacitor") {
+              const token = existingSession.access_token;
+              const refreshToken = existingSession.refresh_token;
+              window.location.href = `socio://callback?token=${token}&refresh_token=${refreshToken}`;
+              return;
+            }
+
             const returnTo = sessionStorage.getItem("returnTo");
             if (returnTo) sessionStorage.removeItem("returnTo");
             router.replace(returnTo || next);
@@ -48,6 +57,15 @@ export default function AuthCallbackPage() {
 
         if (data.session) {
           await refreshUserData();
+
+          // If coming from Capacitor app, redirect back via deep link
+          if (searchParams.get("source") === "capacitor") {
+            const token = data.session.access_token;
+            const refreshToken = data.session.refresh_token;
+            window.location.href = `socio://callback?token=${token}&refresh_token=${refreshToken}`;
+            return;
+          }
+
           const returnTo = sessionStorage.getItem("returnTo");
           if (returnTo) {
             sessionStorage.removeItem("returnTo");

@@ -144,23 +144,12 @@ export default function QRScanner({ eventId, eventTitle, onScanSuccess }: QRScan
 
   return (
     <div className="card overflow-hidden">
-      <div className="bg-[var(--color-primary-dark)] px-4 py-4 text-white">
-        <div className="flex items-start gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-white/12">
-            <QrCodeIcon size={20} />
-          </div>
-          <div className="min-w-0">
-            <h2 className="text-[16px] font-extrabold">QR Scanner</h2>
-            <p className="mt-0.5 truncate text-[12px] text-blue-100">{eventTitle}</p>
-          </div>
-        </div>
-      </div>
 
       <div className="p-4">
         <div className="relative overflow-hidden rounded-[22px] bg-black">
           <video
             ref={videoRef}
-            className="aspect-square w-full object-cover"
+            className="aspect-[4/3] w-full object-cover"
             muted
             playsInline
           />
@@ -174,7 +163,15 @@ export default function QRScanner({ eventId, eventTitle, onScanSuccess }: QRScan
             </div>
           )}
           {isScanning && (
-            <div className="pointer-events-none absolute inset-5 rounded-[18px] border-2 border-white/80" />
+            <>
+              <div className="pointer-events-none absolute inset-6">
+                <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-[var(--color-accent)] rounded-tl-[16px]" />
+                <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-[var(--color-accent)] rounded-tr-[16px]" />
+                <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-[var(--color-accent)] rounded-bl-[16px]" />
+                <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-[var(--color-accent)] rounded-br-[16px]" />
+              </div>
+              <div className="pointer-events-none absolute left-6 right-6 h-0.5 bg-[var(--color-accent)] shadow-[0_0_8px_var(--color-accent)] animate-scanner-laser z-10" />
+            </>
           )}
         </div>
 

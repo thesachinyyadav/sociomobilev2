@@ -94,7 +94,11 @@ export default function VolunteerDashboardPage() {
 
       if (!res.ok) {
         setEvents([]);
-        setError(payload.error || DENIED_MESSAGE);
+        if (res.status >= 500) {
+          setError("The server took too long to respond. Please try again later.");
+        } else {
+          setError(payload.error || DENIED_MESSAGE);
+        }
         return;
       }
 

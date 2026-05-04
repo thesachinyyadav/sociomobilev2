@@ -577,8 +577,4 @@ export const ChevronLeftIcon = (props: IconProps) => (
   </IconBase>
 );
 
-export const ChevronRightIcon = (props: IconProps) => (
-  <IconBase {...props}>
-    <path d="m9 18 6-6-6-6" />
-  </IconBase>
-);
+

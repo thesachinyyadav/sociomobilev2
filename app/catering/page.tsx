@@ -127,7 +127,7 @@ export default function CateringDashboardPage() {
   };
 
   if (isLoading || (isFetching && page === 1)) {
-    return <LoadingScreen message="Loading Catering Orders..." />;
+    return <LoadingScreen />;
   }
 
   if (!userData?.is_masteradmin && (!userData?.caters || userData.caters.length === 0)) {
@@ -235,7 +235,7 @@ export default function CateringDashboardPage() {
                     {booking.description && (
                       <div className="mt-2 p-2 bg-gray-50 rounded-lg text-[12px] text-[var(--color-text-muted)] italic">
                         "{booking.description}"
-                      </p>
+                      </div>
                     )}
                   </div>
 

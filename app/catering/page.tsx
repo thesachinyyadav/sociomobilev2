@@ -54,6 +54,7 @@ export default function CateringDashboardPage() {
   const [isFetching, setIsFetching] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
+  const [activeTab, setActiveTab] = useState<"pending" | "history">("pending");
   const pageSize = 10;
 
   useEffect(() => {
@@ -62,14 +63,16 @@ export default function CateringDashboardPage() {
     }
   }, [isLoading, router, session]);
 
-  const fetchBookings = useCallback(async (pageNum: number) => {
+  const fetchBookings = useCallback(async (pageNum: number, tab: "pending" | "history") => {
     if (isLoading || !session?.access_token) return;
 
     setIsFetching(true);
     setError(null);
 
+    const statusQuery = tab === "pending" ? "pending" : "accepted,declined";
+
     try {
-      const res = await fetch(`${PWA_API_URL}/catering/bookings?page=${pageNum}&pageSize=${pageSize}`, {
+      const res = await fetch(`${PWA_API_URL}/catering/bookings?page=${pageNum}&pageSize=${pageSize}&status=${statusQuery}`, {
         headers: {
           Authorization: `Bearer ${session.access_token}`,
         },
@@ -93,8 +96,16 @@ export default function CateringDashboardPage() {
   }, [isLoading, session?.access_token]);
 
   useEffect(() => {
-    fetchBookings(page);
-  }, [fetchBookings, page]);
+    fetchBookings(page, activeTab);
+  }, [fetchBookings, page, activeTab]);
+
+  const handleTabChange = (tab: "pending" | "history") => {
+    if (tab !== activeTab) {
+      setActiveTab(tab);
+      setPage(1);
+      setBookings([]);
+    }
+  };
 
   const handleAction = async (bookingId: string, action: "accept" | "decline") => {
     if (!session?.access_token) return;
@@ -110,12 +121,18 @@ export default function CateringDashboardPage() {
       });
 
       if (res.ok) {
-        // Update local state
-        setBookings(prev => prev.map(b => 
-          b.booking_id === bookingId 
-            ? { ...b, status: action === "accept" ? "accepted" : "declined" } 
-            : b
-        ));
+        // Remove from pending tab instantly
+        if (activeTab === "pending") {
+          setBookings(prev => prev.filter(b => b.booking_id !== bookingId));
+          // Re-fetch to fix pagination counts if needed, but not strictly necessary immediately
+          // fetchBookings(page, activeTab);
+        } else {
+          setBookings(prev => prev.map(b => 
+            b.booking_id === bookingId 
+              ? { ...b, status: action === "accept" ? "accepted" : "declined" } 
+              : b
+          ));
+        }
       } else {
         const data = await res.json();
         alert(data.error || `Failed to ${action} booking`);
@@ -126,7 +143,7 @@ export default function CateringDashboardPage() {
     }
   };
 
-  if (isLoading || (isFetching && page === 1)) {
+  if (isLoading || (isFetching && page === 1 && bookings.length === 0)) {
     return <LoadingScreen />;
   }
 
@@ -146,8 +163,8 @@ export default function CateringDashboardPage() {
   return (
     <div className="min-h-screen bg-[#F8FAFC] pb-24">
       {/* Sticky Header */}
-      <div className="bg-white px-4 pt-5 pb-4 border-b border-[var(--color-border)] sticky top-0 z-20 shadow-sm">
-        <div className="flex items-center gap-3">
+      <div className="bg-white px-4 pt-5 pb-0 border-b border-[var(--color-border)] sticky top-0 z-20 shadow-sm">
+        <div className="flex items-center gap-3 mb-4">
           <button
             onClick={() => router.back()}
             className="w-9 h-9 rounded-full bg-gray-50 flex items-center justify-center text-[var(--color-text)] active:scale-90 transition-transform"
@@ -156,46 +173,84 @@ export default function CateringDashboardPage() {
           </button>
           <div>
             <h1 className="text-xl font-extrabold text-[#0F172A] leading-tight">Catering Orders</h1>
-            {bookings.length > 0 && !error && (
+            {!error && (
               <p className="text-[12px] text-[var(--color-text-muted)] font-medium">
-                Incoming orders for your catering service.
+                Manage incoming orders and history.
               </p>
             )}
           </div>
+        </div>
+
+        {/* Tabs */}
+        <div className="flex w-full mt-2">
+          <button
+            onClick={() => handleTabChange("pending")}
+            className={`flex-1 py-3 text-center text-[13px] font-bold border-b-2 transition-colors ${
+              activeTab === "pending"
+                ? "border-blue-600 text-blue-600"
+                : "border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-50"
+            }`}
+          >
+            Pending
+          </button>
+          <button
+            onClick={() => handleTabChange("history")}
+            className={`flex-1 py-3 text-center text-[13px] font-bold border-b-2 transition-colors ${
+              activeTab === "history"
+                ? "border-blue-600 text-blue-600"
+                : "border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-50"
+            }`}
+          >
+            History
+          </button>
         </div>
       </div>
 
       <div className="p-4 max-w-2xl mx-auto">
         {error ? (
-          <div className="card p-8 text-center flex flex-col items-center mt-10">
+          <div className="bg-white rounded-2xl p-8 text-center flex flex-col items-center mt-10 shadow-sm border border-slate-100">
             <div className="w-14 h-14 bg-red-50 rounded-full flex items-center justify-center mb-4">
               <AlertTriangleIcon className="text-red-500" size={28} />
             </div>
             <p className="text-[14px] font-bold text-red-600 mb-1">Failed to Load Orders</p>
             <p className="text-[12px] text-[var(--color-text-muted)] mb-6">{error}</p>
-            <Button size="md" variant="primary" onClick={() => fetchBookings(page)}>
+            <Button size="md" variant="primary" onClick={() => fetchBookings(page, activeTab)}>
               Retry
             </Button>
           </div>
+        ) : isFetching && bookings.length === 0 ? (
+          <div className="mt-20 text-center text-slate-400">
+             <div className="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div>
+             Loading orders...
+          </div>
         ) : bookings.length === 0 ? (
-          <div className="card p-12 text-center flex flex-col items-center mt-10 shadow-sm">
-            <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mb-4">
-              <ChefHat className="text-[var(--color-primary)]" size={32} />
+          <div className="bg-white rounded-2xl p-12 text-center flex flex-col items-center mt-6 shadow-sm border border-slate-100">
+            <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4">
+              {activeTab === "pending" ? (
+                <Clock3 className="text-slate-400" size={32} />
+              ) : (
+                <CheckCircle className="text-slate-400" size={32} />
+              )}
             </div>
             <h3 className="font-bold text-[16px] text-[#0F172A] mb-1">No Orders Found</h3>
-            <p className="text-[12px] text-[var(--color-text-muted)]">
-              When users book your catering services, they will appear here.
+            <p className="text-[12px] text-[var(--color-text-muted)] max-w-[200px] mx-auto leading-relaxed">
+              {activeTab === "pending" 
+                ? "You have no pending orders to review right now." 
+                : "Your past accepted and declined orders will appear here."}
             </p>
           </div>
         ) : (
-          <div className="space-y-6 mt-2">
-            {/* Group Header - Following Web UI */}
-            <div className="flex items-center gap-2 mb-4">
+          <div className="space-y-4 mt-2">
+            {/* Group Header showing total count */}
+            <div className="flex items-center justify-between mb-4 px-1">
               <h3 className="text-[14px] font-bold text-[#475569]">
-                Pending <span className="bg-blue-100 text-blue-600 px-2 py-0.5 rounded-full text-[11px] ml-1">
-                  {bookings.filter(b => b.status === "pending").length}
-                </span>
+                {activeTab === "pending" ? "Action Required" : "Past Orders"}
               </h3>
+              {pagination && (
+                <span className="bg-blue-50 text-blue-600 px-3 py-1 rounded-full text-[11px] font-bold">
+                  {pagination.totalItems} Total
+                </span>
+              )}
             </div>
 
             {bookings.map((booking) => (
@@ -207,7 +262,11 @@ export default function CateringDashboardPage() {
                       <h3 className="font-bold text-[16px] text-[#0F172A] leading-snug">
                         {booking.event_title || booking.fest_title || "Catering Request"}
                       </h3>
-                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-[11px] text-slate-500 font-medium">
+                      <p className="text-[12px] font-bold text-[var(--color-primary)] mt-0.5 tracking-tight flex items-center gap-1">
+                        <ChefHat size={12} className="opacity-80" />
+                        {booking.catering_name || "Unknown Shop"}
+                      </p>
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1.5 text-[11px] text-slate-500 font-medium">
                         <span className="flex items-center gap-1">
                           <CalendarDays size={12} className="text-slate-400" />
                           {booking.event_date || booking.fest_opening_date 
@@ -241,16 +300,24 @@ export default function CateringDashboardPage() {
                   {/* Section: Requester Info */}
                   <div className="mb-5">
                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Requester Contact</p>
-                    <div className="bg-blue-50/50 rounded-xl p-3 border border-blue-100/50 grid grid-cols-2 gap-4">
-                      <div>
-                        <p className="text-[9px] font-bold text-blue-400 uppercase">Name</p>
-                        <p className="text-[12px] font-bold text-[#0F172A] truncate">
-                          {booking.contact_details?.name || "N/A"}
-                        </p>
+                    <div className="bg-slate-50 rounded-xl p-3 border border-slate-100 flex flex-col gap-3">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <p className="text-[9px] font-bold text-slate-400 uppercase">Name</p>
+                          <p className="text-[12px] font-bold text-[#0F172A] truncate">
+                            {booking.contact_details?.name || "N/A"}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-[9px] font-bold text-slate-400 uppercase">Phone</p>
+                          <p className="text-[12px] font-bold text-[#0F172A] truncate">
+                            {booking.contact_details?.phone || booking.contact_details?.contact_number || "N/A"}
+                          </p>
+                        </div>
                       </div>
                       <div>
-                        <p className="text-[9px] font-bold text-blue-400 uppercase">Email</p>
-                        <p className="text-[12px] font-medium text-blue-600 truncate underline underline-offset-2">
+                        <p className="text-[9px] font-bold text-slate-400 uppercase">Email</p>
+                        <p className="text-[12px] font-medium text-slate-600 truncate">
                           {booking.contact_details?.email || "N/A"}
                         </p>
                       </div>

@@ -54,20 +54,22 @@ const AccordionSection = ({
   onToggle: (id: string) => void;
 }) => {
   return (
-    <div className="overflow-hidden rounded-2xl border border-[var(--color-border)] bg-white mb-3 shadow-sm transition-all active:scale-[0.99]">
+    <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white mb-3 shadow-[0_4px_20px_rgba(0,0,0,0.03)] transition-all active:scale-[0.99]">
       <button
         onClick={() => onToggle(id)}
-        className={`w-full flex items-center justify-between p-4 text-left transition-colors ${open ? 'bg-blue-50/50' : 'hover:bg-gray-50'}`}
+        className={`w-full flex items-center justify-between p-4 text-left transition-colors ${open ? 'bg-blue-50/40' : 'hover:bg-gray-50/50'}`}
       >
-        <div className="flex items-center gap-3">
-          <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${open ? 'bg-[var(--color-primary)] text-white' : 'bg-gray-100 text-gray-500'}`}>
+        <div className="flex items-center gap-3.5">
+          <div className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all duration-300 ${open ? 'bg-[var(--color-primary)] text-white shadow-lg shadow-blue-900/20' : 'bg-gray-50 text-gray-400'}`}>
             {icon}
           </div>
-          <span className={`font-bold text-[15px] ${open ? 'text-[var(--color-primary)]' : 'text-[var(--color-text)]'}`}>{title}</span>
+          <span className={`font-black text-[14px] tracking-tight ${open ? 'text-[var(--color-primary)]' : 'text-[var(--color-text)]'}`}>{title}</span>
         </div>
-        {open ? <ChevronUp size={20} className="text-[var(--color-primary)]" /> : <ChevronDown size={20} className="text-gray-400" />}
+        <div className={`transition-transform duration-300 ${open ? 'rotate-180' : 'rotate-0'}`}>
+          <ChevronDown size={18} className={open ? 'text-[var(--color-primary)]' : 'text-gray-300'} />
+        </div>
       </button>
-      {open && <div className="px-4 pb-4 pt-0 text-sm border-t border-[var(--color-border)]">{children}</div>}
+      {open && <div className="px-5 pb-5 pt-0 text-[13px] border-t border-gray-50 animate-in fade-in slide-in-from-top-2 duration-300">{children}</div>}
     </div>
   );
 };
@@ -203,17 +205,28 @@ export default function EventDetailClient({ eventId }: { eventId: string }) {
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-black/10" />
         {/* chips top-left */}
-        <div className="absolute top-[calc(var(--safe-top)+56px)] left-3 flex flex-wrap gap-1.5 z-10">
-          <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter shadow-md ${isFree ? "bg-emerald-500 text-white animate-badge-pulse" : "bg-[var(--color-accent)] text-[var(--color-primary-dark)]"}`}>
-            {isFree ? "Free Entry" : `₹${event.registration_fee}`}
-          </span>
-          {event.allow_outsiders && (
-            <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter bg-white/95 text-[var(--color-primary)] shadow-md flex items-center gap-1">
-              <Globe size={11} /> Open to all
+        <div className="absolute top-[calc(var(--safe-top)+56px)] left-4 flex flex-wrap gap-2 z-10">
+          <div className={`px-3 py-1.5 rounded-xl backdrop-blur-md border shadow-lg flex items-center gap-1.5 transition-all ${
+            isFree 
+              ? "bg-emerald-500/20 border-emerald-400/30 text-emerald-100 animate-badge-pulse" 
+              : "bg-white/10 border-white/20 text-white"
+          }`}>
+            <Ticket size={12} className={isFree ? "text-emerald-400" : "text-[var(--color-accent)]"} />
+            <span className="text-[10px] font-black uppercase tracking-wider">
+              {isFree ? "Free Entry" : `₹${event.registration_fee}`}
             </span>
+          </div>
+          {event.allow_outsiders && (
+            <div className="px-3 py-1.5 rounded-xl bg-white/10 backdrop-blur-md border border-white/20 text-white shadow-lg flex items-center gap-1.5">
+              <Globe size={12} className="text-blue-400" />
+              <span className="text-[10px] font-black uppercase tracking-wider">Open to all</span>
+            </div>
           )}
           {event.claims_applicable && (
-            <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter bg-violet-600 text-white shadow-md">Claims Info</span>
+            <div className="px-3 py-1.5 rounded-xl bg-violet-500/20 backdrop-blur-md border border-violet-400/30 text-violet-100 shadow-lg flex items-center gap-1.5">
+              <Award size={12} className="text-violet-400" />
+              <span className="text-[10px] font-black uppercase tracking-wider">Claims Info</span>
+            </div>
           )}
         </div>
         {/* title */}
@@ -226,42 +239,44 @@ export default function EventDetailClient({ eventId }: { eventId: string }) {
       </div>
 
       {/* ── Meta card floats over hero ── */}
-      <div className="mx-4 -mt-5 relative z-20 mb-4 bg-white rounded-2xl overflow-hidden shadow-[0_4px_28px_rgba(1,31,123,0.22)]">
+      <div className="mx-4 -mt-8 relative z-20 mb-6 bg-white rounded-3xl overflow-hidden shadow-[0_20px_50px_rgba(1,31,123,0.15)] border border-white">
         {/* rainbow accent bar */}
-        <div className="h-[3px] w-full bg-gradient-to-r from-[#011F7B] via-[#4F6EF7] to-[#FFBA09]" />
-        <div className="p-4 grid grid-cols-1 gap-3">
+        <div className="h-[4px] w-full bg-gradient-to-r from-[#011F7B] via-[#4F6EF7] to-[#FFBA09] opacity-90" />
+        <div className="p-5 grid grid-cols-1 gap-4">
           {/* Date */}
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center shrink-0">
-              <CalendarDays size={16} className="text-[var(--color-primary)]" />
+          <div className="flex items-center gap-4">
+            <div className="w-10 h-10 rounded-2xl bg-blue-50 flex items-center justify-center shrink-0 shadow-inner">
+              <CalendarDays size={18} className="text-[var(--color-primary)]" />
             </div>
             <div className="min-w-0">
-              <p className="text-[10px] font-bold text-[var(--color-text-light)] uppercase tracking-widest">Date</p>
-              <p className="text-[13px] font-bold text-[var(--color-text)]">
+              <p className="text-[10px] font-black text-[var(--color-text-muted)] uppercase tracking-[0.1em]">Date</p>
+              <p className="text-[15px] font-black text-[var(--color-text)] mt-0.5">
                 {formatDateUTC(event.event_date)}{event.end_date && event.end_date !== event.event_date && <> – {formatDateUTC(event.end_date)}</>}
               </p>
             </div>
           </div>
-          {/* Time */}
-          {event.event_time && (
+          <div className="h-px bg-gray-100 w-full" />
+          {/* Time & Venue Row */}
+          <div className="grid grid-cols-2 gap-4">
+            {event.event_time && (
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-violet-50 flex items-center justify-center shrink-0">
+                  <Clock size={16} className="text-violet-600" />
+                </div>
+                <div>
+                  <p className="text-[10px] font-black text-[var(--color-text-muted)] uppercase tracking-wider">Time</p>
+                  <p className="text-[14px] font-bold text-[var(--color-text)]">{formatTime(event.event_time)}</p>
+                </div>
+              </div>
+            )}
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-violet-50 flex items-center justify-center shrink-0">
-                <Clock size={16} className="text-violet-600" />
+              <div className="w-9 h-9 rounded-xl bg-rose-50 flex items-center justify-center shrink-0">
+                <MapPin size={16} className="text-rose-500" />
               </div>
-              <div>
-                <p className="text-[10px] font-bold text-[var(--color-text-light)] uppercase tracking-widest">Time</p>
-                <p className="text-[13px] font-bold text-[var(--color-text)]">{formatTime(event.event_time)}</p>
+              <div className="min-w-0">
+                <p className="text-[10px] font-black text-[var(--color-text-muted)] uppercase tracking-wider">Venue</p>
+                <p className="text-[14px] font-bold text-[var(--color-text)] leading-tight truncate">{event.venue || "TBD"}</p>
               </div>
-            </div>
-          )}
-          {/* Venue */}
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-rose-50 flex items-center justify-center shrink-0">
-              <MapPin size={16} className="text-rose-500" />
-            </div>
-            <div className="min-w-0">
-              <p className="text-[10px] font-bold text-[var(--color-text-light)] uppercase tracking-widest">Venue</p>
-              <p className="text-[13px] font-bold text-[var(--color-text)] leading-snug">{event.venue || "TBD"}</p>
             </div>
           </div>
         </div>

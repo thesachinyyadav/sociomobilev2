@@ -208,8 +208,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   /* Fetch profile from backend */
-  const fetchUserData = useCallback(async (email: string, accessToken?: string): Promise<UserData | null> => {
-    console.log(`fetchUserData called for ${email}, accessToken present: ${!!accessToken}`);
+  const fetchUserData = useCallback(async (email: string, accessToken?: string, retryCount = 0): Promise<UserData | null> => {
+    console.log(`fetchUserData called for ${email}, accessToken present: ${!!accessToken}, attempt: ${retryCount + 1}`);
     try {
       const headers: Record<string, string> = {};
       if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
@@ -345,8 +345,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (e) {
       console.error("Failed to fetch user data", e);
     }
+
+    if (retryCount < 2) {
+      console.log(`Retrying fetchUserData (${retryCount + 1})...`);
+      await new Promise(r => setTimeout(r, 2000));
+      return fetchUserData(email, accessToken, retryCount + 1);
+    }
+
     return null;
-  }, []);
+  }, [PWA_API_URL]); // Added PWA_API_URL to dependencies if not there
 
   const maybeShowOutsiderWelcome = useCallback((fetchedUser: UserData | null, authUserId?: string) => {
     if (
@@ -397,9 +404,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       try {
+        const { data: { session: s } } = await supabase.auth.getSession();
+        const headers: Record<string, string> = { "Content-Type": "application/json" };
+        if (s?.access_token) headers.Authorization = `Bearer ${s.access_token}`;
+
         await fetch(`${PWA_API_URL}/users`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers,
           body: JSON.stringify({
             user: {
               id: supaUser.id,
@@ -411,7 +422,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             },
           }),
         });
-      } catch {}
+      } catch (err) {
+        console.error("ensureUser failed:", err);
+      }
 
       const {
         data: { session: currentSession },

@@ -584,8 +584,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         await Browser.open({ url: data.url });
       } catch (browserErr: any) {
-        console.error("Browser.open error", browserErr);
-        throw new Error("Native browser plugin failed. Did you rebuild the app after syncing?");
+        console.warn("Browser.open failed, falling back to window.location redirect:", browserErr);
+        // Plugin not installed or app not rebuilt after cap sync —
+        // fall back to a normal redirect so the user can still sign in.
+        if (typeof window !== "undefined") {
+          window.location.href = data.url;
+        }
       }
     }
   }, []);

@@ -7,7 +7,7 @@ import Image from "next/image";
 import { useEvents, type FetchedEvent } from "@/context/EventContext";
 import { useAuth } from "@/context/AuthContext";
 import { PWA_API_URL } from "@/lib/apiConfig";
-import { formatDateUTC, formatTime, getDaysUntil } from "@/lib/dateUtils";
+import { formatDateUTC, formatTime, getDaysUntil, generateGoogleCalendarUrl } from "@/lib/dateUtils";
 import {
   CalendarIcon as CalendarDays,
   ClockIcon as Clock,
@@ -376,6 +376,25 @@ export default function EventDetailClient({ eventId }: { eventId: string }) {
               <p className="text-[11px] text-[var(--color-text-muted)]">Tap to view PDF</p>
             </div>
           </a>
+        )}
+
+        {/* Add to Calendar */}
+        {event.event_date && (
+          <button
+            onClick={() => {
+              const url = generateGoogleCalendarUrl(event.title, event.event_date, event.event_time);
+              if (url) window.open(url, "_blank");
+            }}
+            className="w-full flex items-center gap-3 bg-white rounded-2xl p-4 border border-[var(--color-border)] shadow-sm active:bg-gray-50 text-left transition-colors"
+          >
+            <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center shrink-0">
+              <CalendarDays size={20} className="text-blue-600" />
+            </div>
+            <div>
+              <p className="text-[13px] font-bold text-[var(--color-text)]">Add to Calendar</p>
+              <p className="text-[11px] text-[var(--color-text-muted)]">Save this event to Google Calendar</p>
+            </div>
+          </button>
         )}
 
         {/* Contact */}

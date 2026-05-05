@@ -58,3 +58,34 @@ export function formatDateRange(start: string | null | undefined, end: string | 
   }
   return `${s.format("MMM D")} – ${e.format("MMM D, YYYY")}`;
 }
+
+export const generateGoogleCalendarUrl = (title: string, date: string, time?: string): string | null => {
+  try {
+    const dateObj = dayjs(date);
+    let startDateTime: string;
+    let endDateTime: string;
+    if (time) {
+      const timeMatch = time.match(/(\d{1,2}):(\d{2})\s*(AM|PM)?/i);
+      if (timeMatch) {
+        let hours = parseInt(timeMatch[1]);
+        const minutes = parseInt(timeMatch[2]);
+        const period = timeMatch[3]?.toUpperCase();
+        if (period === "PM" && hours < 12) hours += 12;
+        else if (period === "AM" && hours === 12) hours = 0;
+        const startDate = dateObj.hour(hours).minute(minutes);
+        startDateTime = startDate.format("YYYYMMDDTHHmmss");
+        endDateTime = startDate.add(1, "hour").format("YYYYMMDDTHHmmss");
+      } else {
+        startDateTime = dateObj.format("YYYYMMDD");
+        endDateTime = dateObj.add(1, "day").format("YYYYMMDD");
+      }
+    } else {
+      startDateTime = dateObj.format("YYYYMMDD");
+      endDateTime = dateObj.add(1, "day").format("YYYYMMDD");
+    }
+    const params = new URLSearchParams({ text: title, dates: `${startDateTime}/${endDateTime}` });
+    return `https://calendar.google.com/calendar/render?action=TEMPLATE&${params.toString()}`;
+  } catch {
+    return null;
+  }
+};

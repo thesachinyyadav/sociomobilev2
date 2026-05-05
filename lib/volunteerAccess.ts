@@ -40,7 +40,6 @@ export function isVolunteerEventActive(event: VolunteerEvent, now = new Date()) 
     return false;
   }
 
-  console.log(`Volunteer event ${event.event_id} is ACTIVE`);
   return true;
 }
 

@@ -206,25 +206,25 @@ export default function EventDetailClient({ eventId }: { eventId: string }) {
         <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-black/10" />
         {/* chips top-left */}
         <div className="absolute top-[calc(var(--safe-top)+56px)] left-4 flex flex-wrap gap-2 z-10">
-          <div className={`px-3 py-1.5 rounded-xl backdrop-blur-md border shadow-lg flex items-center gap-1.5 transition-all ${
+          <div className={`px-3 py-1 rounded-full shadow-md flex items-center gap-1.5 transition-all ${
             isFree 
-              ? "bg-emerald-500/20 border-emerald-400/30 text-emerald-100 animate-badge-pulse" 
-              : "bg-white/10 border-white/20 text-white"
+              ? "bg-emerald-500 text-white animate-badge-pulse" 
+              : "bg-[#FFBA09] text-[#011F7B]"
           }`}>
-            <Ticket size={12} className={isFree ? "text-emerald-400" : "text-[var(--color-accent)]"} />
+            <Ticket size={12} className={isFree ? "text-white opacity-90" : "text-[#011F7B] opacity-80"} />
             <span className="text-[10px] font-black uppercase tracking-wider">
               {isFree ? "Free Entry" : `₹${event.registration_fee}`}
             </span>
           </div>
           {event.allow_outsiders && (
-            <div className="px-3 py-1.5 rounded-xl bg-white/10 backdrop-blur-md border border-white/20 text-white shadow-lg flex items-center gap-1.5">
-              <Globe size={12} className="text-blue-400" />
+            <div className="px-3 py-1 rounded-full bg-white/95 text-[var(--color-primary)] shadow-md flex items-center gap-1.5">
+              <Globe size={12} className="opacity-80" />
               <span className="text-[10px] font-black uppercase tracking-wider">Open to all</span>
             </div>
           )}
           {event.claims_applicable && (
-            <div className="px-3 py-1.5 rounded-xl bg-violet-500/20 backdrop-blur-md border border-violet-400/30 text-violet-100 shadow-lg flex items-center gap-1.5">
-              <Award size={12} className="text-violet-400" />
+            <div className="px-3 py-1 rounded-full bg-[var(--color-primary)] text-white shadow-md flex items-center gap-1.5 border border-white/20">
+              <Award size={12} className="opacity-90 text-[var(--color-accent)]" />
               <span className="text-[10px] font-black uppercase tracking-wider">Claims Info</span>
             </div>
           )}
@@ -260,8 +260,8 @@ export default function EventDetailClient({ eventId }: { eventId: string }) {
           <div className="grid grid-cols-2 gap-4">
             {event.event_time && (
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-violet-50 flex items-center justify-center shrink-0">
-                  <Clock size={16} className="text-violet-600" />
+                <div className="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center shrink-0">
+                  <Clock size={16} className="text-[var(--color-primary)]" />
                 </div>
                 <div>
                   <p className="text-[10px] font-black text-[var(--color-text-muted)] uppercase tracking-wider">Time</p>
@@ -270,8 +270,8 @@ export default function EventDetailClient({ eventId }: { eventId: string }) {
               </div>
             )}
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-rose-50 flex items-center justify-center shrink-0">
-                <MapPin size={16} className="text-rose-500" />
+              <div className="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center shrink-0">
+                <MapPin size={16} className="text-[var(--color-primary)]" />
               </div>
               <div className="min-w-0">
                 <p className="text-[10px] font-black text-[var(--color-text-muted)] uppercase tracking-wider">Venue</p>

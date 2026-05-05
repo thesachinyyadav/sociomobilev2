@@ -439,6 +439,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [fetchUserData, outsiderVisitorId, session?.access_token, userData?.email]
   );
 
+  /* Background check for volunteer access and roles once after 60 seconds */
+  useEffect(() => {
+    if (!user?.email || !session) return;
+    
+    const timeoutId = setTimeout(() => {
+      console.log("Delayed check: Refreshing volunteer access and roles...");
+      refreshUserData();
+    }, 60_000);
+
+    return () => clearTimeout(timeoutId);
+  }, [user?.email, session, refreshUserData]);
+
   /* App Deep Link Listener */
   useEffect(() => {
     if (typeof window === "undefined" || !Capacitor.isNativePlatform()) return;

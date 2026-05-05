@@ -363,7 +363,7 @@ export default function ProfilePage() {
           </div>
           <ChevronRight size={15} className="text-[var(--color-text-light)]" />
         </button>
-        {((userData?.volunteerEvents?.length ?? 0) > 0 || userData?.is_organiser || userData?.is_masteradmin || userData?.is_support) && (
+        {((userData?.volunteerEvents?.length ?? 0) > 0) && (
           <Link href="/volunteer" className="flex-1 card p-3 flex items-center gap-3">
             <div className="w-9 h-9 rounded-full bg-blue-50 flex items-center justify-center">
               <QrCode size={17} className="text-[var(--color-primary)]" />
@@ -379,7 +379,7 @@ export default function ProfilePage() {
             <ChevronRight size={15} className="text-[var(--color-text-light)]" />
           </Link>
         )}
-        {(userData?.is_masteradmin || userData?.roles?.catering) && (
+        {(userData?.roles?.catering || (userData?.caters && userData.caters.length > 0)) && (
           <Link href="/catering" className="flex-1 card p-3 flex items-center gap-3">
             <div className="w-9 h-9 rounded-full bg-orange-50 flex items-center justify-center">
               <Utensils size={17} className="text-orange-600" />

@@ -2,8 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
-import { Capacitor } from "@capacitor/core";
-import { ScreenOrientation } from "@capacitor/screen-orientation";
+// Removed top-level Capacitor imports to prevent SSR module resolution errors
 import DesktopGate from "@/components/DesktopGate";
 import OrientationGate from "@/components/OrientationGate";
 import TopBar from "@/components/TopBar";
@@ -29,12 +28,20 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     setCampusDismissed(isCampusDismissedRecently());
     
-    // Lock orientation to portrait if running natively via Capacitor
-    if (Capacitor.isNativePlatform()) {
-      ScreenOrientation.lock({ orientation: "portrait" }).catch(() => {
-        // Ignore errors if plugin fails or isn't supported on device
-      });
-    }
+    // Safely lock orientation only on client-side native platforms
+    const lockOrientation = async () => {
+      try {
+        const { Capacitor } = await import("@capacitor/core");
+        if (Capacitor.isNativePlatform()) {
+          const { ScreenOrientation } = await import("@capacitor/screen-orientation");
+          await ScreenOrientation.lock({ orientation: "portrait" });
+        }
+      } catch (err) {
+        console.warn("Capacitor orientation lock failed:", err);
+      }
+    };
+
+    lockOrientation();
   }, []);
 
   const handleCampusComplete = (campus: string) => {

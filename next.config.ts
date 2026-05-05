@@ -12,6 +12,7 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "images.unsplash.com" },
     ],
   },
+  transpilePackages: ["@capacitor/core", "@capacitor/screen-orientation"],
   // Note: 'headers' are ignored during static export as they are handled by the web server (Capacitor handles this via capacitor.config.ts)
 };
 

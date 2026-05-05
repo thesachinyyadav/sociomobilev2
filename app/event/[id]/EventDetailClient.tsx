@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -158,15 +158,21 @@ export default function EventDetailClient({ eventId }: { eventId: string }) {
     );
   }
 
-  const AccordionSection = ({ id, icon, title, children }: { id: string; icon: React.ReactNode; title: string; children: React.ReactNode }) => {
+  const AccordionSection = ({ id, icon, title, children }: { id: string; icon: ReactNode; title: string; children: ReactNode }) => {
     const open = openSection === id;
     return (
-      <div className="overflow-hidden rounded-2xl border border-[var(--color-border)] bg-white mb-3 shadow-sm">
-        <button onClick={() => toggle(id)} className={`flex items-center justify-between w-full px-4 py-4 text-left transition-colors ${open ? "bg-[var(--color-primary-light)]" : "bg-white"}`}>
-          <div className="flex items-center gap-2.5 font-bold text-[14px] text-[var(--color-primary)]">{icon}{title}</div>
-          <div className={`w-7 h-7 rounded-full flex items-center justify-center transition-colors ${open ? "bg-[var(--color-primary)] text-white" : "bg-gray-100 text-[var(--color-text-muted)]"}`}>
-            {open ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
+      <div className="overflow-hidden rounded-2xl border border-[var(--color-border)] bg-white mb-3 shadow-sm transition-all active:scale-[0.99]">
+        <button
+          onClick={() => toggle(id)}
+          className={`w-full flex items-center justify-between p-4 text-left transition-colors ${open ? 'bg-blue-50/50' : 'hover:bg-gray-50'}`}
+        >
+          <div className="flex items-center gap-3">
+            <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${open ? 'bg-[var(--color-primary)] text-white' : 'bg-gray-100 text-gray-500'}`}>
+              {icon}
+            </div>
+            <span className={`font-bold text-[15px] ${open ? 'text-[var(--color-primary)]' : 'text-[var(--color-text)]'}`}>{title}</span>
           </div>
+          {open ? <ChevronUp size={20} className="text-[var(--color-primary)]" /> : <ChevronDown size={20} className="text-gray-400" />}
         </button>
         {open && <div className="px-4 pb-4 pt-0 text-sm border-t border-[var(--color-border)]">{children}</div>}
       </div>
@@ -185,16 +191,16 @@ export default function EventDetailClient({ eventId }: { eventId: string }) {
         <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-black/10" />
         {/* chips top-left */}
         <div className="absolute top-[calc(var(--safe-top)+56px)] left-3 flex flex-wrap gap-1.5 z-10">
-          <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold shadow-sm ${isFree ? "bg-emerald-500 text-white" : "bg-[var(--color-accent)] text-[var(--color-primary-dark)]"}`}>
-            {isFree ? "Free" : `₹${event.registration_fee}`}
+          <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter shadow-md ${isFree ? "bg-emerald-500 text-white animate-badge-pulse" : "bg-[var(--color-accent)] text-[var(--color-primary-dark)]"}`}>
+            {isFree ? "Free Entry" : `₹${event.registration_fee}`}
           </span>
           {event.allow_outsiders && (
-            <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-white/90 text-[var(--color-primary)] shadow-sm flex items-center gap-1">
-              <Globe size={10} /> Open
+            <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter bg-white/95 text-[var(--color-primary)] shadow-md flex items-center gap-1">
+              <Globe size={11} /> Open to all
             </span>
           )}
           {event.claims_applicable && (
-            <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-violet-500 text-white shadow-sm">Claims</span>
+            <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter bg-violet-600 text-white shadow-md">Claims Info</span>
           )}
         </div>
         {/* title */}
@@ -347,7 +353,7 @@ export default function EventDetailClient({ eventId }: { eventId: string }) {
         {/* Contact */}
         {(event.organizer_email || event.organizer_phone || event.whatsapp_invite_link) && (
           <div className="bg-white rounded-2xl p-4 border-l-4 border-l-[var(--color-accent-dark)] border border-[var(--color-border)] shadow-sm">
-            <h3 className="text-[11px] font-black text-[var(--color-accent-dark)] uppercase tracking-widest mb-3">Contact</h3>
+            <h3 className="text-sm font-black text-[var(--color-primary)] uppercase tracking-widest mb-4">Contact</h3>
             <div className="flex flex-col gap-2.5">
               {event.organizer_email && (
                 <a href={`mailto:${event.organizer_email}`} className="flex items-center gap-3 text-[13px] text-[var(--color-text-muted)]">
@@ -401,32 +407,26 @@ export default function EventDetailClient({ eventId }: { eventId: string }) {
       </div>
 
       {/* ── Sticky CTA ── */}
-      <div className="fixed bottom-[calc(var(--bottom-nav)+var(--safe-bottom)+10px)] left-1/2 -translate-x-1/2 w-[min(92vw,420px)] z-40">
-        <div className="bg-white shadow-[0_-2px_0_rgba(0,0,0,0.04),0_8px_32px_rgba(1,31,123,0.18)] rounded-[20px] p-3">
+      <div className="fixed bottom-[calc(var(--bottom-nav)+var(--safe-bottom)+10px)] left-1/2 -translate-x-1/2 w-[min(94vw,440px)] z-40">
+        <div className="bg-white/95 backdrop-blur-md shadow-[0_-1px_0_rgba(0,0,0,0.05),0_10px_40px_rgba(1,31,123,0.22)] rounded-[24px] p-3.5 border border-white/50">
           <Button
-            onClick={handleRegister}
-            disabled={isRegistered || isClosed || isRegistering || authLoading}
-            variant={isRegistered || isClosed ? "ghost" : "primary"}
+            variant="primary"
+            size="lg"
             fullWidth
-            className={`h-13 rounded-[14px] text-[15px] font-extrabold ${
-              isRegistered ? "!bg-emerald-100 !text-emerald-700 !border-emerald-200" :
-              isClosed    ? "!bg-gray-100 !text-gray-400 !border-gray-200" :
-              isFree      ? "!bg-[var(--color-accent)] !text-[var(--color-primary-dark)] !border-transparent !shadow-[0_4px_16px_rgba(255,186,9,0.45)]" : ""
+            disabled={isRegistered || isClosed || isRegistering || authLoading}
+            className={`h-14 !rounded-2xl text-[15px] font-black tracking-tight shadow-lg transition-all active:scale-95 ${
+              isRegistered ? "!bg-emerald-50 !text-emerald-700 !border-emerald-200" :
+              isClosed ? "!bg-gray-100 !text-gray-400 !border-gray-200" :
+              isFree ? "!bg-none bg-gradient-to-r from-[#FFBA09] to-[#FF9500] !text-[#011F7B] shadow-[#FFBA09]/20" :
+              "bg-[var(--color-primary-dark)] text-white shadow-blue-900/20"
             }`}
-            leftIcon={
-              isRegistering ? <Loader2 size={18} className="animate-spin" /> :
-              isRegistered  ? <CheckCircle2 size={18} /> : undefined
-            }
+            onClick={handleRegister}
+            isLoading={isRegistering}
           >
-            {isRegistering ? "Registering…" :
-             isRegistered  ? "Registered" :
-             isClosed      ? "Registration Closed" :
-             isFree
-               ? (event.participants_per_team > 1 ? "Register Team — Free" : "Register Now — Free")
-               : (event.participants_per_team > 1 ? `Register Team — ₹${event.registration_fee}` : `Register Now — ₹${event.registration_fee}`)}
+            {isRegistering ? "Processing..." : isRegistered ? "Successfully Registered" : isClosed ? "Registration Closed" : `Register ${event.participants_per_team > 1 ? "Team" : "Now"} — ${isFree ? "FREE" : `₹${event.registration_fee}`}`}
           </Button>
           {event.participants_per_team > 1 && !isRegistered && !isClosed && (
-            <p className="text-center text-[11px] text-[var(--color-text-muted)] mt-1.5">Price is per team</p>
+            <p className="text-center text-[10px] font-bold text-[var(--color-text-muted)] uppercase tracking-wider mt-2">Registration is per team</p>
           )}
         </div>
       </div>

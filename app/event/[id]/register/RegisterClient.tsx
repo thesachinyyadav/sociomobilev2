@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useEvents, type FetchedEvent } from "@/context/EventContext";
 import { useAuth } from "@/context/AuthContext";
 import { ArrowLeftIcon, CheckCircleIcon, AlertCircleIcon, Loader2Icon, UserIcon, HashIcon, MailIcon, UsersIcon, MessageCircleIcon } from "@/components/icons";
+import { Button } from "@/components/Button";
 import { PWA_API_URL } from "@/lib/apiConfig";
 
 interface Teammate {
@@ -374,23 +375,18 @@ export default function RegisterClient({ eventId }: { eventId: string }) {
           </div>
         )}
 
-        <button
+        <Button
           type="submit"
-          disabled={submitting || alreadyRegistered || !!isOutsiderRestricted}
-          className={`btn w-full text-sm ${isOutsiderRestricted ? "bg-red-100 text-red-700" : "btn-primary"}`}
+          variant={isOutsiderRestricted ? "danger" : "accent"}
+          isLoading={submitting}
+          disabled={alreadyRegistered || !!isOutsiderRestricted}
+          className={`h-14 !rounded-2xl text-[15px] font-black tracking-tight transition-all active:scale-95 ${
+            alreadyRegistered ? "!bg-emerald-50 !text-emerald-700 !border-emerald-200" : ""
+          }`}
+          leftIcon={alreadyRegistered ? <CheckCircleIcon size={18} /> : undefined}
         >
-          {submitting ? (
-            <Loader2Icon size={18} className="animate-spin" />
-          ) : alreadyRegistered ? (
-            <>
-              <CheckCircleIcon size={16} /> Registered
-            </>
-          ) : (
-            <>
-              <CheckCircleIcon size={16} /> Confirm Registration
-            </>
-          )}
-        </button>
+          {alreadyRegistered ? "Registered" : "Confirm Registration"}
+        </Button>
       </form>
     </div>
   );

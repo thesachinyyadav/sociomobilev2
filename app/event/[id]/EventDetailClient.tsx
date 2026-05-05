@@ -38,6 +38,40 @@ function parseJsonField<T>(raw: any): T[] {
   return [];
 }
 
+const AccordionSection = ({ 
+  id, 
+  icon, 
+  title, 
+  children, 
+  open, 
+  onToggle 
+}: { 
+  id: string; 
+  icon: ReactNode; 
+  title: string; 
+  children: ReactNode;
+  open: boolean;
+  onToggle: (id: string) => void;
+}) => {
+  return (
+    <div className="overflow-hidden rounded-2xl border border-[var(--color-border)] bg-white mb-3 shadow-sm transition-all active:scale-[0.99]">
+      <button
+        onClick={() => onToggle(id)}
+        className={`w-full flex items-center justify-between p-4 text-left transition-colors ${open ? 'bg-blue-50/50' : 'hover:bg-gray-50'}`}
+      >
+        <div className="flex items-center gap-3">
+          <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${open ? 'bg-[var(--color-primary)] text-white' : 'bg-gray-100 text-gray-500'}`}>
+            {icon}
+          </div>
+          <span className={`font-bold text-[15px] ${open ? 'text-[var(--color-primary)]' : 'text-[var(--color-text)]'}`}>{title}</span>
+        </div>
+        {open ? <ChevronUp size={20} className="text-[var(--color-primary)]" /> : <ChevronDown size={20} className="text-gray-400" />}
+      </button>
+      {open && <div className="px-4 pb-4 pt-0 text-sm border-t border-[var(--color-border)]">{children}</div>}
+    </div>
+  );
+};
+
 export default function EventDetailClient({ eventId }: { eventId: string }) {
   const router = useRouter();
   const { allEvents, isLoading: ctxLoading } = useEvents();
@@ -158,27 +192,6 @@ export default function EventDetailClient({ eventId }: { eventId: string }) {
     );
   }
 
-  const AccordionSection = ({ id, icon, title, children }: { id: string; icon: ReactNode; title: string; children: ReactNode }) => {
-    const open = openSection === id;
-    return (
-      <div className="overflow-hidden rounded-2xl border border-[var(--color-border)] bg-white mb-3 shadow-sm transition-all active:scale-[0.99]">
-        <button
-          onClick={() => toggle(id)}
-          className={`w-full flex items-center justify-between p-4 text-left transition-colors ${open ? 'bg-blue-50/50' : 'hover:bg-gray-50'}`}
-        >
-          <div className="flex items-center gap-3">
-            <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${open ? 'bg-[var(--color-primary)] text-white' : 'bg-gray-100 text-gray-500'}`}>
-              {icon}
-            </div>
-            <span className={`font-bold text-[15px] ${open ? 'text-[var(--color-primary)]' : 'text-[var(--color-text)]'}`}>{title}</span>
-          </div>
-          {open ? <ChevronUp size={20} className="text-[var(--color-primary)]" /> : <ChevronDown size={20} className="text-gray-400" />}
-        </button>
-        {open && <div className="px-4 pb-4 pt-0 text-sm border-t border-[var(--color-border)]">{children}</div>}
-      </div>
-    );
-  };
-
   return (
     <div className="min-h-screen bg-[#F5F7FA] pb-[calc(var(--bottom-nav)+var(--safe-bottom)+100px)]">
 
@@ -298,7 +311,7 @@ export default function EventDetailClient({ eventId }: { eventId: string }) {
 
         {/* Accordion sections */}
         {rules.length > 0 && (
-          <AccordionSection id="rules" icon={<ListChecks size={16} />} title={`Rules (${rules.length})`}>
+          <AccordionSection id="rules" icon={<ListChecks size={16} />} title={`Rules (${rules.length})`} open={openSection === 'rules'} onToggle={toggle}>
             <ul className="space-y-2 pt-3">
               {rules.map((r, i) => (
                 <li key={i} className="flex gap-2.5 text-[13px] text-[var(--color-text-muted)]">
@@ -311,7 +324,7 @@ export default function EventDetailClient({ eventId }: { eventId: string }) {
         )}
 
         {schedule.length > 0 && (
-          <AccordionSection id="schedule" icon={<Clock size={16} />} title="Schedule">
+          <AccordionSection id="schedule" icon={<Clock size={16} />} title="Schedule" open={openSection === 'schedule'} onToggle={toggle}>
             <div className="space-y-3 pt-3">
               {schedule.map((s, i) => (
                 <div key={i} className="flex gap-3 items-start">
@@ -324,7 +337,7 @@ export default function EventDetailClient({ eventId }: { eventId: string }) {
         )}
 
         {prizes.length > 0 && (
-          <AccordionSection id="prizes" icon={<Trophy size={16} />} title="Prizes">
+          <AccordionSection id="prizes" icon={<Trophy size={16} />} title="Prizes" open={openSection === 'prizes'} onToggle={toggle}>
             <ul className="space-y-2 pt-3">
               {prizes.map((p, i) => (
                 <li key={i} className="flex items-center gap-2.5 text-[13px] text-[var(--color-text-muted)]">
@@ -410,15 +423,13 @@ export default function EventDetailClient({ eventId }: { eventId: string }) {
       <div className="fixed bottom-[calc(var(--bottom-nav)+var(--safe-bottom)+10px)] left-1/2 -translate-x-1/2 w-[min(94vw,440px)] z-40">
         <div className="bg-white/95 backdrop-blur-md shadow-[0_-1px_0_rgba(0,0,0,0.05),0_10px_40px_rgba(1,31,123,0.22)] rounded-[24px] p-3.5 border border-white/50">
           <Button
-            variant="primary"
+            variant={isRegistered || isClosed ? "ghost" : "accent"}
             size="lg"
             fullWidth
             disabled={isRegistered || isClosed || isRegistering || authLoading}
-            className={`h-14 !rounded-2xl text-[15px] font-black tracking-tight shadow-lg transition-all active:scale-95 ${
+            className={`h-14 !rounded-2xl text-[15px] font-black tracking-tight transition-all active:scale-95 ${
               isRegistered ? "!bg-emerald-50 !text-emerald-700 !border-emerald-200" :
-              isClosed ? "!bg-gray-100 !text-gray-400 !border-gray-200" :
-              isFree ? "!bg-none bg-gradient-to-r from-[#FFBA09] to-[#FF9500] !text-[#011F7B] shadow-[#FFBA09]/20" :
-              "bg-[var(--color-primary-dark)] text-white shadow-blue-900/20"
+              isClosed ? "!bg-gray-100 !text-gray-400 !border-gray-200" : ""
             }`}
             onClick={handleRegister}
             isLoading={isRegistering}

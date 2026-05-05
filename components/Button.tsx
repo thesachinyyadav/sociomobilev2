@@ -3,7 +3,7 @@
 import React from "react";
 
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: "primary" | "secondary" | "danger" | "ghost" | "outline";
+  variant?: "primary" | "secondary" | "danger" | "ghost" | "outline" | "accent";
   size?: "sm" | "md" | "lg";
   fullWidth?: boolean;
   isLoading?: boolean;
@@ -39,6 +39,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     const variantClasses = {
       primary: "bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-primary-dark)] text-white shadow-md hover:shadow-lg",
       secondary: "bg-[var(--color-primary-light)] text-[var(--color-primary-dark)] hover:bg-blue-100",
+      accent: "bg-gradient-to-r from-[#FFBA09] to-[#FF9500] text-[#011F7B] shadow-md shadow-[#FFBA09]/20",
       danger: "bg-red-50 text-red-600 hover:bg-red-100",
       ghost: "bg-transparent text-[var(--color-text-muted)] hover:bg-gray-100",
       outline: "border border-[var(--color-border)] bg-transparent text-[var(--color-text)] hover:bg-gray-50",

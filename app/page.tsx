@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import { useEvents, type FetchedEvent } from "@/context/EventContext";
 import { CalendarDaysIcon, BellIcon, CompassIcon, ArrowRightIcon, MapPinIcon, Clock3Icon, FlameIcon, TicketIcon, QrCodeIcon, BuildingIcon } from "@/components/icons";
+import { useNotifications } from "@/context/NotificationContext";
+import { Button } from "@/components/Button";
 import { formatDateShort, formatTime, isDeadlinePassed } from "@/lib/dateUtils";
 import { getActiveVolunteerEvents } from "@/lib/volunteerAccess";
 
@@ -146,6 +148,7 @@ function UpcomingEventItem({ event }: { event: FetchedEvent }) {
 export default function HomePage() {
   const { userData } = useAuth();
   const { allEvents } = useEvents();
+  const { pushStatus, enablePushNotifications } = useNotifications();
 
   const activeEvents = [...allEvents]
     .filter((event) => {
@@ -197,7 +200,6 @@ export default function HomePage() {
 
       <div className="relative z-10 mx-auto max-w-[420px] space-y-6">
         <section className="space-y-1 pt-2">
-
           <h1 className="text-[30px] font-black leading-tight tracking-[-0.03em] text-[var(--color-text)]">
             {greetingText}, <span className="text-[var(--color-primary)]">{firstName === "Visitor" ? "Visitor" : firstName + "."}</span>
           </h1>
@@ -205,6 +207,22 @@ export default function HomePage() {
             Here&apos;s your curated feed of what&apos;s happening around campus this week.
           </p>
         </section>
+
+        {pushStatus === "not_requested" && (
+          <section className="card p-4 bg-gradient-to-br from-white to-blue-50 border-blue-100 flex items-center justify-between gap-4 animate-fade-up">
+            <div className="flex-1 min-w-0">
+              <h3 className="text-[15px] font-extrabold text-[var(--color-primary)]">Stay Updated</h3>
+              <p className="text-[12px] text-[var(--color-text-muted)] mt-0.5">Enable notifications for event reminders and updates.</p>
+            </div>
+            <Button 
+              onClick={() => enablePushNotifications()} 
+              size="sm" 
+              className="shrink-0 text-[11px] h-9 px-4 font-bold"
+            >
+              Enable
+            </Button>
+          </section>
+        )}
 
         {featuredEvent && (
           <section>

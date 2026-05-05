@@ -20,167 +20,218 @@ export interface Notification {
   isBroadcast: boolean;
 }
 
+type PushStatus = "not_requested" | "granted" | "denied";
+
 interface NotifCtx {
   notifications: Notification[];
   unreadCount: number;
   isLoading: boolean;
-  panelOpen: boolean;
-  openPanel: () => void;
-  closePanel: () => void;
+  pushStatus: PushStatus;
   markRead: (id: string) => void;
   markAllRead: () => void;
   dismiss: (id: string) => void;
   dismissAll: () => void;
   refresh: () => void;
-  requestPushPermissions: () => Promise<void>;
+  enablePushNotifications: () => Promise<void>;
 }
 
 const NotifContext = createContext<NotifCtx>({
   notifications: [],
   unreadCount: 0,
   isLoading: false,
-  panelOpen: false,
-  openPanel: () => {},
-  closePanel: () => {},
+  pushStatus: "not_requested",
   markRead: () => {},
   markAllRead: () => {},
   dismiss: () => {},
   dismissAll: () => {},
   refresh: () => {},
-  requestPushPermissions: async () => {},
+  enablePushNotifications: async () => {},
 });
 
 export const useNotifications = () => useContext(NotifContext);
+
+/* ── Helpers for Local State Persistence ── */
+const LS_READ_KEY = "socio_read_notifications";
+const LS_DISMISSED_KEY = "socio_dismissed_notifications";
+const LS_PUSH_STATUS_KEY = "socio_push_status";
+
+function getLocalSet(key: string): Set<string> {
+  if (typeof window === "undefined") return new Set();
+  const raw = localStorage.getItem(key);
+  return new Set(raw ? JSON.parse(raw) : []);
+}
+
+function saveLocalSet(key: string, set: Set<string>) {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(key, JSON.stringify(Array.from(set)));
+}
+
+function urlBase64ToUint8Array(base64String: string) {
+  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
+}
 
 export function NotificationProvider({ children }: { children: ReactNode }) {
   const { userData, session } = useAuth();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
-  const [panelOpen, setPanelOpen] = useState(false);
-  const [isOneSignalInitialized, setIsOneSignalInitialized] = useState(false);
+  const [pushStatus, setPushStatus] = useState<PushStatus>("not_requested");
   const [oneSignal, setOneSignal] = useState<any>(null);
   const router = useRouter();
 
-  // 1. Load OneSignal dynamically and Initialize
+  // Load initial push status and sets
   useEffect(() => {
-    if (!Capacitor.isNativePlatform() || isOneSignalInitialized) return;
+    const status = localStorage.getItem(LS_PUSH_STATUS_KEY) as PushStatus;
+    if (status) setPushStatus(status);
+  }, []);
 
-    async function initOneSignal() {
+  // 1. OneSignal & Web Push Initialization (Passive)
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    if (Capacitor.isNativePlatform()) {
+      async function initOneSignal() {
+        try {
+          const OS = (await import("onesignal-cordova-plugin")).default;
+          setOneSignal(OS);
+          const appId = process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID;
+          if (appId && appId !== "placeholder_onesignal_id_here") {
+            OS.initialize(appId);
+            OS.Notifications.addEventListener("click", (event: any) => {
+              const route = event.notification.additionalData?.route;
+              if (route) router.push(route);
+            });
+            OS.Notifications.addEventListener("foregroundWillDisplay", (event: any) => {
+              event.preventDefault();
+              const n = event.notification;
+              toast.success(`${n.title}: ${n.body}`, {
+                duration: 5000,
+                position: "top-center",
+              });
+            });
+          }
+        } catch (e) {
+          console.error("OS init error", e);
+        }
+      }
+      initOneSignal();
+    }
+  }, [router]);
+
+  // Sync User Tags (Native only)
+  useEffect(() => {
+    if (Capacitor.isNativePlatform() && oneSignal && userData?.id) {
       try {
-        const OS = (await import("onesignal-cordova-plugin")).default;
-        setOneSignal(OS);
+        oneSignal.login(userData.id.toString());
+        oneSignal.User.addTags({
+          department: userData.department || "none",
+          campus: userData.campus || "none",
+        });
+      } catch {}
+    }
+  }, [userData, oneSignal]);
 
-        const appId = process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID;
-        if (!appId || appId === "placeholder_onesignal_id_here") {
-          console.warn("OneSignal App ID missing or is placeholder.");
+  const enablePushNotifications = useCallback(async () => {
+    if (typeof window === "undefined") return;
+
+    // 1. Capacitor Native
+    if (Capacitor.isNativePlatform()) {
+      if (!oneSignal) return;
+      try {
+        const granted = await oneSignal.Notifications.requestPermission(true);
+        const newStatus = granted ? "granted" : "denied";
+        setPushStatus(newStatus);
+        localStorage.setItem(LS_PUSH_STATUS_KEY, newStatus);
+        if (granted) toast.success("Notifications enabled!");
+      } catch (e) {
+        console.error("Native push error", e);
+      }
+      return;
+    }
+
+    // 2. Web Push (PWA)
+    if (!("Notification" in window) || !("serviceWorker" in navigator)) {
+      console.warn("Web Push not supported");
+      return;
+    }
+
+    try {
+      const permission = await Notification.requestPermission();
+      if (permission === "granted") {
+        const registration = await navigator.serviceWorker.ready;
+        const vapidKey = process.env.NEXT_PUBLIC_VAPID_KEY;
+        
+        if (!vapidKey) {
+          console.error("Missing VAPID key");
           return;
         }
 
-        OS.initialize(appId);
-
-        // Deep linking listener
-        OS.Notifications.addEventListener("click", (event: any) => {
-          const data = event.notification.additionalData;
-          if (data?.route) {
-            router.push(data.route);
-          }
+        const subscription = await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(vapidKey),
         });
 
-        // Foreground listener
-        OS.Notifications.addEventListener("foregroundWillDisplay", (event: any) => {
-          event.preventDefault();
-          const notif = event.notification;
-          
-          toast.custom((t) => (
-            <div
-              onClick={() => {
-                toast.dismiss(t.id);
-                if (notif.additionalData?.route) {
-                  router.push(notif.additionalData.route);
-                }
-              }}
-              className={`${
-                t.visible ? "animate-enter" : "animate-leave"
-              } max-w-md w-full bg-white shadow-lg rounded-xl pointer-events-auto flex ring-1 ring-black ring-opacity-5 cursor-pointer active:scale-95 transition-transform`}
-            >
-              <div className="flex-1 w-0 p-4">
-                <div className="flex items-start">
-                  <div className="ml-3 flex-1">
-                    <p className="text-sm font-bold text-[var(--color-primary)]">
-                      {notif.title || "New Notification"}
-                    </p>
-                    <p className="mt-1 text-xs text-gray-500">
-                      {notif.body}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ), { duration: 5000, position: "top-center" });
-        });
+        // Send to backend
+        if (userData?.email) {
+          const headers: Record<string, string> = { "Content-Type": "application/json" };
+          if (session?.access_token) headers.Authorization = `Bearer ${session.access_token}`;
 
-        setIsOneSignalInitialized(true);
-      } catch (e) {
-        console.error("Failed to load or initialize OneSignal", e);
-      }
-    }
+          await fetch(`${PWA_API_URL}/notifications/push/subscribe`, {
+            method: "POST",
+            headers,
+            body: JSON.stringify({
+              email: userData.email,
+              subscription,
+            }),
+          });
+        }
 
-    initOneSignal();
-  }, [isOneSignalInitialized, router]);
-
-  // 2. Identify User & Apply Segments
-  useEffect(() => {
-    if (!isOneSignalInitialized || !userData?.id || !oneSignal) return;
-
-    try {
-      oneSignal.login(userData.id.toString());
-
-      const tags: Record<string, string> = {
-        department: userData.department || "none",
-        org_type: userData.organization_type || "outsider",
-        campus: userData.campus || "none",
-      };
-      oneSignal.User.addTags(tags);
-    } catch (e) {
-      console.error("Failed to set OneSignal tags", e);
-    }
-  }, [userData, isOneSignalInitialized, oneSignal]);
-
-  // 3. Request permissions explicitly
-  const requestPushPermissions = useCallback(async () => {
-    if (!isOneSignalInitialized || !oneSignal) return;
-    try {
-      const granted = await oneSignal.Notifications.requestPermission(true);
-      if (granted) {
-        toast.success("Push notifications enabled!");
+        setPushStatus("granted");
+        localStorage.setItem(LS_PUSH_STATUS_KEY, "granted");
+        toast.success("Notifications enabled!");
+      } else if (permission === "denied") {
+        setPushStatus("denied");
+        localStorage.setItem(LS_PUSH_STATUS_KEY, "denied");
       }
     } catch (e) {
-      console.error("Error requesting push permissions", e);
+      console.error("Web push error", e);
     }
-  }, [isOneSignalInitialized, oneSignal]);
+  }, [oneSignal, userData?.email]);
 
-  // PWA Polling
+  // Fetch & Merge with Local States
   const fetchNotifications = useCallback(async () => {
     if (!userData?.email) return;
     setIsLoading(true);
     try {
       const res = await fetch(
-        `${PWA_API_URL}/notifications?email=${encodeURIComponent(userData.email)}&page=1&limit=30`,
+        `${PWA_API_URL}/notifications?email=${encodeURIComponent(userData.email)}&page=1&limit=50`,
         {
-          headers: session?.access_token
-            ? { Authorization: `Bearer ${session.access_token}` }
-            : undefined,
+          headers: session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {},
         }
       );
       if (res.ok) {
         const data = await res.json();
-        setNotifications(data.notifications || []);
-        if (data.unreadCount !== undefined) {
-          setUnreadCount(data.unreadCount);
-        } else {
-          setUnreadCount((data.notifications || []).filter((n: Notification) => !n.read).length);
-        }
+        const raw = (data.notifications || []) as Notification[];
+        
+        const readSet = getLocalSet(LS_READ_KEY);
+        const dismissedSet = getLocalSet(LS_DISMISSED_KEY);
+
+        const filtered = raw
+          .filter(n => !dismissedSet.has(n.id))
+          .map(n => ({
+            ...n,
+            read: n.read || readSet.has(n.id)
+          }));
+
+        setNotifications(filtered);
+        setUnreadCount(filtered.filter(n => !n.read).length);
       }
     } catch {}
     setIsLoading(false);
@@ -188,84 +239,75 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     fetchNotifications();
-    const interval = setInterval(fetchNotifications, 60000);
-    return () => clearInterval(interval);
+    const timer = setInterval(fetchNotifications, 60000);
+    return () => clearInterval(timer);
   }, [fetchNotifications]);
 
-  const markRead = useCallback(
-    async (id: string) => {
-      if (!userData?.email) return;
-      setNotifications((prev) =>
-        prev.map((n) => (n.id === id ? { ...n, read: true } : n))
-      );
-      setUnreadCount((c) => Math.max(0, c - 1));
-      try {
-        await fetch(`${PWA_API_URL}/notifications/${id}/read`, {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-            ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
-          },
-          body: JSON.stringify({ email: userData.email }),
-        });
-      } catch {}
-    },
-    [userData?.email, session?.access_token]
-  );
+  const markRead = useCallback(async (id: string) => {
+    setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+    setUnreadCount(c => Math.max(0, c - 1));
+    
+    // Local persistence
+    const set = getLocalSet(LS_READ_KEY);
+    set.add(id);
+    saveLocalSet(LS_READ_KEY, set);
+
+    // Backend sync (best effort)
+    if (userData?.email) {
+      fetch(`${PWA_API_URL}/notifications/${id}/read`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: userData.email }),
+      }).catch(() => {});
+    }
+  }, [userData?.email]);
 
   const markAllRead = useCallback(async () => {
-    if (!userData?.email) return;
-    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
     setUnreadCount(0);
-    try {
-      await fetch(`${PWA_API_URL}/notifications`, {
+
+    const set = getLocalSet(LS_READ_KEY);
+    notifications.forEach(n => set.add(n.id));
+    saveLocalSet(LS_READ_KEY, set);
+
+    if (userData?.email) {
+      fetch(`${PWA_API_URL}/notifications/mark-read`, {
         method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: userData.email }),
-      });
-    } catch {}
-  }, [userData?.email, session?.access_token]);
+      }).catch(() => {});
+    }
+  }, [notifications, userData?.email]);
 
-  const dismiss = useCallback(
-    async (id: string) => {
-      if (!userData?.email) return;
+  const dismiss = useCallback(async (id: string) => {
+    setNotifications(prev => prev.filter(n => n.id !== id));
+    
+    const set = getLocalSet(LS_DISMISSED_KEY);
+    set.add(id);
+    saveLocalSet(LS_DISMISSED_KEY, set);
 
-      const dismissed = notifications.find((n) => n.id === id);
-      setNotifications((prev) => prev.filter((n) => n.id !== id));
-      if (dismissed && !dismissed.read) {
-        setUnreadCount((c) => Math.max(0, c - 1));
-      }
-
-      try {
-        await fetch(`${PWA_API_URL}/notifications/${encodeURIComponent(id)}?email=${encodeURIComponent(userData.email)}`, {
-          method: "DELETE",
-          headers: session?.access_token
-            ? { Authorization: `Bearer ${session.access_token}` }
-            : undefined,
-        });
-      } catch {}
-    },
-    [notifications, userData?.email, session?.access_token]
-  );
+    if (userData?.email) {
+      fetch(`${PWA_API_URL}/notifications/${encodeURIComponent(id)}?email=${encodeURIComponent(userData.email)}`, {
+        method: "DELETE",
+      }).catch(() => {});
+    }
+  }, [userData?.email]);
 
   const dismissAll = useCallback(async () => {
-    if (!userData?.email) return;
-
+    const ids = notifications.map(n => n.id);
     setNotifications([]);
     setUnreadCount(0);
 
-    try {
-      await fetch(`${PWA_API_URL}/notifications?email=${encodeURIComponent(userData.email)}`, {
+    const set = getLocalSet(LS_DISMISSED_KEY);
+    ids.forEach(id => set.add(id));
+    saveLocalSet(LS_DISMISSED_KEY, set);
+
+    if (userData?.email) {
+      fetch(`${PWA_API_URL}/notifications?email=${encodeURIComponent(userData.email)}`, {
         method: "DELETE",
-        headers: session?.access_token
-          ? { Authorization: `Bearer ${session.access_token}` }
-          : undefined,
-      });
-    } catch {}
-  }, [userData?.email, session?.access_token]);
+      }).catch(() => {});
+    }
+  }, [notifications, userData?.email]);
 
   return (
     <NotifContext.Provider
@@ -273,15 +315,13 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         notifications,
         unreadCount,
         isLoading,
-        panelOpen,
-        openPanel: () => setPanelOpen(true),
-        closePanel: () => setPanelOpen(false),
+        pushStatus,
         markRead,
         markAllRead,
         dismiss,
         dismissAll,
         refresh: fetchNotifications,
-        requestPushPermissions,
+        enablePushNotifications,
       }}
     >
       {children}

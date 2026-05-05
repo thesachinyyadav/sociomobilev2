@@ -6,6 +6,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useEvents, type FetchedEvent } from "@/context/EventContext";
 import { useAuth } from "@/context/AuthContext";
+import { useNotifications } from "@/context/NotificationContext";
 import { PWA_API_URL } from "@/lib/apiConfig";
 import { formatDateUTC, formatTime, getDaysUntil, generateGoogleCalendarUrl } from "@/lib/dateUtils";
 import {
@@ -78,6 +79,7 @@ export default function EventDetailClient({ eventId }: { eventId: string }) {
   const router = useRouter();
   const { allEvents, isLoading: ctxLoading } = useEvents();
   const { userData, isLoading: authLoading } = useAuth();
+  const { pushStatus, enablePushNotifications } = useNotifications();
 
   const [event, setEvent] = useState<FetchedEvent | null>(null);
   const [loading, setLoading] = useState(true);
@@ -141,7 +143,14 @@ export default function EventDetailClient({ eventId }: { eventId: string }) {
     setIsRegistering(true);
     try {
       const res = await fetch(`${PWA_API_URL}/register`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ eventId: event.event_id, teamName: null, teammates: [{ name: userData.name || "Unknown", registerNumber: regNum, email: userData.email || "" }] }) });
-      if (res.ok) { setShowSuccess(true); setRegisteredIds((p) => (p.includes(event.event_id) ? p : [...p, event.event_id])); }
+      if (res.ok) { 
+        setShowSuccess(true); 
+        setRegisteredIds((p) => (p.includes(event.event_id) ? p : [...p, event.event_id])); 
+        // Trigger seamless push enablement
+        if (pushStatus === "not_requested") {
+          enablePushNotifications().catch(() => {});
+        }
+      }
       else {
         const d = await res.json();
         if (res.status === 409 || d.code === "ALREADY_REGISTERED") { setRegisteredIds((p) => (p.includes(event.event_id) ? p : [...p, event.event_id])); setRegError(null); return; }

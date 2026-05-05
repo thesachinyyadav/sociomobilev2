@@ -68,8 +68,15 @@ function Card({
 }
 
 export default function NotificationsPage() {
-  const { notifications, unreadCount, markRead, markAllRead, dismiss, dismissAll, isLoading } = useNotifications();
+  const { notifications, unreadCount, markRead, markAllRead, dismiss, dismissAll, isLoading, pushStatus, enablePushNotifications } = useNotifications();
   const router = useRouter();
+
+  // Smart Trigger: Request permissions when user opens the notifications page
+  useEffect(() => {
+    if (pushStatus === "not_requested") {
+      enablePushNotifications();
+    }
+  }, [pushStatus, enablePushNotifications]);
 
   const handleDismissAll = async () => {
     await dismissAll();

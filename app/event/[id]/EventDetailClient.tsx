@@ -9,7 +9,6 @@ import { useAuth } from "@/context/AuthContext";
 import { PWA_API_URL } from "@/lib/apiConfig";
 import { formatDateUTC, formatTime, getDaysUntil } from "@/lib/dateUtils";
 import {
-  ArrowLeftIcon as ArrowLeft,
   CalendarIcon as CalendarDays,
   ClockIcon as Clock,
   MapPinIcon as MapPin,
@@ -125,11 +124,7 @@ export default function EventDetailClient({ eventId }: { eventId: string }) {
   const prizes = event ? parseJsonField<string>(event.prizes) : [];
 
   if (loading || ctxLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="w-8 h-8 animate-spin text-[var(--color-primary)]" />
-      </div>
-    );
+    return <div className="flex items-center justify-center min-h-screen"><Loader2 className="w-8 h-8 animate-spin text-[var(--color-primary)]" /></div>;
   }
   if (error || !event) {
     return (
@@ -166,9 +161,9 @@ export default function EventDetailClient({ eventId }: { eventId: string }) {
   const AccordionSection = ({ id, icon, title, children }: { id: string; icon: React.ReactNode; title: string; children: React.ReactNode }) => {
     const open = openSection === id;
     return (
-      <div className="overflow-hidden rounded-2xl border border-[var(--color-border)] bg-white mb-3">
-        <button onClick={() => toggle(id)} className="flex items-center justify-between w-full px-4 py-4 text-left">
-          <div className="flex items-center gap-2.5 font-bold text-[14px] text-[var(--color-text)]">{icon}{title}</div>
+      <div className="overflow-hidden rounded-2xl border border-[var(--color-border)] bg-white mb-3 shadow-sm">
+        <button onClick={() => toggle(id)} className={`flex items-center justify-between w-full px-4 py-4 text-left transition-colors ${open ? "bg-[var(--color-primary-light)]" : "bg-white"}`}>
+          <div className="flex items-center gap-2.5 font-bold text-[14px] text-[var(--color-primary)]">{icon}{title}</div>
           <div className={`w-7 h-7 rounded-full flex items-center justify-center transition-colors ${open ? "bg-[var(--color-primary)] text-white" : "bg-gray-100 text-[var(--color-text-muted)]"}`}>
             {open ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
           </div>
@@ -179,114 +174,109 @@ export default function EventDetailClient({ eventId }: { eventId: string }) {
   };
 
   return (
-    <div className="min-h-screen bg-[#F5F7FA] pb-[calc(var(--bottom-nav)+var(--safe-bottom)+100px)]">
+    <div className="min-h-screen pb-[calc(var(--bottom-nav)+var(--safe-bottom)+100px)]"
+      style={{ background: "linear-gradient(180deg, #000D3B 0%, #011F7B 36%, #E8EFFF 400px, #F5F7FA 100%)" }}>
 
       {/* ── Full-bleed hero ── */}
       <div className="relative w-full" style={{ aspectRatio: "4/3", maxHeight: 320 }}>
         <Image
-          src={event.banner_url || event.event_image_url || "https://placehold.co/800x600/1a237e/ffffff?text=Event"}
-          alt={event.title}
-          fill
-          className="object-cover"
-          priority
-          sizes="100vw"
+          src={event.banner_url || event.event_image_url || "https://placehold.co/800x600/011F7B/ffffff?text=Event"}
+          alt={event.title} fill className="object-cover" priority sizes="100vw"
         />
-        {/* gradient overlays */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-black/10" />
-
-        {/* top-left chips */}
-        <div className="absolute top-[calc(var(--safe-top)+52px)] left-3 flex flex-wrap gap-1.5 z-10">
-          <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-white/95 text-[var(--color-primary)] shadow-sm">
+        <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-black/10" />
+        {/* chips top-left */}
+        <div className="absolute top-[calc(var(--safe-top)+56px)] left-3 flex flex-wrap gap-1.5 z-10">
+          <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold shadow-sm ${isFree ? "bg-emerald-500 text-white" : "bg-[var(--color-accent)] text-[var(--color-primary-dark)]"}`}>
             {isFree ? "Free" : `₹${event.registration_fee}`}
           </span>
           {event.allow_outsiders && (
-            <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-white/95 text-[var(--color-primary)] shadow-sm flex items-center gap-1">
+            <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-white/90 text-[var(--color-primary)] shadow-sm flex items-center gap-1">
               <Globe size={10} /> Open
             </span>
           )}
           {event.claims_applicable && (
-            <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-[var(--color-accent)]/90 text-white shadow-sm">Claims</span>
+            <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-violet-500 text-white shadow-sm">Claims</span>
           )}
         </div>
-
-        {/* title block */}
+        {/* title */}
         <div className="absolute bottom-0 left-0 right-0 px-4 pb-5 pt-10 z-10">
           {event.organizing_dept && (
-            <p className="text-[11px] font-semibold text-white/70 uppercase tracking-wider mb-1">{event.organizing_dept}</p>
+            <p className="text-[11px] font-bold text-[var(--color-accent)] uppercase tracking-widest mb-1">{event.organizing_dept}</p>
           )}
           <h1 className="text-[22px] font-black text-white leading-tight drop-shadow-lg">{event.title}</h1>
         </div>
       </div>
 
-      {/* ── Meta info card ── */}
-      <div className="mx-4 -mt-5 relative z-20 bg-white rounded-2xl shadow-[0_4px_24px_rgba(0,0,0,0.10)] p-4 mb-4">
-        <div className="grid grid-cols-1 gap-2.5">
+      {/* ── Meta card floats over hero ── */}
+      <div className="mx-4 -mt-5 relative z-20 mb-4 bg-white rounded-2xl overflow-hidden shadow-[0_4px_28px_rgba(1,31,123,0.22)]">
+        {/* rainbow accent bar */}
+        <div className="h-[3px] w-full bg-gradient-to-r from-[#011F7B] via-[#4F6EF7] to-[#FFBA09]" />
+        <div className="p-4 grid grid-cols-1 gap-3">
           {/* Date */}
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-xl bg-[var(--color-primary-light)] flex items-center justify-center shrink-0">
-              <CalendarDays size={15} className="text-[var(--color-primary)]" />
+            <div className="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center shrink-0">
+              <CalendarDays size={16} className="text-[var(--color-primary)]" />
             </div>
             <div className="min-w-0">
-              <p className="text-[10px] font-semibold text-[var(--color-text-light)] uppercase tracking-wider">Date</p>
+              <p className="text-[10px] font-bold text-[var(--color-text-light)] uppercase tracking-widest">Date</p>
               <p className="text-[13px] font-bold text-[var(--color-text)]">
-                {formatDateUTC(event.event_date)}
-                {event.end_date && event.end_date !== event.event_date && <> – {formatDateUTC(event.end_date)}</>}
+                {formatDateUTC(event.event_date)}{event.end_date && event.end_date !== event.event_date && <> – {formatDateUTC(event.end_date)}</>}
               </p>
             </div>
           </div>
-
           {/* Time */}
           {event.event_time && (
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-xl bg-[var(--color-primary-light)] flex items-center justify-center shrink-0">
-                <Clock size={15} className="text-[var(--color-primary)]" />
+              <div className="w-9 h-9 rounded-xl bg-violet-50 flex items-center justify-center shrink-0">
+                <Clock size={16} className="text-violet-600" />
               </div>
               <div>
-                <p className="text-[10px] font-semibold text-[var(--color-text-light)] uppercase tracking-wider">Time</p>
+                <p className="text-[10px] font-bold text-[var(--color-text-light)] uppercase tracking-widest">Time</p>
                 <p className="text-[13px] font-bold text-[var(--color-text)]">{formatTime(event.event_time)}</p>
               </div>
             </div>
           )}
-
           {/* Venue */}
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-xl bg-[var(--color-primary-light)] flex items-center justify-center shrink-0">
-              <MapPin size={15} className="text-[var(--color-primary)]" />
+            <div className="w-9 h-9 rounded-xl bg-rose-50 flex items-center justify-center shrink-0">
+              <MapPin size={16} className="text-rose-500" />
             </div>
             <div className="min-w-0">
-              <p className="text-[10px] font-semibold text-[var(--color-text-light)] uppercase tracking-wider">Venue</p>
+              <p className="text-[10px] font-bold text-[var(--color-text-light)] uppercase tracking-widest">Venue</p>
               <p className="text-[13px] font-bold text-[var(--color-text)] leading-snug">{event.venue || "TBD"}</p>
             </div>
           </div>
+        </div>
+      </div>
 
-          {/* Tag row */}
-          <div className="flex flex-wrap gap-1.5 pt-0.5">
-            {event.participants_per_team > 1 && (
-              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 text-[11px] font-semibold">
-                <Users size={11} /> Team of {event.participants_per_team}
-              </span>
-            )}
-            {event.category && (
-              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-gray-100 text-[var(--color-text-muted)] text-[11px] font-semibold">
-                <Tag size={11} /> {event.category}
-              </span>
-            )}
-            {daysLeft !== null && !isClosed && (
-              <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold ${daysLeft <= 3 ? "bg-red-50 text-red-600" : "bg-emerald-50 text-emerald-700"}`}>
-                <Ticket size={11} /> {daysLeft === 0 ? "Last day!" : `${daysLeft}d left`}
-              </span>
-            )}
-            {daysLeft === null && !isClosed && (
-              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 text-[11px] font-semibold">
-                <Ticket size={11} /> Open registration
-              </span>
-            )}
-            {isClosed && (
-              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-gray-100 text-gray-500 text-[11px] font-semibold">
-                <Ticket size={11} /> Registration closed
-              </span>
-            )}
-          </div>
+      {/* ── Status chips ── */}
+      <div className="px-4 mb-4">
+        <div className="flex flex-wrap gap-1.5">
+          {event.participants_per_team > 1 && (
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-blue-600/10 text-blue-700 text-[11px] font-semibold border border-blue-200">
+              <Users size={11} /> Team of {event.participants_per_team}
+            </span>
+          )}
+          {event.category && (
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-white/80 text-[var(--color-text-muted)] text-[11px] font-semibold border border-white/60 shadow-sm">
+              <Tag size={11} /> {event.category}
+            </span>
+          )}
+          {daysLeft !== null && !isClosed && (
+            <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold border ${daysLeft <= 3 ? "bg-red-50 text-red-600 border-red-200" : "bg-emerald-50 text-emerald-700 border-emerald-200"}`}>
+              <Ticket size={11} /> {daysLeft === 0 ? "Last day!" : `${daysLeft}d left`}
+            </span>
+          )}
+          {daysLeft === null && !isClosed && (
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 text-[11px] font-semibold border border-emerald-200">
+              <Ticket size={11} /> Open registration
+            </span>
+          )}
+          {isClosed && (
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-gray-100 text-gray-400 text-[11px] font-semibold border border-gray-200">
+              <Ticket size={11} /> Registration closed
+            </span>
+          )}
         </div>
       </div>
 
@@ -295,15 +285,15 @@ export default function EventDetailClient({ eventId }: { eventId: string }) {
 
         {/* About */}
         {event.description && (
-          <div className="bg-white rounded-2xl p-4 border border-[var(--color-border)]">
-            <h2 className="text-[13px] font-black text-[var(--color-text)] uppercase tracking-wider mb-2">About</h2>
+          <div className="bg-white rounded-2xl p-4 border-l-4 border-l-[var(--color-primary)] border border-[var(--color-border)] shadow-sm">
+            <h2 className="text-[11px] font-black text-[var(--color-primary)] uppercase tracking-widest mb-2">About</h2>
             <p className="text-[13px] text-[var(--color-text-muted)] leading-relaxed whitespace-pre-wrap">{event.description}</p>
           </div>
         )}
 
         {/* Accordion sections */}
         {rules.length > 0 && (
-          <AccordionSection id="rules" icon={<ListChecks size={16} className="text-[var(--color-primary)]" />} title={`Rules (${rules.length})`}>
+          <AccordionSection id="rules" icon={<ListChecks size={16} />} title={`Rules (${rules.length})`}>
             <ul className="space-y-2 pt-3">
               {rules.map((r, i) => (
                 <li key={i} className="flex gap-2.5 text-[13px] text-[var(--color-text-muted)]">
@@ -316,7 +306,7 @@ export default function EventDetailClient({ eventId }: { eventId: string }) {
         )}
 
         {schedule.length > 0 && (
-          <AccordionSection id="schedule" icon={<Clock size={16} className="text-[var(--color-primary)]" />} title="Schedule">
+          <AccordionSection id="schedule" icon={<Clock size={16} />} title="Schedule">
             <div className="space-y-3 pt-3">
               {schedule.map((s, i) => (
                 <div key={i} className="flex gap-3 items-start">
@@ -329,11 +319,11 @@ export default function EventDetailClient({ eventId }: { eventId: string }) {
         )}
 
         {prizes.length > 0 && (
-          <AccordionSection id="prizes" icon={<Trophy size={16} className="text-[var(--color-primary)]" />} title="Prizes">
+          <AccordionSection id="prizes" icon={<Trophy size={16} />} title="Prizes">
             <ul className="space-y-2 pt-3">
               {prizes.map((p, i) => (
                 <li key={i} className="flex items-center gap-2.5 text-[13px] text-[var(--color-text-muted)]">
-                  <Award size={14} className="text-[var(--color-primary)] shrink-0" />
+                  <Award size={14} className="text-[var(--color-accent-dark)] shrink-0" />
                   {String(p)}
                 </li>
               ))}
@@ -344,7 +334,7 @@ export default function EventDetailClient({ eventId }: { eventId: string }) {
         {/* PDF */}
         {event.pdf_url && (
           <a href={event.pdf_url} target="_blank" rel="noopener noreferrer"
-            className="flex items-center gap-3 bg-white rounded-2xl p-4 border border-[var(--color-border)] active:bg-gray-50 transition-colors">
+            className="flex items-center gap-3 bg-white rounded-2xl p-4 border border-[var(--color-border)] shadow-sm active:bg-gray-50">
             <div className="w-10 h-10 rounded-xl bg-red-50 flex items-center justify-center shrink-0">
               <FileText size={20} className="text-red-500" />
             </div>
@@ -357,31 +347,31 @@ export default function EventDetailClient({ eventId }: { eventId: string }) {
 
         {/* Contact */}
         {(event.organizer_email || event.organizer_phone || event.whatsapp_invite_link) && (
-          <div className="bg-white rounded-2xl p-4 border border-[var(--color-border)]">
-            <h3 className="text-[13px] font-black text-[var(--color-text)] uppercase tracking-wider mb-3">Contact</h3>
+          <div className="bg-white rounded-2xl p-4 border-l-4 border-l-[var(--color-accent-dark)] border border-[var(--color-border)] shadow-sm">
+            <h3 className="text-[11px] font-black text-[var(--color-accent-dark)] uppercase tracking-widest mb-3">Contact</h3>
             <div className="flex flex-col gap-2.5">
               {event.organizer_email && (
-                <a href={`mailto:${event.organizer_email}`} className="flex items-center gap-3 text-[13px] text-[var(--color-text-muted)] hover:text-[var(--color-primary)]">
-                  <div className="w-7 h-7 rounded-lg bg-[var(--color-primary-light)] flex items-center justify-center shrink-0">
-                    <Mail size={13} className="text-[var(--color-primary)]" />
+                <a href={`mailto:${event.organizer_email}`} className="flex items-center gap-3 text-[13px] text-[var(--color-text-muted)]">
+                  <div className="w-8 h-8 rounded-xl bg-blue-50 flex items-center justify-center shrink-0">
+                    <Mail size={14} className="text-blue-600" />
                   </div>
                   <span className="truncate">{event.organizer_email}</span>
                 </a>
               )}
               {event.organizer_phone && (
-                <a href={`tel:${event.organizer_phone}`} className="flex items-center gap-3 text-[13px] text-[var(--color-text-muted)] hover:text-[var(--color-primary)]">
-                  <div className="w-7 h-7 rounded-lg bg-[var(--color-primary-light)] flex items-center justify-center shrink-0">
-                    <Phone size={13} className="text-[var(--color-primary)]" />
+                <a href={`tel:${event.organizer_phone}`} className="flex items-center gap-3 text-[13px] text-[var(--color-text-muted)]">
+                  <div className="w-8 h-8 rounded-xl bg-violet-50 flex items-center justify-center shrink-0">
+                    <Phone size={14} className="text-violet-600" />
                   </div>
                   <span>{event.organizer_phone}</span>
                 </a>
               )}
               {event.whatsapp_invite_link && (
-                <a href={event.whatsapp_invite_link} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 text-[13px] text-green-600">
-                  <div className="w-7 h-7 rounded-lg bg-green-50 flex items-center justify-center shrink-0">
-                    <MessageCircle size={13} className="text-green-600" />
+                <a href={event.whatsapp_invite_link} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 text-[13px] font-semibold text-green-700">
+                  <div className="w-8 h-8 rounded-xl bg-green-50 flex items-center justify-center shrink-0">
+                    <MessageCircle size={14} className="text-green-600" />
                   </div>
-                  <span className="font-semibold">Join WhatsApp Group</span>
+                  Join WhatsApp Group
                 </a>
               )}
             </div>
@@ -398,7 +388,7 @@ export default function EventDetailClient({ eventId }: { eventId: string }) {
                 </div>
                 <div>
                   <h4 className="font-bold text-red-800 text-[13px]">Members only</h4>
-                  <p className="text-red-700 text-[12px] mt-0.5">This event is open to Christ University members only. External participants cannot register.</p>
+                  <p className="text-red-700 text-[12px] mt-0.5">This event is open to Christ University members only.</p>
                 </div>
               </div>
             </div>
@@ -411,12 +401,12 @@ export default function EventDetailClient({ eventId }: { eventId: string }) {
         )}
       </div>
 
-      {/* ── Sticky bottom CTA ── */}
+      {/* ── Sticky CTA ── */}
       <div className="fixed bottom-[calc(var(--bottom-nav)+var(--safe-bottom)+12px)] left-1/2 -translate-x-1/2 w-[min(92vw,420px)] z-40">
-        <div className="bg-white/96 backdrop-blur-xl border border-[var(--color-border)] shadow-[0_8px_32px_rgba(0,0,0,0.14)] rounded-[22px] px-4 py-3">
+        <div className="bg-white/96 backdrop-blur-xl border border-white/80 shadow-[0_8px_32px_rgba(1,31,123,0.22)] rounded-[22px] px-4 py-3">
           <div className="flex items-center gap-3">
             <div className="shrink-0">
-              <p className="text-[20px] font-black text-[var(--color-text)] leading-none">
+              <p className={`text-[20px] font-black leading-none ${isFree ? "text-emerald-600" : isRegistered ? "text-emerald-600" : "text-[var(--color-primary)]"}`}>
                 {isFree ? "Free" : `₹${event.registration_fee}`}
               </p>
               {event.participants_per_team > 1 && (
@@ -429,8 +419,9 @@ export default function EventDetailClient({ eventId }: { eventId: string }) {
               variant={isRegistered || isClosed ? "ghost" : "primary"}
               fullWidth
               className={`flex-1 h-12 rounded-[14px] text-[14px] font-extrabold ${
-                isRegistered ? "!bg-emerald-100 !text-emerald-700" :
-                isClosed ? "!bg-gray-100 !text-gray-400" : ""
+                isRegistered ? "!bg-emerald-100 !text-emerald-700 !border-emerald-200" :
+                isClosed ? "!bg-gray-100 !text-gray-400 !border-gray-200" :
+                isFree ? "!bg-[var(--color-accent)] !text-[var(--color-primary-dark)] !border-transparent !shadow-[0_4px_16px_rgba(255,186,9,0.45)]" : ""
               }`}
               leftIcon={
                 isRegistering ? <Loader2 size={18} className="animate-spin" /> :

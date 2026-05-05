@@ -6,91 +6,91 @@ import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/context/AuthContext";
 import LoadingScreen from "@/components/LoadingScreen";
 
-export default function AuthCallbackPage() {
+import { Suspense } from "react";
+
+function AuthCallbackContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { refreshUserData } = useAuth();
+  const { session, refreshUserData } = useAuth();
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const handleCallback = async () => {
-      const code = searchParams.get("code");
+    // If AuthContext already picked up the session via detectSessionInUrl, we just redirect.
+    if (session) {
       const next = searchParams.get("next") || "/";
+      
+      // Handle deep links for Capacitor
+      if (searchParams.get("source") === "capacitor") {
+        const token = session.access_token;
+        const refreshToken = session.refresh_token;
+        window.location.href = `socio://callback?token=${token}&refresh_token=${refreshToken}`;
+        return;
+      }
 
-      if (!code) {
-        // No code — check if already have a session (e.g. magic link / implicit flow)
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session) {
+      const returnTo = sessionStorage.getItem("returnTo");
+      if (returnTo) sessionStorage.removeItem("returnTo");
+      router.replace(returnTo || next);
+      return;
+    }
+
+    const code = searchParams.get("code");
+    const errorParam = searchParams.get("error");
+    const errorDescription = searchParams.get("error_description");
+
+    if (errorParam) {
+      setError(errorDescription || "Authentication failed");
+      setTimeout(() => router.replace("/auth"), 2000);
+      return;
+    }
+
+    if (!code) {
+      // No code and no session, wait a bit or redirect
+      const checkSession = async () => {
+        const { data: { session: existingSession } } = await supabase.auth.getSession();
+        if (existingSession) {
           await refreshUserData();
+          const next = searchParams.get("next") || "/";
           router.replace(next);
         } else {
           router.replace("/auth");
         }
-        return;
-      }
-
+      };
+      checkSession();
+      return;
+    }
+    
+    // We have a code but no session yet. 
+    // Supabase client should automatically exchange it because detectSessionInUrl: true.
+    // However, if we want to guarantee it or speed it up, we can attempt it, but catch the "already used" error cleanly.
+    let isMounted = true;
+    const processCode = async () => {
       try {
         const { data, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
         
         if (exchangeError) {
-          // PKCE verifier was likely cleared (dev reload, cross-device, etc.)
-          // Fall back: check if there's already an active session
-          const { data: { session: existingSession } } = await supabase.auth.getSession();
-          if (existingSession) {
-            await refreshUserData();
-
-            // If coming from Capacitor app, redirect back via deep link
-            if (searchParams.get("source") === "capacitor") {
-              const token = existingSession.access_token;
-              const refreshToken = existingSession.refresh_token;
-              window.location.href = `socio://callback?token=${token}&refresh_token=${refreshToken}`;
-              return;
-            }
-
-            const returnTo = sessionStorage.getItem("returnTo");
-            if (returnTo) sessionStorage.removeItem("returnTo");
-            router.replace(returnTo || next);
+          // If the verifier was already consumed (e.g. detectSessionInUrl beat us to it)
+          const { data: { session: currentSession } } = await supabase.auth.getSession();
+          if (currentSession) {
+            // Already handled!
             return;
           }
           throw exchangeError;
         }
-
-        if (data.session) {
-          await refreshUserData();
-
-          // If coming from Capacitor app, redirect back via deep link
-          if (searchParams.get("source") === "capacitor") {
-            const token = data.session.access_token;
-            const refreshToken = data.session.refresh_token;
-            window.location.href = `socio://callback?token=${token}&refresh_token=${refreshToken}`;
-            return;
-          }
-
-          const returnTo = sessionStorage.getItem("returnTo");
-          if (returnTo) {
-            sessionStorage.removeItem("returnTo");
-            router.replace(returnTo);
-          } else {
-            router.replace(next);
-          }
-        } else {
-          router.replace("/auth");
-        }
       } catch (err: any) {
-        console.error("Auth callback error:", err);
-        const msg = err.message || "Authentication failed";
-        // PKCE errors are recoverable — just redirect to login cleanly
-        if (msg.toLowerCase().includes("pkce") || msg.toLowerCase().includes("verifier")) {
-          setError("Session expired. Please sign in again.");
-        } else {
-          setError(msg);
+        // If it throws, check one more time before failing (in case of race conditions)
+        const { data: { session: currentSession } } = await supabase.auth.getSession();
+        if (!currentSession && isMounted) {
+          console.error("Auth callback error:", err);
+          setError("Session expired or invalid link. Please sign in again.");
+          setTimeout(() => router.replace("/auth"), 2000);
         }
-        setTimeout(() => router.replace("/auth"), 2000);
       }
     };
-
-    void handleCallback();
-  }, [router, searchParams, refreshUserData]);
+    
+    processCode();
+    
+    return () => { isMounted = false; };
+  }, [router, searchParams, session, refreshUserData]);
 
   if (error) {
     return (
@@ -108,4 +108,12 @@ export default function AuthCallbackPage() {
   }
 
   return <LoadingScreen />;
+}
+
+export default function AuthCallbackPage() {
+  return (
+    <Suspense fallback={<LoadingScreen />}>
+      <AuthCallbackContent />
+    </Suspense>
+  );
 }

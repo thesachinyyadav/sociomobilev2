@@ -224,20 +224,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (res.ok) {
         const data = await res.json();
         const fetchedUser = data.user ?? data;
-        fetchedUser.volunteerEvents = Array.isArray(fetchedUser.volunteerEvents)
-          ? fetchedUser.volunteerEvents
-          : Array.isArray(data.volunteerEvents)
-            ? data.volunteerEvents
-            : [];
         fetchedUser.roles = fetchedUser.roles ?? data.roles ?? {};
         
         // Derive catering role from caters array - must have at least one entry with is_catering: true
         if (fetchedUser.caters && fetchedUser.caters.some((c: any) => c.is_catering)) {
           fetchedUser.roles.catering = true;
         }
-        
-        // If volunteerEvents is empty, try fetching from the dedicated endpoint
-        if (fetchedUser.volunteerEvents.length === 0 && accessToken) {
+
+        // Only retain volunteer and catering roles for mobile
+        fetchedUser.roles = {
+          catering: fetchedUser.roles.catering,
+          // volunteer role is determined by volunteerEvents presence
+        };
+
+        let volEvents = Array.isArray(fetchedUser.volunteerEvents)
+          ? fetchedUser.volunteerEvents
+          : Array.isArray(data.volunteerEvents)
+            ? data.volunteerEvents
+            : undefined;
+
+        // If volunteerEvents is undefined (not provided by backend), try fetching from the dedicated endpoint
+        if (volEvents === undefined && accessToken) {
           try {
             const volRes = await fetch(`${PWA_API_URL}/volunteer/events`, {
               headers: { Authorization: `Bearer ${accessToken}` },
@@ -245,12 +252,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             });
             if (volRes.ok) {
               const volData = await volRes.json();
-              fetchedUser.volunteerEvents = volData.events || [];
+              volEvents = volData.events || [];
+            } else {
+              volEvents = [];
             }
           } catch (err) {
             console.error("Failed to fetch volunteer events during /me fetch", err);
+            volEvents = [];
           }
         }
+        
+        fetchedUser.volunteerEvents = volEvents || [];
 
         console.log(`User fetched via /me. Volunteer events count: ${fetchedUser.volunteerEvents?.length || 0}`);
         setUserData(fetchedUser);
@@ -270,20 +282,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (data.user) console.log(`Fallback data.user keys: ${Object.keys(data.user).join(", ")}`);
           const fetchedUser = data.user ?? data;
           console.log(`Volunteer events raw data: ${JSON.stringify(data.volunteerEvents || [])}`);
-          fetchedUser.volunteerEvents = Array.isArray(fetchedUser.volunteerEvents)
-            ? fetchedUser.volunteerEvents
-            : Array.isArray(data.volunteerEvents)
-              ? data.volunteerEvents
-              : [];
           fetchedUser.roles = fetchedUser.roles ?? data.roles ?? {};
 
           // Derive catering role from caters array - must have at least one entry with is_catering: true
           if (fetchedUser.caters && fetchedUser.caters.some((c: any) => c.is_catering)) {
             fetchedUser.roles.catering = true;
           }
-          
-          // If volunteerEvents is empty, try fetching from the dedicated endpoint
-          if (fetchedUser.volunteerEvents.length === 0) {
+
+          // Only retain volunteer and catering roles for mobile
+          fetchedUser.roles = {
+            catering: fetchedUser.roles.catering,
+            // volunteer role is determined by volunteerEvents presence
+          };
+
+          let fallbackVolEvents = Array.isArray(fetchedUser.volunteerEvents)
+            ? fetchedUser.volunteerEvents
+            : Array.isArray(data.volunteerEvents)
+              ? data.volunteerEvents
+              : undefined;
+
+          // If volunteerEvents is undefined, try fetching from the dedicated endpoint
+          if (fallbackVolEvents === undefined) {
             try {
               // Try token-based first if we have one
               let volData: any = null;
@@ -298,7 +317,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               }
 
               // If token-based failed or returned empty, try email-based fallback
-              if (!volData || !volData.events || volData.events.length === 0) {
+              if (!volData || !volData.events) {
                 console.log(`Trying email-based volunteer fetch for ${email}`);
                 const emailVolRes = await fetch(`${PWA_API_URL}/volunteer/events?email=${encodeURIComponent(email)}`, {
                   cache: "no-store",
@@ -308,13 +327,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 }
               }
 
-              if (volData && volData.events) {
-                fetchedUser.volunteerEvents = volData.events;
-              }
+              fallbackVolEvents = volData?.events || [];
             } catch (err) {
               console.error("Failed to fetch volunteer events during fallback", err);
+              fallbackVolEvents = [];
             }
           }
+          
+          fetchedUser.volunteerEvents = fallbackVolEvents || [];
 
           console.log(`User fetched via fallback. Volunteer events count: ${fetchedUser.volunteerEvents?.length || 0}`);
           setUserData(fetchedUser);
@@ -439,17 +459,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [fetchUserData, outsiderVisitorId, session?.access_token, userData?.email]
   );
 
-  /* Background check for volunteer access and roles once after 60 seconds */
-  useEffect(() => {
-    if (!user?.email || !session) return;
-    
-    const timeoutId = setTimeout(() => {
-      console.log("Delayed check: Refreshing volunteer access and roles...");
-      refreshUserData();
-    }, 60_000);
-
-    return () => clearTimeout(timeoutId);
-  }, [user?.email, session, refreshUserData]);
+  /* Note: Background 60-second role refresh was removed for mobile to ensure it only fetches once */
 
   /* App Deep Link Listener */
   useEffect(() => {

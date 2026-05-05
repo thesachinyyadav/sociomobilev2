@@ -286,7 +286,7 @@ export default function ProfilePage() {
   ].filter(Boolean) as { icon: any; label: string; value: string }[];
 
   return (
-    <div className="pwa-page pt-[calc(var(--nav-height)+var(--safe-top))]">
+    <div className="pwa-page pt-[calc(var(--nav-height)+var(--safe-top))] pb-[calc(var(--bottom-nav)+var(--safe-bottom)+100px)]">
       {/* Profile header */}
       <div className="relative overflow-hidden text-white px-5 pt-12 pb-10">
         {/* Cover background */}

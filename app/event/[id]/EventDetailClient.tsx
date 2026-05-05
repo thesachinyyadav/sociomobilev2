@@ -382,7 +382,7 @@ export default function EventDetailClient({ eventId }: { eventId: string }) {
         {event.event_date && (
           <button
             onClick={() => {
-              const url = generateGoogleCalendarUrl(event.title, event.event_date, event.event_time);
+              const url = generateGoogleCalendarUrl(event.title, event.event_date || "", event.event_time ?? undefined);
               if (url) window.open(url, "_blank");
             }}
             className="w-full flex items-center gap-3 bg-white rounded-2xl p-4 border border-[var(--color-border)] shadow-sm active:bg-gray-50 text-left transition-colors"

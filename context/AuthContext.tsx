@@ -599,8 +599,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   /* Actions */
   const signInWithGoogle = useCallback(async () => {
     const isApp = typeof window !== "undefined" && Capacitor.isNativePlatform();
-    const runtimeOrigin = typeof window !== "undefined" ? window.location.origin : (process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000");
-    const redirectUrl = isApp ? `${runtimeOrigin}/auth/callback?source=capacitor` : `${runtimeOrigin}/auth/callback`;
+    
+    // For App, use the backend proxy as redirect URL to trigger deep link
+    // For Web, use the standard Next.js callback
+    const redirectUrl = isApp 
+      ? `${PWA_API_URL}/auth/callback` 
+      : `${window.location.origin}/auth/callback`;
 
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: "google",

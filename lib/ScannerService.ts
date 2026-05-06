@@ -30,19 +30,10 @@ class WebScanner implements IScanner {
 
   async start(videoElement: HTMLVideoElement, onScan: (result: ScannerResult) => void): Promise<void> {
     try {
-      // PERFORMANCE: Limit resolution and restrict scan area
-      const constraints: MediaStreamConstraints = {
-        video: {
-          facingMode: 'environment',
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
-        }
-      };
-
       this.controls = await this.reader.decodeFromVideoDevice(
-        undefined, // Let ZXing handle device selection based on constraints if needed
+        undefined, 
         videoElement,
-        (result, error) => {
+        (result) => {
           if (this.isPaused) return;
           if (result) {
             onScan({
@@ -79,7 +70,7 @@ class WebScanner implements IScanner {
  */
 class CapacitorScanner implements IScanner {
   private isPaused = false;
-  private listener: any = null;
+  private listener: Promise<any> | null = null;
 
   async start(_videoElement: HTMLVideoElement, onScan: (result: ScannerResult) => void): Promise<void> {
     try {
@@ -90,11 +81,12 @@ class CapacitorScanner implements IScanner {
       }
 
       // Start scanning
-      await BarcodeScanner.addListener('barcodeScanned', (event) => {
-        if (this.isPaused) return;
+      await BarcodeScanner.addListener('barcodesScanned', (event) => {
+        if (this.isPaused || !event.barcodes.length) return;
+        const barcode = event.barcodes[0];
         onScan({
-          data: event.barcode.displayValue,
-          format: event.barcode.format,
+          data: barcode.displayValue,
+          format: barcode.format,
         });
       });
 

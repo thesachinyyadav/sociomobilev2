@@ -460,6 +460,28 @@ html, body {
   display: flex; align-items: center; gap: 2px;
 }
 
+/* ── Unified Scanner Overlays ── */
+.barcode-scanner-active {
+  background: transparent !important;
+}
+.barcode-scanner-active body {
+  background: transparent !important;
+}
+.barcode-scanner-active main,
+.barcode-scanner-active nav,
+.barcode-scanner-active header,
+.barcode-scanner-active .desktop-gate {
+  display: none !important;
+}
+
+.transparent-for-native {
+  background: transparent !important;
+}
+
+.native-scanning video {
+  display: none !important;
+}
+
 /* ── Back button ── */
 .back-btn {
   display: flex; align-items: center; justify-content: center;

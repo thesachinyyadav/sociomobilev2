@@ -30,8 +30,17 @@ class WebScanner implements IScanner {
 
   async start(videoElement: HTMLVideoElement, onScan: (result: ScannerResult) => void): Promise<void> {
     try {
+      // PERFORMANCE: Limit resolution and restrict scan area
+      const constraints: MediaStreamConstraints = {
+        video: {
+          facingMode: 'environment',
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+        }
+      };
+
       this.controls = await this.reader.decodeFromVideoDevice(
-        undefined, // Use default camera
+        undefined, // Let ZXing handle device selection based on constraints if needed
         videoElement,
         (result, error) => {
           if (this.isPaused) return;

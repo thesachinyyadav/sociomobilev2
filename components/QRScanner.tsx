@@ -1,11 +1,13 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import QrScanner from "qr-scanner";
 import { useAuth } from "@/context/AuthContext";
 import { AlertTriangleIcon, CameraIcon, CheckCircleIcon, QrCodeIcon, XIcon } from "@/components/icons";
 import { Button } from "@/components/Button";
 import { PWA_API_URL } from "@/lib/apiConfig";
+import { getScanner, IScanner, ScannerResult } from "@/lib/ScannerService";
+import { Haptics, ImpactStyle, NotificationType } from "@capacitor/haptics";
+import { Capacitor } from "@capacitor/core";
 
 interface QRScannerProps {
   eventId: string;
@@ -29,7 +31,7 @@ interface ScanPayload {
 export default function QRScanner({ eventId, onScanSuccess }: QRScannerProps) {
   const { session, userData } = useAuth();
   const videoRef = useRef<HTMLVideoElement | null>(null);
-  const scannerRef = useRef<QrScanner | null>(null);
+  const scannerRef = useRef<IScanner | null>(null);
   const isProcessingRef = useRef(false);
   const [isScanning, setIsScanning] = useState(false);
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
@@ -37,16 +39,31 @@ export default function QRScanner({ eventId, onScanSuccess }: QRScannerProps) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    // Initialize unified scanner
+    scannerRef.current = getScanner();
     return () => {
-      scannerRef.current?.destroy();
-      scannerRef.current = null;
+      void scannerRef.current?.stop();
     };
   }, []);
 
-  const stopScanner = () => {
-    scannerRef.current?.stop();
-    scannerRef.current?.destroy();
-    scannerRef.current = null;
+  const triggerHaptic = async (type: "success" | "error") => {
+    if (Capacitor.isNativePlatform()) {
+      if (type === "success") {
+        await Haptics.notification({ type: NotificationType.Success });
+      } else {
+        await Haptics.notification({ type: NotificationType.Error });
+      }
+    } else if ("vibrate" in navigator) {
+      if (type === "success") {
+        navigator.vibrate(200);
+      } else {
+        navigator.vibrate([100, 50, 100]);
+      }
+    }
+  };
+
+  const stopScanner = async () => {
+    await scannerRef.current?.stop();
     setIsScanning(false);
   };
 
@@ -74,19 +91,17 @@ export default function QRScanner({ eventId, onScanSuccess }: QRScannerProps) {
   const resumeScanner = (delayMs: number) => {
     window.setTimeout(() => {
       isProcessingRef.current = false;
-      if (scannerRef.current) {
-        scannerRef.current.start().catch(() => {
-          setError("Unable to restart camera. Tap Start Scanner again.");
-          setIsScanning(false);
-        });
-      }
+      scannerRef.current?.resume();
+      // On mobile, the scan overlay might need a reset if the plugin blocks
     }, delayMs);
   };
 
-  const processScan = async (qrCodeData: string) => {
+  const processScan = async (scanResult: ScannerResult) => {
+    const qrCodeData = scanResult.data;
     if (isProcessingRef.current || !session?.access_token) return;
+    
     isProcessingRef.current = true;
-    scannerRef.current?.stop();
+    scannerRef.current?.pause();
 
     try {
       const response = await fetch(`${PWA_API_URL}/events/${encodeURIComponent(eventId)}/scan-qr`, {
@@ -100,6 +115,8 @@ export default function QRScanner({ eventId, onScanSuccess }: QRScannerProps) {
           volunteerId: userData?.register_number,
           scannerInfo: {
             source: "sociomobilev2",
+            platform: Capacitor.getPlatform(),
+            format: scanResult.format,
             userAgent: navigator.userAgent,
             timestamp: new Date().toISOString(),
           },
@@ -110,18 +127,16 @@ export default function QRScanner({ eventId, onScanSuccess }: QRScannerProps) {
       const payload = (await response.json().catch(() => ({}))) as ScanPayload;
       
       if (!response.ok) {
-        // ERROR: Red overlay + Haptic (short double)
         setResult(null);
         setError(payload.error || "Unable to process this QR code.");
-        if ("vibrate" in navigator) navigator.vibrate([100, 50, 100]);
+        void triggerHaptic("error");
         resumeScanner(2200);
         return;
       }
 
-      // SUCCESS: Green overlay + Haptic (single)
       setError(null);
       setResult(payload.participant || null);
-      if ("vibrate" in navigator) navigator.vibrate(200);
+      void triggerHaptic("success");
       playSuccessSound();
       onScanSuccess?.(payload);
       resumeScanner(3000);
@@ -142,41 +157,35 @@ export default function QRScanner({ eventId, onScanSuccess }: QRScannerProps) {
     try {
       setError(null);
       setResult(null);
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-      stream.getTracks().forEach((track) => track.stop());
+      
+      // Request permissions (handled by the service for native)
+      if (!Capacitor.isNativePlatform()) {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        stream.getTracks().forEach((track) => track.stop());
+      }
       setHasPermission(true);
 
-      scannerRef.current?.destroy();
-      scannerRef.current = new QrScanner(
-        videoRef.current,
-        (scanResult) => {
-          const data = typeof scanResult === "string" ? scanResult : scanResult?.data;
-          if (data) void processScan(data);
-        },
-        {
-          highlightScanRegion: true,
-          highlightCodeOutline: true,
-          preferredCamera: "environment",
-        }
-      );
-
-      await scannerRef.current.start();
+      await scannerRef.current?.start(videoRef.current, (result) => {
+        void processScan(result);
+      });
+      
       setIsScanning(true);
-    } catch {
+    } catch (err: any) {
+      console.error("Scanner failed to start:", err);
       setHasPermission(false);
       setIsScanning(false);
-      setError("Camera access is required to scan QR codes.");
+      setError(err.message || "Camera access is required to scan QR codes.");
     }
   };
 
   return (
-    <div className="card overflow-hidden">
+    <div className={`card overflow-hidden ${isScanning && Capacitor.isNativePlatform() ? 'native-scanning' : ''}`}>
 
       <div className="p-4">
-        <div className="relative overflow-hidden rounded-[22px] bg-black">
+        <div className={`relative overflow-hidden rounded-[22px] bg-black ${isScanning && Capacitor.isNativePlatform() ? 'transparent-for-native' : ''}`}>
           <video
             ref={videoRef}
-            className="aspect-[4/3] w-full object-cover"
+            className={`aspect-[4/3] w-full object-cover ${Capacitor.isNativePlatform() ? 'hidden' : ''}`}
             muted
             playsInline
           />

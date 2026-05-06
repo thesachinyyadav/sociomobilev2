@@ -21,7 +21,7 @@ export default function TopBar() {
   return (
     <header
       className={`fixed top-0 left-0 right-0 z-50 will-change-none border-b transition-colors duration-200 ${
-        isProfile
+        isProfile && userData
           ? "bg-[var(--color-primary-dark)] border-transparent text-white"
           : "glass border-[var(--color-border)] text-[var(--color-text)]"
       }`}
@@ -57,8 +57,8 @@ export default function TopBar() {
             )}
           </Link>
         ) : (
-          <Link href="/auth" className="w-[34px] h-[34px] rounded-full bg-white/20 text-white flex items-center justify-center shrink-0 shadow-[0_4px_14px_rgba(0,0,0,0.2)] ring-2 ring-[#1a3a7a]">
-            <UserIcon size={18} />
+          <Link href="/auth" className="flex items-center justify-center shrink-0 text-[var(--color-text-muted)] p-1">
+            <UserIcon size={24} strokeWidth={1.5} />
           </Link>
         )}
 

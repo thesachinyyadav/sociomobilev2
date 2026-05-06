@@ -51,6 +51,26 @@ export default function QRScanner({ eventId, eventTitle, onScanSuccess }: QRScan
     setIsScanning(false);
   };
 
+  const playSuccessSound = () => {
+    try {
+      const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const oscillator = audioCtx.createOscillator();
+      const gainNode = audioCtx.createGain();
+
+      oscillator.connect(gainNode);
+      gainNode.connect(audioCtx.destination);
+
+      oscillator.type = "sine";
+      oscillator.frequency.setValueAtTime(880, audioCtx.currentTime); // A5 note
+      gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+
+      oscillator.start();
+      oscillator.stop(audioCtx.currentTime + 0.15);
+    } catch (e) {
+      console.warn("Sound feedback failed:", e);
+    }
+  };
+
   const resumeScanner = (delayMs: number) => {
     window.setTimeout(() => {
       isProcessingRef.current = false;
@@ -88,15 +108,21 @@ export default function QRScanner({ eventId, eventTitle, onScanSuccess }: QRScan
       });
 
       const payload = (await response.json().catch(() => ({}))) as ScanPayload;
+      
       if (!response.ok) {
+        // ERROR: Red overlay + Haptic (short double)
         setResult(null);
         setError(payload.error || "Unable to process this QR code.");
+        if ("vibrate" in navigator) navigator.vibrate([100, 50, 100]);
         resumeScanner(2200);
         return;
       }
 
+      // SUCCESS: Green overlay + Haptic (single)
       setError(null);
       setResult(payload.participant || null);
+      if ("vibrate" in navigator) navigator.vibrate(200);
+      playSuccessSound();
       onScanSuccess?.(payload);
       resumeScanner(3000);
     } catch {
@@ -154,6 +180,28 @@ export default function QRScanner({ eventId, eventTitle, onScanSuccess }: QRScan
             muted
             playsInline
           />
+          
+          {/* Status Overlays */}
+          {result && (
+            <div className="absolute inset-0 z-20 flex items-center justify-center bg-emerald-500/90 animate-fade-in">
+              <div className="text-center text-white">
+                <CheckCircleIcon size={64} className="mx-auto mb-3" />
+                <p className="text-[18px] font-black">Attendance Marked</p>
+                <p className="mt-1 text-[14px] font-bold opacity-90">{result.name}</p>
+              </div>
+            </div>
+          )}
+          
+          {error && isScanning && (
+            <div className="absolute inset-0 z-20 flex items-center justify-center bg-red-500/90 animate-fade-in">
+              <div className="text-center text-white p-6">
+                <AlertTriangleIcon size={64} className="mx-auto mb-3" />
+                <p className="text-[18px] font-black">Scan Failed</p>
+                <p className="mt-1 text-[14px] font-bold opacity-90">{error}</p>
+              </div>
+            </div>
+          )}
+
           {!isScanning && (
             <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-950/85 px-6 text-center text-white">
               <QrCodeIcon size={42} className="mb-3 text-white/70" />
@@ -163,7 +211,7 @@ export default function QRScanner({ eventId, eventTitle, onScanSuccess }: QRScan
               </p>
             </div>
           )}
-          {isScanning && (
+          {isScanning && !result && !error && (
             <>
               <div className="pointer-events-none absolute inset-6">
                 <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-[var(--color-accent)] rounded-tl-[16px]" />
@@ -196,7 +244,7 @@ export default function QRScanner({ eventId, eventTitle, onScanSuccess }: QRScan
           </div>
         )}
 
-        {error && (
+        {error && !isScanning && (
           <div className="mt-3 rounded-2xl border border-red-200 bg-red-50 p-3">
             <div className="flex items-start gap-2 text-[12px] font-semibold text-red-700">
               <AlertTriangleIcon size={16} className="mt-0.5 shrink-0" />

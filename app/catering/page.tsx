@@ -37,6 +37,11 @@ interface CateringBooking {
   catering_name: string | null;
 }
 
+interface Vendor {
+  catering_id: string;
+  catering_name: string;
+}
+
 interface PaginationData {
   totalItems: number;
   totalPages: number;
@@ -55,6 +60,8 @@ export default function CateringDashboardPage() {
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [activeTab, setActiveTab] = useState<"pending" | "history">("pending");
+  const [vendors, setVendors] = useState<Vendor[]>([]);
+  const [selectedVendorId, setSelectedVendorId] = useState<string>("");
   const pageSize = 10;
 
   useEffect(() => {
@@ -63,16 +70,17 @@ export default function CateringDashboardPage() {
     }
   }, [isLoading, router, session]);
 
-  const fetchBookings = useCallback(async (pageNum: number, tab: "pending" | "history") => {
+  const fetchBookings = useCallback(async (pageNum: number, tab: "pending" | "history", append = false) => {
     if (isLoading || !session?.access_token) return;
 
     setIsFetching(true);
     setError(null);
 
     const statusQuery = tab === "pending" ? "pending" : "accepted,declined";
+    const vendorQuery = selectedVendorId ? `&catering_id=${selectedVendorId}` : "";
 
     try {
-      const res = await fetch(`${PWA_API_URL}/catering/bookings?page=${pageNum}&pageSize=${pageSize}&status=${statusQuery}`, {
+      const res = await fetch(`${PWA_API_URL}/catering/bookings?page=${pageNum}&pageSize=${pageSize}&status=${statusQuery}${vendorQuery}`, {
         headers: {
           Authorization: `Bearer ${session.access_token}`,
         },
@@ -81,11 +89,13 @@ export default function CateringDashboardPage() {
       const payload = await res.json().catch(() => ({}));
 
       if (!res.ok) {
-        setBookings([]);
+        if (!append) setBookings([]);
         setError(payload.error || DENIED_MESSAGE);
       } else {
-        setBookings(payload.bookings || []);
+        const newBookings = payload.bookings || [];
+        setBookings(prev => append ? [...prev, ...newBookings] : newBookings);
         setPagination(payload.pagination || null);
+        if (payload.vendors) setVendors(payload.vendors);
       }
     } catch (err) {
       console.error("Failed to fetch catering bookings:", err);
@@ -96,8 +106,34 @@ export default function CateringDashboardPage() {
   }, [isLoading, session?.access_token]);
 
   useEffect(() => {
-    fetchBookings(page, activeTab);
-  }, [fetchBookings, page, activeTab]);
+    setPage(1);
+    fetchBookings(1, activeTab, false);
+  }, [fetchBookings, activeTab, selectedVendorId]);
+
+  const loadMore = useCallback(() => {
+    if (isFetching || !pagination || page >= pagination.totalPages) return;
+    const nextPage = page + 1;
+    setPage(nextPage);
+    fetchBookings(nextPage, activeTab, true);
+  }, [isFetching, pagination, page, fetchBookings, activeTab]);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          loadMore();
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    const target = document.getElementById("scroll-sentinel");
+    if (target) observer.observe(target);
+
+    return () => {
+      if (target) observer.unobserve(target);
+    };
+  }, [loadMore]);
 
   const handleTabChange = (tab: "pending" | "history") => {
     if (tab !== activeTab) {
@@ -173,10 +209,33 @@ export default function CateringDashboardPage() {
           </button>
           <div className="flex-1 min-w-0">
             <h1 className="text-xl font-black tracking-tight text-slate-900 leading-tight">Catering Orders</h1>
-            {!error && (
-              <p className="text-[11px] font-bold text-[var(--color-primary)] uppercase tracking-wider">
-                Vendor Dashboard
-              </p>
+            {vendors.length > 1 ? (
+              <div className="relative mt-0.5 inline-block">
+                <select
+                  value={selectedVendorId}
+                  onChange={(e) => {
+                    setSelectedVendorId(e.target.value);
+                    setPage(1);
+                  }}
+                  className="appearance-none bg-blue-50 border-none text-[11px] font-bold text-blue-700 py-1 pl-2 pr-6 rounded-lg focus:ring-1 focus:ring-blue-200 outline-none cursor-pointer uppercase tracking-wider"
+                >
+                  <option value="">All Shops</option>
+                  {vendors.map((v) => (
+                    <option key={v.catering_id} value={v.catering_id}>
+                      {v.catering_name}
+                    </option>
+                  ))}
+                </select>
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-1 text-blue-600">
+                  <ChevronRight size={12} className="rotate-90" />
+                </div>
+              </div>
+            ) : (
+              !error && (
+                <p className="text-[11px] font-bold text-[var(--color-primary)] uppercase tracking-wider">
+                  {vendors[0]?.catering_name || "Vendor Dashboard"}
+                </p>
+              )
             )}
           </div>
         </div>
@@ -266,7 +325,7 @@ export default function CateringDashboardPage() {
                         <ChefHat size={12} className="opacity-80" />
                         {booking.catering_name || "Unknown Shop"}
                       </p>
-                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1.5 text-[11px] text-slate-500 font-medium">
+                       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1.5 text-[11px] text-slate-500 font-medium">
                         <span className="flex items-center gap-1">
                           <CalendarDays size={12} className="text-slate-400" />
                           {booking.event_date || booking.fest_opening_date 
@@ -274,7 +333,9 @@ export default function CateringDashboardPage() {
                             : "No Date"}
                         </span>
                         <span>•</span>
-                        <span>ID: {booking.booking_id.slice(-8).toUpperCase()}</span>
+                        <span className="text-slate-400 font-mono text-[10px] bg-slate-50 px-1.5 py-0.5 rounded border border-slate-100">
+                          {booking.booking_id}
+                        </span>
                       </div>
                     </div>
                     
@@ -311,7 +372,7 @@ export default function CateringDashboardPage() {
                         <div>
                           <p className="text-[9px] font-bold text-slate-400 uppercase">Phone</p>
                           <p className="text-[12px] font-bold text-[#0F172A] truncate">
-                            {booking.contact_details?.phone || booking.contact_details?.contact_number || "N/A"}
+                            {booking.contact_details?.mobile || booking.contact_details?.phone || booking.contact_details?.contact_number || "N/A"}
                           </p>
                         </div>
                       </div>
@@ -353,48 +414,12 @@ export default function CateringDashboardPage() {
                   )}
                 </div>
               </div>
-            ))}
-
-            {/* Pagination Controls */}
-            {pagination && pagination.totalPages > 1 && (
-              <div className="flex items-center justify-between mt-10 px-2 pb-6">
-                <button
-                  disabled={page === 1}
-                  onClick={() => {
-                    setPage(p => Math.max(1, p - 1));
-                    window.scrollTo(0, 0);
-                  }}
-                  className={`w-11 h-11 rounded-2xl flex items-center justify-center transition-all ${
-                    page === 1 
-                      ? "bg-slate-100 text-slate-300" 
-                      : "bg-white text-blue-600 border border-slate-200 shadow-sm active:scale-90"
-                  }`}
-                >
-                  <ChevronLeftIcon size={20} />
-                </button>
-                
-                <div className="bg-white px-4 py-2 rounded-2xl border border-slate-200 shadow-sm">
-                  <span className="text-[13px] font-extrabold text-[#0F172A]">
-                    {page} / {pagination.totalPages}
-                  </span>
-                </div>
-
-                <button
-                  disabled={page === pagination.totalPages}
-                  onClick={() => {
-                    setPage(p => Math.min(pagination.totalPages, p + 1));
-                    window.scrollTo(0, 0);
-                  }}
-                  className={`w-11 h-11 rounded-2xl flex items-center justify-center transition-all ${
-                    page === pagination.totalPages 
-                      ? "bg-slate-100 text-slate-300" 
-                      : "bg-white text-blue-600 border border-slate-200 shadow-sm active:scale-90"
-                  }`}
-                >
-                  <ChevronRight size={20} />
-                </button>
-              </div>
-            )}
+            ))}            {/* Scroll Sentinel for Infinite Scroll */}
+            <div id="scroll-sentinel" className="h-20 flex items-center justify-center">
+              {isFetching && page > 1 && (
+                <div className="animate-spin w-6 h-6 border-3 border-blue-500 border-t-transparent rounded-full"></div>
+              )}
+            </div>
           </div>
         )}
       </div>

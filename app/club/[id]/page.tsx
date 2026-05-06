@@ -7,7 +7,7 @@ export async function generateStaticParams() {
 
   if (!supabaseUrl || !supabaseAnonKey) {
     console.warn("Supabase credentials missing during build-time generateStaticParams");
-    return [];
+    return [{ id: "1" }];
   }
 
   try {
@@ -28,10 +28,11 @@ export async function generateStaticParams() {
       if (c.club_id) params.push({ id: String(c.club_id) });
     });
 
-    return params;
+    // Return at least one placeholder to satisfy Next.js static export requirements
+    return params.length > 0 ? params : [{ id: "1" }];
   } catch (err) {
     console.error("Error generating static params for clubs:", err);
-    return [];
+    return [{ id: "1" }];
   }
 }
 

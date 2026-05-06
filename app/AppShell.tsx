@@ -16,7 +16,7 @@ import { useAuth } from "@/context/AuthContext";
 import ShakeToScanListener from "@/components/ShakeToScanListener";
 
 const NO_BOTTOM_NAV = ["/auth", "/auth/callback", "/offline"];
-const NO_TOP_BAR = ["/auth/callback", "/offline"];
+const NO_TOP_BAR = ["/auth/callback", "/offline", "/notifications"];
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();

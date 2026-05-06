@@ -163,42 +163,42 @@ export default function CateringDashboardPage() {
   return (
     <div className="min-h-screen bg-[#F8FAFC] pb-24">
       {/* Sticky Header */}
-      <div className="bg-white px-4 pt-5 pb-0 border-b border-[var(--color-border)] sticky top-0 z-20 shadow-sm">
-        <div className="flex items-center gap-3 mb-4">
+      <div className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-slate-100 pt-[calc(var(--safe-top)+12px)] px-4">
+        <div className="flex items-center gap-3 mb-6">
           <button
             onClick={() => router.back()}
-            className="w-9 h-9 rounded-full bg-gray-50 flex items-center justify-center text-[var(--color-text)] active:scale-90 transition-transform"
+            className="w-10 h-10 rounded-2xl bg-white shadow-sm border border-slate-100 flex items-center justify-center text-[var(--color-text)] active:scale-90 transition-transform"
           >
-            <ArrowLeftIcon size={18} />
+            <ArrowLeftIcon size={20} />
           </button>
-          <div>
-            <h1 className="text-xl font-extrabold text-[#0F172A] leading-tight">Catering Orders</h1>
+          <div className="flex-1 min-w-0">
+            <h1 className="text-xl font-black tracking-tight text-slate-900 leading-tight">Catering Orders</h1>
             {!error && (
-              <p className="text-[12px] text-[var(--color-text-muted)] font-medium">
-                Manage incoming orders and history.
+              <p className="text-[11px] font-bold text-[var(--color-primary)] uppercase tracking-wider">
+                Vendor Dashboard
               </p>
             )}
           </div>
         </div>
 
-        {/* Tabs */}
-        <div className="flex w-full mt-2">
+        {/* Premium Tabs */}
+        <div className="flex gap-1 p-1 bg-slate-100 rounded-2xl mb-4">
           <button
             onClick={() => handleTabChange("pending")}
-            className={`flex-1 py-3 text-center text-[13px] font-bold border-b-2 transition-colors ${
+            className={`flex-1 py-2.5 rounded-xl text-[13px] font-black transition-all duration-300 ${
               activeTab === "pending"
-                ? "border-blue-600 text-blue-600"
-                : "border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-50"
+                ? "bg-white text-blue-600 shadow-sm scale-[1.02]"
+                : "text-slate-500 hover:text-slate-700"
             }`}
           >
             Pending
           </button>
           <button
             onClick={() => handleTabChange("history")}
-            className={`flex-1 py-3 text-center text-[13px] font-bold border-b-2 transition-colors ${
+            className={`flex-1 py-2.5 rounded-xl text-[13px] font-black transition-all duration-300 ${
               activeTab === "history"
-                ? "border-blue-600 text-blue-600"
-                : "border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-50"
+                ? "bg-white text-blue-600 shadow-sm scale-[1.02]"
+                : "text-slate-500 hover:text-slate-700"
             }`}
           >
             History

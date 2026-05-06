@@ -4,9 +4,9 @@ export async function generateStaticParams() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-  if (!supabaseUrl || !supabaseAnonKey) {
+    if (!supabaseUrl || !supabaseAnonKey) {
     console.warn("Supabase credentials missing during build-time generateStaticParams");
-    return [];
+    return [{ id: "1" }];
   }
 
   try {
@@ -20,12 +20,15 @@ export async function generateStaticParams() {
     if (!res.ok) throw new Error(`Supabase fetch failed: ${res.statusText}`);
     
     const fests = await res.json();
-    return (fests || []).map((f: any) => ({
+    const params = (fests || []).map((f: any) => ({
       id: String(f.id),
     }));
+    
+    // Return at least one placeholder to satisfy Next.js static export requirements
+    return params.length > 0 ? params : [{ id: "1" }];
   } catch (err) {
     console.error("Error generating static params for fests:", err);
-    return [];
+    return [{ id: "1" }];
   }
 }
 

@@ -20,11 +20,11 @@ export default function TopBar() {
 
   return (
     <header
-      className={`fixed top-0 left-0 right-0 z-50 will-change-none border-b transition-colors duration-200 ${
+      className={`fixed top-0 left-0 right-0 z-50 will-change-none transition-colors duration-200 ${
         isProfile && userData
-          ? "bg-[var(--color-primary-dark)] border-transparent text-white"
-          : "glass border-[var(--color-border)] text-[var(--color-text)]"
-      }`}
+          ? "bg-[var(--color-primary-dark)] text-white"
+          : "glass border-b border-[var(--color-border)] text-[var(--color-text)]"
+      } ${showBack ? "border-none shadow-none" : ""}`}
       style={{ paddingTop: "var(--safe-top)", backfaceVisibility: "hidden" }}
     >
       <div
@@ -82,7 +82,7 @@ export default function TopBar() {
         ) : (
           <Link
             href="/auth"
-            className="btn btn-primary btn-sm text-[11px] !py-1 !px-3 !min-h-0"
+            className="btn btn-primary h-8 px-4 text-[11px] font-bold shadow-sm"
           >
             Sign in
           </Link>

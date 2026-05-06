@@ -206,17 +206,17 @@ export default function EventDetailClient({ eventId }: { eventId: string }) {
   }
 
   return (
-    <div className="min-h-screen bg-[#F5F7FA] pb-[calc(var(--bottom-nav)+var(--safe-bottom)+100px)]">
+    <div className="pwa-page bg-[#F5F7FA] overflow-y-auto !pb-[calc(var(--bottom-nav)+var(--safe-bottom)+140px)]">
 
       {/* ── Full-bleed hero ── */}
-      <div className="relative w-full overflow-hidden" style={{ minHeight: "56vw", maxHeight: 360 }}>
+      <div className="relative w-full overflow-hidden" style={{ minHeight: "75vw", maxHeight: 460 }}>
         <Image
           src={event.banner_url || event.event_image_url || "https://placehold.co/800x600/011F7B/ffffff?text=Event"}
           alt={event.title} fill className="object-cover" priority sizes="100vw"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-black/10" />
         {/* chips top-left */}
-        <div className="absolute top-[calc(var(--safe-top)+56px)] left-4 flex flex-wrap gap-2 z-10">
+        <div className="absolute top-[calc(var(--safe-top)+64px)] left-4 flex flex-wrap gap-2 z-10">
           <div className={`px-3 py-1 rounded-full shadow-md flex items-center gap-1.5 transition-all ${
             isFree 
               ? "bg-emerald-500 text-white animate-badge-pulse" 
@@ -248,22 +248,22 @@ export default function EventDetailClient({ eventId }: { eventId: string }) {
             text: `Check out this event: ${event.title}`,
             url: `${window.location.origin}/event/${event.event_id}`,
           })}
-          className="absolute top-[calc(var(--safe-top)+56px)] right-4 z-10 w-10 h-10 rounded-full bg-black/30 backdrop-blur-md border border-white/20 flex items-center justify-center text-white active:scale-90 transition-transform"
+          className="absolute top-[calc(var(--safe-top)+64px)] right-4 z-10 w-10 h-10 rounded-full bg-black/30 backdrop-blur-md border border-white/20 flex items-center justify-center text-white active:scale-90 transition-transform"
           aria-label="Share Event"
         >
           <ShareIcon size={20} />
         </button>
-        {/* title */}
-        <div className="absolute bottom-0 left-0 right-0 px-4 pb-5 pt-10 z-10">
+        {/* title area with extra bottom padding to prevent overlap */}
+        <div className="absolute bottom-0 left-0 right-0 px-5 pb-16 pt-24 z-10">
           {event.organizing_dept && (
-            <p className="text-[11px] font-bold text-[var(--color-accent)] uppercase tracking-widest mb-1">{event.organizing_dept}</p>
+            <p className="text-[11px] font-bold text-[var(--color-accent)] uppercase tracking-widest mb-1.5 drop-shadow-md">{event.organizing_dept}</p>
           )}
-          <h1 className="text-[22px] font-black text-white leading-tight drop-shadow-lg">{event.title}</h1>
+          <h1 className="text-[28px] font-black text-white leading-tight drop-shadow-xl">{event.title}</h1>
         </div>
       </div>
 
       {/* ── Meta card floats over hero ── */}
-      <div className="mx-4 -mt-8 relative z-20 mb-6 bg-white rounded-3xl overflow-hidden shadow-[0_20px_50px_rgba(1,31,123,0.15)] border border-white">
+      <div className="mx-4 -mt-10 relative z-20 mb-6 bg-white rounded-3xl overflow-hidden shadow-[0_20px_50px_rgba(1,31,123,0.12)] border border-white">
         {/* rainbow accent bar */}
         <div className="h-[4px] w-full bg-gradient-to-r from-[#011F7B] via-[#4F6EF7] to-[#FFBA09] opacity-90" />
         <div className="p-5 grid grid-cols-1 gap-4">

@@ -97,7 +97,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       <DesktopGate />
       <OrientationGate />
       {!hideTop && <TopBar />}
-      <main>
+      <main className="flex-1 overflow-y-auto overflow-x-hidden min-h-dvh flex flex-col">
         <PageTransition>{children}</PageTransition>
       </main>
       {!hideBottom && <BottomNav />}

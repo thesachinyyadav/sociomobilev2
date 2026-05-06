@@ -48,18 +48,16 @@ export default function TopBar() {
                 alt={userData.name}
                 width={34}
                 height={34}
-                className={`rounded-full object-cover shadow-[0_4px_14px_rgba(1,31,123,0.12)] ${
-                  isProfile ? "ring-2 ring-[var(--color-primary)]" : "ring-2 ring-white"
-                }`}
+                className="rounded-full object-cover shadow-[0_4px_14px_rgba(0,0,0,0.4)] ring-2 ring-[#1a3a7a]"
               />
             ) : (
-              <div className="w-[34px] h-[34px] rounded-full bg-[var(--color-primary)] text-white flex items-center justify-center text-xs font-bold shadow-[0_4px_14px_rgba(1,31,123,0.12)]">
+              <div className="w-[34px] h-[34px] rounded-full bg-white/20 text-white flex items-center justify-center text-xs font-bold shadow-[0_4px_14px_rgba(0,0,0,0.2)] ring-2 ring-[#1a3a7a]">
                 {userData.name?.[0]?.toUpperCase() || "U"}
               </div>
             )}
           </Link>
         ) : (
-          <Link href="/auth" className="w-[34px] h-[34px] rounded-full bg-[var(--color-primary)] text-white flex items-center justify-center shrink-0 shadow-[0_4px_14px_rgba(1,31,123,0.12)]">
+          <Link href="/auth" className="w-[34px] h-[34px] rounded-full bg-white/20 text-white flex items-center justify-center shrink-0 shadow-[0_4px_14px_rgba(0,0,0,0.2)] ring-2 ring-[#1a3a7a]">
             <UserIcon size={18} />
           </Link>
         )}

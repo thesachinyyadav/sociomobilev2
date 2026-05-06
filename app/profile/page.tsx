@@ -303,10 +303,10 @@ export default function ProfilePage() {
               alt={userData.name}
               width={60}
               height={60}
-              className="rounded-full ring-4 ring-offset-2 ring-offset-[#1a6bdb] ring-[var(--color-accent)] object-cover"
+              className="rounded-full ring-4 ring-offset-2 ring-offset-[#0a1428] ring-[#1a3a7a] object-cover shadow-2xl"
             />
           ) : (
-            <div className="w-[60px] h-[60px] rounded-full bg-white/20 flex items-center justify-center text-xl font-bold ring-4 ring-offset-2 ring-offset-[#1a6bdb] ring-[var(--color-accent)]">
+            <div className="w-[60px] h-[60px] rounded-full bg-white/20 flex items-center justify-center text-xl font-bold ring-4 ring-offset-2 ring-offset-[#0a1428] ring-[#1a3a7a] shadow-xl">
               {userData.name?.[0]?.toUpperCase() || "U"}
             </div>
           )}

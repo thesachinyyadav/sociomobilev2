@@ -8,7 +8,7 @@ import OrientationGate from "@/components/OrientationGate";
 import TopBar from "@/components/TopBar";
 import BottomNav from "@/components/BottomNav";
 import InstallPrompt from "@/components/InstallPrompt";
-import BrowserNotificationPrompt from "@/components/BrowserNotificationPrompt";
+import SmartNotificationPrompt from "@/components/SmartNotificationPrompt";
 import ChatbotFab from "@/components/ChatbotFab";
 import CampusSelector, { isCampusDismissedRecently } from "@/components/CampusSelector";
 import PageTransition from "@/components/PageTransition";
@@ -103,7 +103,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       {!hideBottom && <BottomNav />}
       {!hideBottom && <InstallPrompt />}
       {!hideBottom && <ChatbotFab />}
-      {!hideBottom && userData && <BrowserNotificationPrompt />}
+      {!hideBottom && userData && <SmartNotificationPrompt />}
       <ShakeToScanListener />
       {needsCampus && !campusDismissed && userData && (
         <CampusSelector

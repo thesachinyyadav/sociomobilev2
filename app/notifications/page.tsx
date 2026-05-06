@@ -130,15 +130,15 @@ export default function NotificationsPage() {
     dismissAll, 
     isLoading, 
     pushStatus, 
-    enablePushNotifications 
+    triggerPrompt
   } = useNotifications();
   const router = useRouter();
 
   useEffect(() => {
     if (pushStatus === "not_requested") {
-      enablePushNotifications();
+      triggerPrompt();
     }
-  }, [pushStatus, enablePushNotifications]);
+  }, [pushStatus, triggerPrompt]);
 
   // Group notifications
   const groups = useMemo(() => {

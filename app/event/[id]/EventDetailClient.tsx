@@ -81,7 +81,7 @@ export default function EventDetailClient({ eventId }: { eventId: string }) {
   const router = useRouter();
   const { allEvents, isLoading: ctxLoading } = useEvents();
   const { userData, isLoading: authLoading } = useAuth();
-  const { pushStatus, enablePushNotifications } = useNotifications();
+  const { pushStatus, triggerPrompt } = useNotifications();
 
   const [event, setEvent] = useState<FetchedEvent | null>(null);
   const [loading, setLoading] = useState(true);
@@ -148,9 +148,9 @@ export default function EventDetailClient({ eventId }: { eventId: string }) {
       if (res.ok) { 
         setShowSuccess(true); 
         setRegisteredIds((p) => (p.includes(event.event_id) ? p : [...p, event.event_id])); 
-        // Trigger seamless push enablement
+        // Trigger smart prompt after registration
         if (pushStatus === "not_requested") {
-          enablePushNotifications().catch(() => {});
+          triggerPrompt();
         }
       }
       else {

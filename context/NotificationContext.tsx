@@ -21,18 +21,22 @@ export interface Notification {
 }
 
 type PushStatus = "not_requested" | "granted" | "denied";
+export type NotificationPromptStatus = "not_shown" | "shown" | "accepted" | "denied";
 
 interface NotifCtx {
   notifications: Notification[];
   unreadCount: number;
   isLoading: boolean;
   pushStatus: PushStatus;
+  promptStatus: NotificationPromptStatus;
   markRead: (id: string) => void;
   markAllRead: () => void;
   dismiss: (id: string) => void;
   dismissAll: () => void;
   refresh: () => void;
   enablePushNotifications: () => Promise<void>;
+  updatePromptStatus: (status: NotificationPromptStatus) => void;
+  triggerPrompt: () => void;
 }
 
 const NotifContext = createContext<NotifCtx>({
@@ -40,12 +44,15 @@ const NotifContext = createContext<NotifCtx>({
   unreadCount: 0,
   isLoading: false,
   pushStatus: "not_requested",
+  promptStatus: "not_shown",
   markRead: () => {},
   markAllRead: () => {},
   dismiss: () => {},
   dismissAll: () => {},
   refresh: () => {},
   enablePushNotifications: async () => {},
+  updatePromptStatus: () => {},
+  triggerPrompt: () => {},
 });
 
 export const useNotifications = () => useContext(NotifContext);
@@ -83,14 +90,30 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   const [unreadCount, setUnreadCount] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [pushStatus, setPushStatus] = useState<PushStatus>("not_requested");
+  const [promptStatus, setPromptStatus] = useState<NotificationPromptStatus>("not_shown");
   const [oneSignal, setOneSignal] = useState<any>(null);
   const router = useRouter();
 
-  // Load initial push status and sets
+  const LS_PROMPT_STATUS_KEY = "socio_notification_prompt_status";
+
+  // Load initial status
   useEffect(() => {
-    const status = localStorage.getItem(LS_PUSH_STATUS_KEY) as PushStatus;
-    if (status) setPushStatus(status);
+    const pStatus = localStorage.getItem(LS_PUSH_STATUS_KEY) as PushStatus;
+    if (pStatus) setPushStatus(pStatus);
+
+    const prStatus = localStorage.getItem(LS_PROMPT_STATUS_KEY) as NotificationPromptStatus;
+    if (prStatus) setPromptStatus(prStatus);
   }, []);
+
+  const updatePromptStatus = useCallback((status: NotificationPromptStatus) => {
+    setPromptStatus(status);
+    localStorage.setItem(LS_PROMPT_STATUS_KEY, status);
+  }, []);
+
+  const triggerPrompt = useCallback(() => {
+    if (promptStatus === "accepted" || promptStatus === "denied") return;
+    updatePromptStatus("shown");
+  }, [promptStatus, updatePromptStatus]);
 
   // 1. OneSignal & Web Push Initialization (Passive)
   useEffect(() => {
@@ -127,12 +150,14 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
   // Sync User Tags (Native only)
   useEffect(() => {
-    if (Capacitor.isNativePlatform() && oneSignal && userData?.id) {
+    if (Capacitor.isNativePlatform() && oneSignal && userData?.email) {
       try {
-        oneSignal.login(userData.id.toString());
+        const externalId = userData.email.toLowerCase();
+        oneSignal.login(externalId);
         oneSignal.User.addTags({
           department: userData.department || "none",
           campus: userData.campus || "none",
+          email: externalId
         });
       } catch {}
     }
@@ -149,6 +174,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         const newStatus = granted ? "granted" : "denied";
         setPushStatus(newStatus);
         localStorage.setItem(LS_PUSH_STATUS_KEY, newStatus);
+        updatePromptStatus(granted ? "accepted" : "denied");
         if (granted) toast.success("Notifications enabled!");
       } catch (e) {
         console.error("Native push error", e);
@@ -195,10 +221,12 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
         setPushStatus("granted");
         localStorage.setItem(LS_PUSH_STATUS_KEY, "granted");
+        updatePromptStatus("accepted");
         toast.success("Notifications enabled!");
       } else if (permission === "denied") {
         setPushStatus("denied");
         localStorage.setItem(LS_PUSH_STATUS_KEY, "denied");
+        updatePromptStatus("denied");
       }
     } catch (e) {
       console.error("Web push error", e);
@@ -316,12 +344,15 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         unreadCount,
         isLoading,
         pushStatus,
+        promptStatus,
         markRead,
         markAllRead,
         dismiss,
         dismissAll,
         refresh: fetchNotifications,
         enablePushNotifications,
+        updatePromptStatus,
+        triggerPrompt,
       }}
     >
       {children}

@@ -82,7 +82,7 @@ export default function TopBar() {
         ) : (
           <Link
             href="/auth"
-            className="btn btn-primary h-7 px-3 text-[10px] font-extrabold shadow-sm"
+            className="btn btn-primary btn-topbar-auth font-extrabold shadow-sm"
           >
             Sign in
           </Link>

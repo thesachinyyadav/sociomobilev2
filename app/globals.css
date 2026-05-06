@@ -228,6 +228,24 @@ html, body {
 .btn-sm { padding: 6px 14px; font-size: 13px; border-radius: var(--radius-sm); min-height: 32px; }
 .btn-xs { padding: 6px 12px; font-size: 12px; border-radius: var(--radius-xs); }
 
+@media (max-width: 640px) {
+  .btn-topbar-auth {
+    min-height: 30px;
+    padding: 5px 11px;
+    font-size: 12px;
+    border-radius: var(--radius-sm);
+  }
+}
+
+@media (min-width: 641px) {
+  .btn-topbar-auth {
+    min-height: 32px;
+    padding: 6px 14px;
+    font-size: 13px;
+    border-radius: var(--radius-sm);
+  }
+}
+
 /* ── Unified Card System ── */
 
 /* Level 3: Standard Cards (Lists) */

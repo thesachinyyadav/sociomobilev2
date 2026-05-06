@@ -25,6 +25,13 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const hideTop = NO_TOP_BAR.some((p) => pathname.startsWith(p));
   const { userData, session, needsCampus, refreshUserData } = useAuth();
   const [campusDismissed, setCampusDismissed] = useState(false);
+  const [isNative, setIsNative] = useState(false);
+
+  useEffect(() => {
+    import("@capacitor/core").then(({ Capacitor }) => {
+      setIsNative(Capacitor.isNativePlatform());
+    });
+  }, []);
 
   useEffect(() => {
     setCampusDismissed(isCampusDismissedRecently());
@@ -94,14 +101,14 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <>
-      <DesktopGate />
       <OrientationGate />
+      {!isNative && <DesktopGate />}
       {!hideTop && <TopBar />}
       <main className="flex-1 overflow-y-auto overflow-x-hidden min-h-dvh flex flex-col">
         <PageTransition>{children}</PageTransition>
       </main>
       {!hideBottom && <BottomNav />}
-      {!hideBottom && <InstallPrompt />}
+      {!hideBottom && !isNative && <InstallPrompt />}
       {!hideBottom && <ChatbotFab />}
       {!hideBottom && userData && <SmartNotificationPrompt />}
       <ShakeToScanListener />

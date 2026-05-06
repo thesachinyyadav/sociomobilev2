@@ -73,7 +73,13 @@ export default async function RootLayout({
               (() => {
                 if (!('serviceWorker' in navigator)) return;
 
+                // Disable SW in native Capacitor environment to avoid double-caching and hydration issues
+                if (window.Capacitor && window.Capacitor.getPlatform && window.Capacitor.getPlatform() !== 'web') {
+                  return;
+                }
+
                 const disableSW = ${process.env.NODE_ENV !== "production"} || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+
 
                 const clearServiceWorkerState = async () => {
                   try {

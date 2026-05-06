@@ -2,9 +2,11 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { CalendarIcon, UsersIcon, TrendingUpIcon } from "@/components/icons";
+import { CalendarIcon, UsersIcon, TrendingUpIcon, ShareIcon } from "@/components/icons";
 import type { Fest } from "@/context/EventContext";
 import { formatDateRange } from "@/lib/dateUtils";
+import { shareEvent } from "@/lib/share";
+
 
 function formatCompactCount(count: number) {
   if (!Number.isFinite(count) || count <= 0) return "0";
@@ -78,6 +80,24 @@ export default function FestCard({ fest, isTrending }: { fest: Fest; isTrending?
           <span className="text-white text-[10px] font-medium">Trending</span>
         </div>
       )}
+
+      {/* Share Button */}
+      <button
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          void shareEvent({
+            title: title,
+            text: `Check out this fest: ${title}`,
+            url: href,
+          });
+        }}
+        className="absolute top-2 right-2 z-20 w-8 h-8 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center text-[var(--color-primary)] shadow-sm border border-white/20 active:scale-90 transition-transform"
+        aria-label="Share Fest"
+      >
+        <ShareIcon size={16} />
+      </button>
+
 
       <div className="absolute inset-0 p-5 flex flex-col justify-between">
         <div className="flex justify-between items-start">

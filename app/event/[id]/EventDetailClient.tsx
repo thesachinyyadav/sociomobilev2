@@ -243,12 +243,16 @@ export default function EventDetailClient({ eventId }: { eventId: string }) {
 
         {/* Share Action */}
         <button
-          onClick={() => void shareEvent({
-            title: event.title,
-            text: `Check out this event: ${event.title}`,
-            url: `${window.location.origin}/event/${event.event_id}`,
-          })}
-          className="absolute top-[calc(var(--safe-top)+64px)] right-4 z-10 w-10 h-10 rounded-full bg-black/30 backdrop-blur-md border border-white/20 flex items-center justify-center text-white active:scale-90 transition-transform"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            void shareEvent({
+              title: event.title,
+              text: `Check out this event: ${event.title}`,
+              url: `/event/${event.event_id}`,
+            });
+          }}
+          className="absolute top-[calc(var(--safe-top)+64px)] right-4 z-40 w-10 h-10 rounded-full bg-black/30 backdrop-blur-md border border-white/20 flex items-center justify-center text-white active:scale-90 transition-transform"
           aria-label="Share Event"
         >
           <ShareIcon size={20} />

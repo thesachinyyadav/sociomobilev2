@@ -8,7 +8,10 @@ import { useEvents, type Fest, type FetchedEvent } from "@/context/EventContext"
 import EventCard from "@/components/EventCard";
 import {
   ArrowLeftIcon as ArrowLeft,
+  ShareIcon,
 } from "@/components/icons";
+import { shareEvent } from "@/lib/share";
+
 import { PWA_API_URL } from "@/lib/apiConfig";
 
 export default function FestDetailClient({ festId }: { festId: string }) {
@@ -76,6 +79,22 @@ export default function FestDetailClient({ festId }: { festId: string }) {
           className="object-cover"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
+        {/* Share Action */}
+        <button
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            void shareEvent({
+              title: fest.fest_title,
+              text: `Check out this fest: ${fest.fest_title}`,
+              url: `/fest/${fest.slug || fest.fest_id}`,
+            });
+          }}
+          className="absolute top-4 right-4 z-40 w-10 h-10 rounded-full bg-black/30 backdrop-blur-md border border-white/20 flex items-center justify-center text-white active:scale-90 transition-transform"
+          aria-label="Share Fest"
+        >
+          <ShareIcon size={20} />
+        </button>
         <div className="absolute bottom-0 left-0 right-0 p-5">
           <h1 className="text-2xl font-black text-white">{fest.fest_title}</h1>
         </div>

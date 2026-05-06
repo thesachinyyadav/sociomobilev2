@@ -6,16 +6,18 @@ import Image from "next/image";
 import FestCard from "@/components/FestCard";
 import Skeleton from "@/components/Skeleton";
 import EmptyState from "@/components/EmptyState";
-import { SearchIcon, XIcon, SparklesIcon, HeartIcon, CalendarIcon, FlameIcon, ArrowRightIcon, TrendingUpIcon } from "@/components/icons";
+import { SearchIcon, XIcon, SparklesIcon, HeartIcon, CalendarIcon, FlameIcon, ArrowRightIcon, TrendingUpIcon, ShareIcon } from "@/components/icons";
 import { Button } from "@/components/Button";
 import { FilterChip } from "@/components/FilterChip";
-import { PWA_API_URL } from "@/lib/apiConfig";
+import { PWA_API_URL, APP_URL } from "@/lib/apiConfig";
 import { SectionContainer } from "@/components/SectionContainer";
 import type { Fest } from "@/context/EventContext";
 import { matchesSelectedCampus } from "@/context/EventContext";
 import { useAuth } from "@/context/AuthContext";
 import { useDebounce } from "@/lib/useDebounce";
 import { formatDateRange, isDeadlinePassed } from "@/lib/dateUtils";
+import { shareEvent } from "@/lib/share";
+
 
 const ITEMS_PER_PAGE = 8;
 
@@ -282,15 +284,32 @@ export default function FestsPage() {
                     <span className="bg-[#ffe08b] text-[#241a00] px-3 py-1 rounded-full text-xs font-bold uppercase tracking-widest shadow-sm mt-8">
                       Featured
                     </span>
-                    <button 
-                      className="w-10 h-10 rounded-full bg-black/20 backdrop-blur-md flex items-center justify-center text-white hover:bg-black/40 transition-all active:scale-90"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        // Add favorite logic here if needed
-                      }}
-                    >
-                      <HeartIcon size={20} className="text-white" />
-                    </button>
+                    <div className="flex gap-2">
+                      <button 
+                        className="w-10 h-10 rounded-full bg-black/20 backdrop-blur-md flex items-center justify-center text-white hover:bg-black/40 transition-all active:scale-90"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          void shareEvent({
+                            title: featuredFest.fest_title || featuredFest.name || "Fest",
+                            text: `Check out this fest: ${featuredFest.fest_title || featuredFest.name}`,
+                            url: `/fest/${featuredFest.slug || featuredFest.fest_id}`,
+                          });
+                        }}
+                      >
+                        <ShareIcon size={20} className="text-white" />
+                      </button>
+                      <button 
+                        className="w-10 h-10 rounded-full bg-black/20 backdrop-blur-md flex items-center justify-center text-white hover:bg-black/40 transition-all active:scale-90"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          // Add favorite logic here if needed
+                        }}
+                      >
+                        <HeartIcon size={20} className="text-white" />
+                      </button>
+                    </div>
+
                   </div>
                   <div>
                     <h2 className="text-4xl font-extrabold text-white mb-2 leading-tight tracking-tight drop-shadow-md text-glow">

@@ -13,3 +13,6 @@ const getApiBase = () => {
 export const API_BASE = getApiBase().replace(/\/api\/?$/, "").replace(/\/$/, "");
 
 export const PWA_API_URL = `${API_BASE}/api`;
+
+export const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://app.withsocio.com";
+

@@ -119,8 +119,9 @@ export default function EventCard({
             void shareEvent({
               title: event.title,
               text: `Check out this event: ${event.title}`,
-              url: `${window.location.origin}/event/${event.event_id}`,
+              url: `/event/${event.event_id}`,
             });
+
           }}
           className="absolute top-3 right-3 z-[1] w-8 h-8 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center text-[var(--color-primary)] shadow-sm border border-white/20 active:scale-90 transition-transform"
           aria-label="Share Event"

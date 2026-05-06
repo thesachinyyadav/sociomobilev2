@@ -33,7 +33,8 @@ interface NotifCtx {
   markAllRead: () => void;
   dismiss: (id: string) => void;
   dismissAll: () => void;
-  refresh: () => void;
+  hasMore: boolean;
+  loadMore: () => void;
   enablePushNotifications: () => Promise<void>;
   updatePromptStatus: (status: NotificationPromptStatus) => void;
   triggerPrompt: () => void;
@@ -50,6 +51,8 @@ const NotifContext = createContext<NotifCtx>({
   dismiss: () => {},
   dismissAll: () => {},
   refresh: () => {},
+  hasMore: false,
+  loadMore: () => {},
   enablePushNotifications: async () => {},
   updatePromptStatus: () => {},
   triggerPrompt: () => {},
@@ -233,13 +236,18 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     }
   }, [oneSignal, userData?.email, session?.access_token, updatePromptStatus]);
 
+  const [hasMore, setHasMore] = useState(true);
+  const [page, setPage] = useState(1);
+
   // Fetch & Merge with Local States
-  const fetchNotifications = useCallback(async () => {
+  const fetchNotifications = useCallback(async (isLoadMore = false) => {
     if (!userData?.email) return;
     setIsLoading(true);
+    const targetPage = isLoadMore ? page + 1 : 1;
+    
     try {
       const res = await fetch(
-        `${PWA_API_URL}/notifications?email=${encodeURIComponent(userData.email)}&page=1&limit=50`,
+        `${PWA_API_URL}/notifications?email=${encodeURIComponent(userData.email)}&page=${targetPage}&limit=15`,
         {
           headers: session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {},
         }
@@ -251,19 +259,35 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         const readSet = getLocalSet(LS_READ_KEY);
         const dismissedSet = getLocalSet(LS_DISMISSED_KEY);
 
-        const filtered = raw
+        const processed = raw
           .filter(n => !dismissedSet.has(n.id))
           .map(n => ({
             ...n,
             read: n.read || readSet.has(n.id)
           }));
 
-        setNotifications(filtered);
-        setUnreadCount(filtered.filter(n => !n.read).length);
+        if (isLoadMore) {
+          setNotifications(prev => [...prev, ...processed]);
+          setPage(targetPage);
+        } else {
+          setNotifications(processed);
+          setPage(1);
+        }
+
+        setHasMore(raw.length === 15);
+        setUnreadCount(isLoadMore ? unreadCount : processed.filter(n => !n.read).length);
       }
-    } catch {}
+    } catch (err) {
+      console.error("Fetch error", err);
+    }
     setIsLoading(false);
-  }, [userData?.email, session?.access_token]);
+  }, [userData?.email, session?.access_token, page, unreadCount]);
+
+  const loadMore = useCallback(() => {
+    if (!isLoading && hasMore) {
+      fetchNotifications(true);
+    }
+  }, [isLoading, hasMore, fetchNotifications]);
 
   useEffect(() => {
     fetchNotifications();
@@ -350,6 +374,8 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         dismiss,
         dismissAll,
         refresh: fetchNotifications,
+        hasMore,
+        loadMore,
         enablePushNotifications,
         updatePromptStatus,
         triggerPrompt,

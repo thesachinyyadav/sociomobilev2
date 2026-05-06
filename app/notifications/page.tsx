@@ -130,7 +130,9 @@ export default function NotificationsPage() {
     dismissAll, 
     isLoading, 
     pushStatus, 
-    triggerPrompt
+    triggerPrompt,
+    hasMore,
+    loadMore
   } = useNotifications();
   const router = useRouter();
 
@@ -252,6 +254,20 @@ export default function NotificationsPage() {
                 </div>
               </div>
             ))}
+
+            {hasMore && (
+              <div className="pt-4 flex justify-center">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  className="rounded-2xl px-8 font-black text-[11px] uppercase tracking-wider"
+                  onClick={loadMore}
+                  disabled={isLoading}
+                >
+                  {isLoading ? "Loading..." : "Load Older Notifications"}
+                </Button>
+              </div>
+            )}
           </div>
         )}
       </div>

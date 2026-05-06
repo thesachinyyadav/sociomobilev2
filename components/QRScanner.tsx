@@ -186,7 +186,9 @@ export default function QRScanner({ eventId, eventTitle, onScanSuccess }: QRScan
             <div className="absolute inset-0 z-20 flex items-center justify-center bg-emerald-500/90 animate-fade-in">
               <div className="text-center text-white">
                 <CheckCircleIcon size={64} className="mx-auto mb-3" />
-                <p className="text-[18px] font-black">Attendance Marked</p>
+                <p className="text-[20px] font-black uppercase tracking-tight">
+                  {result.status === "already_present" ? "Verified" : "Attendance Marked"}
+                </p>
                 <p className="mt-1 text-[14px] font-bold opacity-90">{result.name}</p>
               </div>
             </div>

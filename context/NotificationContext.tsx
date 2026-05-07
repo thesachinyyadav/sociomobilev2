@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, useCallback, useRef, type ReactNode } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { Capacitor } from "@capacitor/core";
 import { useRouter } from "next/navigation";
@@ -78,6 +78,7 @@ function saveLocalSet(key: string, set: Set<string>) {
 }
 
 function urlBase64ToUint8Array(base64String: string) {
+  if (typeof window === "undefined") return new Uint8Array();
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
   const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
   const rawData = window.atob(base64);
@@ -100,8 +101,13 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
   const LS_PROMPT_STATUS_KEY = "socio_notification_prompt_status";
 
+  // Track page in a ref to avoid making it a reactive dep of fetchNotifications
+  const pageRef = useRef(1);
+  const [hasMore, setHasMore] = useState(true);
+
   // Load initial status
   useEffect(() => {
+    if (typeof window === "undefined") return;
     const pStatus = localStorage.getItem(LS_PUSH_STATUS_KEY) as PushStatus;
     if (pStatus) setPushStatus(pStatus);
 
@@ -111,7 +117,9 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
   const updatePromptStatus = useCallback((status: NotificationPromptStatus) => {
     setPromptStatus(status);
-    localStorage.setItem(LS_PROMPT_STATUS_KEY, status);
+    if (typeof window !== "undefined") {
+      localStorage.setItem(LS_PROMPT_STATUS_KEY, status);
+    }
   }, []);
 
   const triggerPrompt = useCallback(() => {
@@ -148,8 +156,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
           console.error("OS init error", e);
         }
       }
-      // initOneSignal(); // Disabled again - google-services.json missing, causing crash
-
+      // initOneSignal(); // Disabled — google-services.json missing, causing crash
     }
   }, [router]);
 
@@ -198,7 +205,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       if (permission === "granted") {
         const registration = await navigator.serviceWorker.ready;
         const vapidKey = process.env.NEXT_PUBLIC_VAPID_KEY;
-        
+
         if (!vapidKey) {
           console.error("Missing VAPID key");
           return;
@@ -238,15 +245,19 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     }
   }, [oneSignal, userData?.email, session?.access_token, updatePromptStatus]);
 
-  const [hasMore, setHasMore] = useState(true);
-  const [page, setPage] = useState(1);
-
-  // Fetch & Merge with Local States
+  /* ── Fetch notifications ──────────────────────────────────────────────
+   * IMPORTANT: `unreadCount` and `page` are intentionally NOT in the dep
+   * array. Reading them via functional setState or pageRef prevents the
+   * callback reference from changing on every render, which previously
+   * caused an infinite fetch loop:
+   *   fetch → setUnreadCount → new callback ref → effect re-runs → fetch …
+   * ─────────────────────────────────────────────────────────────────── */
   const fetchNotifications = useCallback(async (isLoadMore = false) => {
     if (!userData?.email) return;
     setIsLoading(true);
-    const targetPage = isLoadMore ? page + 1 : 1;
-    
+
+    const targetPage = isLoadMore ? pageRef.current + 1 : 1;
+
     try {
       const res = await fetch(
         `${PWA_API_URL}/notifications?email=${encodeURIComponent(userData.email)}&page=${targetPage}&limit=15`,
@@ -257,7 +268,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       if (res.ok) {
         const data = await res.json();
         const raw = (data.notifications || []) as Notification[];
-        
+
         const readSet = getLocalSet(LS_READ_KEY);
         const dismissedSet = getLocalSet(LS_DISMISSED_KEY);
 
@@ -270,37 +281,55 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
         if (isLoadMore) {
           setNotifications(prev => [...prev, ...processed]);
-          setPage(targetPage);
+          pageRef.current = targetPage;
         } else {
           setNotifications(processed);
-          setPage(1);
+          pageRef.current = 1;
+          // Functional update: avoids reading stale unreadCount in deps
+          setUnreadCount(processed.filter(n => !n.read).length);
         }
 
         setHasMore(raw.length === 15);
-        setUnreadCount(isLoadMore ? unreadCount : processed.filter(n => !n.read).length);
       }
     } catch (err) {
       console.error("Fetch error", err);
     }
     setIsLoading(false);
-  }, [userData?.email, session?.access_token, page, unreadCount]);
+  // Stable deps: only email and token. page is tracked via pageRef.
+  // unreadCount is updated via functional setState — never read here.
+  }, [userData?.email, session?.access_token]);
+
+  /* ── Stable fetch ref: the polling interval always calls the latest
+   * version of fetchNotifications without needing to recreate the interval
+   * every time the callback reference changes. ── */
+  const fetchRef = useRef(fetchNotifications);
+  useEffect(() => {
+    fetchRef.current = fetchNotifications;
+  }, [fetchNotifications]);
+
+  /* ── Polling effect ───────────────────────────────────────────────────
+   * Only re-runs when the user's email/token changes (login/logout).
+   * The interval is set once and calls fetchRef.current, which always
+   * points to the latest callback. This eliminates the previous bug where
+   * the interval was recreated on every fetch cycle.
+   * ─────────────────────────────────────────────────────────────────── */
+  useEffect(() => {
+    if (!userData?.email) return;
+    fetchRef.current();
+    const timer = setInterval(() => fetchRef.current(), 60000);
+    return () => clearInterval(timer);
+  }, [userData?.email, session?.access_token]);
 
   const loadMore = useCallback(() => {
     if (!isLoading && hasMore) {
-      fetchNotifications(true);
+      fetchRef.current(true);
     }
-  }, [isLoading, hasMore, fetchNotifications]);
-
-  useEffect(() => {
-    fetchNotifications();
-    const timer = setInterval(fetchNotifications, 60000);
-    return () => clearInterval(timer);
-  }, [fetchNotifications]);
+  }, [isLoading, hasMore]);
 
   const markRead = useCallback(async (id: string) => {
     setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
     setUnreadCount(c => Math.max(0, c - 1));
-    
+
     // Local persistence
     const set = getLocalSet(LS_READ_KEY);
     set.add(id);
@@ -335,7 +364,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
   const dismiss = useCallback(async (id: string) => {
     setNotifications(prev => prev.filter(n => n.id !== id));
-    
+
     const set = getLocalSet(LS_DISMISSED_KEY);
     set.add(id);
     saveLocalSet(LS_DISMISSED_KEY, set);
@@ -375,7 +404,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         markAllRead,
         dismiss,
         dismissAll,
-        refresh: fetchNotifications,
+        refresh: () => fetchRef.current(),
         hasMore,
         loadMore,
         enablePushNotifications,

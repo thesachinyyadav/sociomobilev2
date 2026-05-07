@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-// Removed top-level Capacitor imports to prevent SSR module resolution errors
+// Capacitor imports are deferred via dynamic import inside useEffect to prevent SSR errors
 import DesktopGate from "@/components/DesktopGate";
 import OrientationGate from "@/components/OrientationGate";
 import TopBar from "@/components/TopBar";
@@ -11,6 +11,7 @@ import InstallPrompt from "@/components/InstallPrompt";
 import PageTransition from "@/components/PageTransition";
 import dynamic from "next/dynamic";
 import { useAuth } from "@/context/AuthContext";
+import { isCampusDismissedRecently } from "@/components/CampusSelector";
 
 // Lazy load heavy/secondary components
 const ChatbotFab = dynamic(() => import("@/components/ChatbotFab"), { ssr: false });
@@ -31,8 +32,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const [isNative, setIsNative] = useState(false);
 
   useEffect(() => {
-    // Check if dismissed recently (requires window/client check)
-    const { isCampusDismissedRecently } = require("@/components/CampusSelector");
+    // Check if dismissed recently — isCampusDismissedRecently is a pure
+    // localStorage helper guarded internally with typeof window checks.
     setCampusDismissed(isCampusDismissedRecently());
   }, []);
 

@@ -45,12 +45,13 @@ export default function SmartNotificationPrompt() {
   const handleEnable = async () => {
     setShow(false);
     await enablePushNotifications();
-    // updatePromptStatus is handled inside enablePushNotifications via Notification.permission check or similar
-    // but we'll be safe
-    if (Notification.permission === "granted") {
-      updatePromptStatus("accepted");
-    } else if (Notification.permission === "denied") {
-      updatePromptStatus("denied");
+    // Guard: Notification API may be undefined in some Android WebViews
+    if (typeof Notification !== "undefined") {
+      if (Notification.permission === "granted") {
+        updatePromptStatus("accepted");
+      } else if (Notification.permission === "denied") {
+        updatePromptStatus("denied");
+      }
     }
   };
 

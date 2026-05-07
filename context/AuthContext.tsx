@@ -353,7 +353,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     return null;
-  }, [PWA_API_URL]);
+  // PWA_API_URL is a module-level compile-time constant — not a reactive dep.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const maybeShowOutsiderWelcome = useCallback((fetchedUser: UserData | null, authUserId?: string) => {
     if (

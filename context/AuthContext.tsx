@@ -479,25 +479,48 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (typeof window === "undefined" || !Capacitor.isNativePlatform()) return;
 
     const listener = CapacitorApp.addListener("appUrlOpen", async (event) => {
+      console.log("👉 [DeepLink] Incoming URL:", event.url);
       try {
         const url = new URL(event.url);
-        if (url.protocol === "socio:" && url.pathname.includes("/callback")) {
+        console.log("👉 [DeepLink] Parsed URL:", { 
+          protocol: url.protocol, 
+          host: url.host, 
+          pathname: url.pathname 
+        });
+
+        if (url.protocol === "socio:" && url.host === "auth") {
           const token = url.searchParams.get("token");
           const refreshToken = url.searchParams.get("refresh_token");
+          const error = url.searchParams.get("error");
+
+          if (error) {
+            console.error("❌ [DeepLink] Auth error from backend:", error);
+            return;
+          }
           
           if (token && refreshToken) {
+            console.log("✅ [DeepLink] Tokens received, setting session...");
             await Browser.close().catch(() => {});
             
-            await supabase.auth.setSession({
+            const { data, error: sessionErr } = await supabase.auth.setSession({
               access_token: token,
               refresh_token: refreshToken,
             });
+
+            if (sessionErr) {
+              console.error("❌ [DeepLink] setSession failed:", sessionErr.message);
+            } else {
+              console.log("🎉 [DeepLink] Session set successfully for:", data.user?.email);
+            }
+          } else {
+            console.warn("⚠️ [DeepLink] Missing tokens in URL params");
           }
         }
       } catch (err) {
-        console.error("Error handling deep link", err);
+        console.error("❌ [DeepLink] Critical handling error:", err);
       }
     });
+
 
     return () => {
       listener.then(l => l.remove()).catch(() => {});

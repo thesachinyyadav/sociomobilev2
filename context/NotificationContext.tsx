@@ -148,7 +148,8 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
           console.error("OS init error", e);
         }
       }
-      // initOneSignal(); // Temporarily disabled for diagnostic isolation
+      initOneSignal();
+
     }
   }, [router]);
 

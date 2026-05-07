@@ -48,8 +48,35 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       }
     };
 
-    // lockOrientation();
-    // setupDeepLinks();
+    const setupDeepLinks = async () => {
+      try {
+        const { Capacitor } = await import("@capacitor/core");
+        if (!Capacitor.isNativePlatform()) return;
+
+        const { App } = await import("@capacitor/app");
+        
+        // Handle links when app is in background or already open
+        await App.addListener('appUrlOpen', (data) => {
+          console.log("👉 [AppShell] Deep Link Hit:", data.url);
+          const url = new URL(data.url);
+          const path = url.pathname;
+          
+          if (path.startsWith('/event/')) {
+            const eventId = path.split('/event/')[1];
+            if (eventId) {
+              console.log("🚀 [AppShell] Navigating to event:", eventId);
+              router.push(`/event/${eventId}`);
+            }
+          }
+        });
+      } catch (err) {
+        console.warn("Deep link setup failed:", err);
+      }
+    };
+
+    lockOrientation();
+    setupDeepLinks();
+
   }, [router]);
 
   const handleCampusComplete = (campus: string) => {

@@ -38,7 +38,15 @@
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="socio" android:host="auth" />
+                <data android:scheme="socio" android:host="auth" android:pathPrefix="/callback" />
+            </intent-filter>
+
+            <!-- Backward-compatible deep link variant used by older builds -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="socio" android:host="callback" />
             </intent-filter>
 
             <intent-filter android:autoVerify="true">

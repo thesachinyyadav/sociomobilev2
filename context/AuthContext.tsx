@@ -484,39 +484,76 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.log("👉 [DeepLink] Incoming URL:", event.url);
       try {
         const url = new URL(event.url);
-        console.log("👉 [DeepLink] Parsed URL:", { 
-          protocol: url.protocol, 
-          host: url.host, 
-          pathname: url.pathname 
+        console.log("👉 [DeepLink] Parsed URL:", {
+          href: url.href,
+          protocol: url.protocol,
+          host: url.host,
+          pathname: url.pathname,
+          search: url.search,
         });
 
-        if (url.protocol === "socio:" && url.host === "auth") {
-          const token = url.searchParams.get("token");
-          const refreshToken = url.searchParams.get("refresh_token");
-          const error = url.searchParams.get("error");
+        // Accept multiple callback variants from backend/frontend:
+        // - socio://auth/callback?token=...&refresh_token=...
+        // - socio://auth?token=...&refresh_token=...
+        // - socio://callback?token=...&refresh_token=...
+        const isSocioScheme = url.protocol === "socio:" || url.protocol === "socio";
+        if (!isSocioScheme) {
+          console.log("[DeepLink] Not a socio: scheme, ignoring.");
+          return;
+        }
 
-          if (error) {
-            console.error("❌ [DeepLink] Auth error from backend:", error);
+        const code = url.searchParams.get("code");
+        const token = url.searchParams.get("token") || url.searchParams.get("access_token");
+        const refreshToken = url.searchParams.get("refresh_token") || url.searchParams.get("refreshToken") || url.searchParams.get("refresh");
+        const error = url.searchParams.get("error");
+
+        if (error) {
+          console.error("❌ [DeepLink] Auth error from backend:", error);
+          return;
+        }
+
+        if (code) {
+          console.log("✅ [DeepLink] OAuth code received, exchanging for session...");
+
+          const { error: exchangeErr } = await supabase.auth.exchangeCodeForSession(code);
+          if (exchangeErr) {
+            console.error("❌ [DeepLink] exchangeCodeForSession failed:", exchangeErr.message, exchangeErr);
             return;
           }
-          
-          if (token && refreshToken) {
-            console.log("✅ [DeepLink] Tokens received, setting session...");
-            await Browser.close().catch(() => {});
-            
-            const { data, error: sessionErr } = await supabase.auth.setSession({
-              access_token: token,
-              refresh_token: refreshToken,
-            });
 
-            if (sessionErr) {
-              console.error("❌ [DeepLink] setSession failed:", sessionErr.message);
-            } else {
-              console.log("🎉 [DeepLink] Session set successfully for:", data.user?.email);
-            }
-          } else {
-            console.warn("⚠️ [DeepLink] Missing tokens in URL params");
+          try {
+            await Browser.close();
+          } catch (e) {
+            console.warn("[DeepLink] Browser.close() failed or not available:", e);
           }
+
+          console.log("🎉 [DeepLink] OAuth code exchange completed.");
+        } else if (token && refreshToken) {
+          console.log("✅ [DeepLink] Tokens received, setting session...");
+
+          // Try to close the browser first (best-effort), then set session.
+          try {
+            await Browser.close();
+          } catch (e) {
+            console.warn("[DeepLink] Browser.close() failed or not available:", e);
+          }
+
+          const { data, error: sessionErr } = await supabase.auth.setSession({
+            access_token: token,
+            refresh_token: refreshToken,
+          });
+
+          if (sessionErr) {
+            console.error("❌ [DeepLink] setSession failed:", sessionErr.message, sessionErr);
+          } else {
+            console.log("🎉 [DeepLink] Session set successfully for:", data.user?.email);
+          }
+        } else {
+          console.warn("⚠️ [DeepLink] Missing code/tokens in URL params", {
+            codePresent: !!code,
+            tokenPresent: !!token,
+            refreshPresent: !!refreshToken,
+          });
         }
       } catch (err) {
         console.error("❌ [DeepLink] Critical handling error:", err);
@@ -625,10 +662,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signInWithGoogle = useCallback(async () => {
     const isApp = typeof window !== "undefined" && Capacitor.isNativePlatform();
     
-    // For App, use the backend proxy as redirect URL to trigger deep link
-    // For Web, use the standard Next.js callback
+    // For native app, redirect directly to deep link so the app can exchange PKCE code.
+    // For web, use the standard Next.js callback route.
     const redirectUrl = isApp 
-      ? `${PWA_API_URL}/auth/callback` 
+      ? "socio://auth/callback"
       : `${window.location.origin}/auth/callback`;
 
     const { data, error } = await supabase.auth.signInWithOAuth({

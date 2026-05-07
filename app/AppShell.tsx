@@ -44,6 +44,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
+    let deepLinkListener: { remove: () => Promise<void> } | null = null;
+
     const lockOrientation = async () => {
       try {
         const { Capacitor } = await import("@capacitor/core");
@@ -64,7 +66,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         const { App } = await import("@capacitor/app");
         
         // Handle links when app is in background or already open
-        await App.addListener('appUrlOpen', (data) => {
+        deepLinkListener = await App.addListener('appUrlOpen', (data) => {
           console.log("👉 [AppShell] Deep Link Hit:", data.url);
           const url = new URL(data.url);
           const path = url.pathname;
@@ -84,6 +86,12 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
     lockOrientation();
     setupDeepLinks();
+
+    return () => {
+      if (deepLinkListener) {
+        deepLinkListener.remove().catch(() => {});
+      }
+    };
 
   }, [router]);
 

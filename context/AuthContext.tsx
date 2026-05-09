@@ -523,6 +523,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
           try {
             await Browser.close();
+            console.log("✅ [DeepLink] Browser closed successfully.");
           } catch (e) {
             console.warn("[DeepLink] Browser.close() failed or not available:", e);
           }
@@ -534,6 +535,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           // Try to close the browser first (best-effort), then set session.
           try {
             await Browser.close();
+            console.log("✅ [DeepLink] Browser closed successfully.");
           } catch (e) {
             console.warn("[DeepLink] Browser.close() failed or not available:", e);
           }
@@ -679,11 +681,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signInWithGoogle = useCallback(async () => {
     const isApp = typeof window !== "undefined" && Capacitor.isNativePlatform();
     
-    // For native app, redirect directly to deep link so the app can exchange PKCE code.
+    // For native app, redirect to backend callback so it can exchange tokens
+    // and redirect back using the socio:// scheme.
     // For web, use the standard Next.js callback route.
     const redirectUrl = isApp 
-      ? "socio://auth/callback"
+      ? `${PWA_API_URL}/auth/callback`
       : `${window.location.origin}/auth/callback`;
+
+    console.log(`[Auth] Initiating OAuth flow. isApp: ${isApp}, redirectUrl: ${redirectUrl}`);
 
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: "google",

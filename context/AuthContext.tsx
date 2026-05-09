@@ -16,6 +16,7 @@ import { supabase } from "@/lib/supabaseClient";
 import type { Session, User } from "@supabase/supabase-js";
 import { signInWithGoogleWeb } from "@/lib/auth/webAuth";
 import { signInWithGoogleNative } from "@/lib/auth/nativeAuth";
+import { apiRequest } from "@/lib/apiClient";
 import { PWA_API_URL } from "@/lib/apiConfig";
 
 /* ── Local-storage helpers for PWA session persistence ── */
@@ -252,117 +253,55 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const timeoutId = setTimeout(() => controller.abort(), 8000); // 8s timeout protection
 
     try {
-      const res = await fetch(
-        accessToken ? `${PWA_API_URL}/users/me` : `${PWA_API_URL}/users/${encodeURIComponent(email)}`,
+      const res = await apiRequest(
+        accessToken ? `/users/me` : `/users/${encodeURIComponent(email)}`,
         {
           headers,
           cache: "no-store",
           signal: controller.signal
         }
       );
-      console.log(`[API] response status: ${res.status} for /users/me (${email}), platform: ${platform}`);
+      console.log(`[API] response for /users/me (${email}), platform: ${platform}`);
       clearTimeout(timeoutId);
 
-      if (res.ok) {
-        const data = await res.json();
-        console.log(`🔍 [AuthDebug] fetchUserData: SUCCESS. Data keys: ${Object.keys(data).join(", ")}`);
-        const fetchedUser = data.user ?? data;
-        fetchedUser.roles = fetchedUser.roles ?? data.roles ?? {};
-        
-        if (fetchedUser.caters && fetchedUser.caters.some((c: any) => c.is_catering)) {
-          fetchedUser.roles.catering = true;
-        }
+      const data = res;
+      console.log(`🔍 [AuthDebug] fetchUserData: SUCCESS. Data keys: ${Object.keys(data).join(", ")}`);
+      const fetchedUser = data.user ?? data;
+      fetchedUser.roles = fetchedUser.roles ?? data.roles ?? {};
 
-        fetchedUser.roles = {
-          catering: fetchedUser.roles.catering,
-        };
-
-        let volEvents = Array.isArray(fetchedUser.volunteerEvents)
-          ? fetchedUser.volunteerEvents
-          : Array.isArray(data.volunteerEvents)
-            ? data.volunteerEvents
-            : undefined;
-
-        if (volEvents === undefined && accessToken) {
-          try {
-            console.log(`[API] endpoint: /volunteer/events, token exists: ${!!accessToken}, platform: ${Capacitor.getPlatform()}`);
-            const volRes = await fetch(`${PWA_API_URL}/volunteer/events`, {
-              headers: { Authorization: `Bearer ${accessToken}` },
-              cache: "no-store",
-              signal: AbortSignal.timeout(8000)
-            });
-            console.log(`[API] response status: ${volRes.status} for /volunteer/events`);
-            if (volRes.ok) {
-              const volData = await volRes.json();
-              volEvents = volData.events || [];
-            } else {
-              volEvents = [];
-            }
-          } catch (err) {
-            console.error("Failed to fetch volunteer events during /me fetch", err);
-            volEvents = [];
-          }
-        }
-        
-        fetchedUser.volunteerEvents = volEvents || [];
-        setUserData(fetchedUser);
-        persistUserDataToLS(fetchedUser);
-        return fetchedUser;
+      if (fetchedUser.caters && fetchedUser.caters.some((c: any) => c.is_catering)) {
+        fetchedUser.roles.catering = true;
       }
 
-      if (res.status === 404 && accessToken && email) {
-        const fallbackRes = await fetch(`${PWA_API_URL}/users/${encodeURIComponent(email)}`, {
-          cache: "no-store",
-        });
-        if (fallbackRes.ok) {
-          const data = await fallbackRes.json();
-          const fetchedUser = data.user ?? data;
-          fetchedUser.roles = fetchedUser.roles ?? data.roles ?? {};
+      fetchedUser.roles = {
+        catering: fetchedUser.roles.catering,
+      };
 
-          if (fetchedUser.caters && fetchedUser.caters.some((c: any) => c.is_catering)) {
-            fetchedUser.roles.catering = true;
-          }
+      let volEvents = Array.isArray(fetchedUser.volunteerEvents)
+        ? fetchedUser.volunteerEvents
+        : Array.isArray(data.volunteerEvents)
+          ? data.volunteerEvents
+          : undefined;
 
-          fetchedUser.roles = {
-            catering: fetchedUser.roles.catering,
-          };
-
-          let fallbackVolEvents = Array.isArray(fetchedUser.volunteerEvents)
-            ? fetchedUser.volunteerEvents
-            : Array.isArray(data.volunteerEvents)
-              ? data.volunteerEvents
-              : undefined;
-
-          if (fallbackVolEvents === undefined) {
-            try {
-              let volData: any = null;
-              if (accessToken) {
-                const volRes = await fetch(`${PWA_API_URL}/volunteer/events`, {
-                  headers: { Authorization: `Bearer ${accessToken}` },
-                  cache: "no-store",
-                });
-                if (volRes.ok) volData = await volRes.json();
-              }
-
-              if (!volData || !volData.events) {
-                const emailVolRes = await fetch(`${PWA_API_URL}/volunteer/events?email=${encodeURIComponent(email)}`, {
-                  cache: "no-store",
-                });
-                if (emailVolRes.ok) volData = await emailVolRes.json();
-              }
-
-              fallbackVolEvents = volData?.events || [];
-            } catch (err) {
-              fallbackVolEvents = [];
-            }
-          }
-          
-          fetchedUser.volunteerEvents = fallbackVolEvents || [];
-          setUserData(fetchedUser);
-          persistUserDataToLS(fetchedUser);
-          return fetchedUser;
+      if (volEvents === undefined && accessToken) {
+        try {
+          console.log(`[API] endpoint: /volunteer/events, token exists: ${!!accessToken}, platform: ${Capacitor.getPlatform()}`);
+          const volRes = await apiRequest(`/volunteer/events`, {
+            headers: { Authorization: `Bearer ${accessToken}` },
+            cache: "no-store",
+            signal: AbortSignal.timeout(8000)
+          });
+          volEvents = volRes.events || [];
+        } catch (err) {
+          console.error("Failed to fetch volunteer events during /me fetch", err);
+          volEvents = [];
         }
       }
+
+      fetchedUser.volunteerEvents = volEvents || [];
+      setUserData(fetchedUser);
+      persistUserDataToLS(fetchedUser);
+      return fetchedUser;
     } catch (e: any) {
       console.error(`🔍 [AuthDebug] fetchUserData Error: ${e.message}`);
     } finally {
@@ -434,7 +373,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         // Non-blocking POST
         console.log(`🔍 [AuthDebug] ensureUser: Sending POST /users for ${email}...`);
-        const res = await fetch(`${PWA_API_URL}/users`, {
+        await apiRequest(`/users`, {
           method: "POST",
           headers,
           body: JSON.stringify({
@@ -448,11 +387,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             },
           }),
         });
-        console.log(`🔍 [AuthDebug] ensureUser: POST /users status = ${res.status}`);
-        if (!res.ok) {
-          const errData = await res.json().catch(() => ({}));
-          console.error(`🔍 [AuthDebug] ensureUser: POST failed with status ${res.status}`, errData);
-        }
+        console.log(`🔍 [AuthDebug] ensureUser: POST /users request completed`);
       } catch (err) {
         console.error("🔍 [AuthDebug] ensureUser: Setup error:", err);
       }

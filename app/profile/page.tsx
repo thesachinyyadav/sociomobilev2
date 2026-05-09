@@ -33,6 +33,7 @@ import {
 import { Button } from "@/components/Button";
 import type { FetchedEvent } from "@/context/EventContext";
 import { getActiveVolunteerEvents } from "@/lib/volunteerAccess";
+import { apiRequest } from "@/lib/apiClient";
 import { PWA_API_URL } from "@/lib/apiConfig";
 
 interface Registration {
@@ -127,13 +128,11 @@ export default function ProfilePage() {
           headers.Authorization = `Bearer ${session.access_token}`;
         }
 
-        const res = await fetch(
-          `${PWA_API_URL}/registrations?${params.toString()}`,
-          { headers }
-        );
-        if (res.ok) {
-          const data = await res.json();
-          const regs = Array.isArray(data) ? data : data.registrations ?? data ?? [];
+        const res = await apiRequest(`/registrations?${params.toString()}`, {
+          headers
+        });
+        if (res) {
+          const regs = Array.isArray(res) ? res : res.registrations ?? res ?? [];
           const normalized = (Array.isArray(regs) ? regs : [])
             .map((r: any) => ({
               event_id: String(r?.event_id || r?.id || r?.event?.event_id || r?.event?.id || ""),
@@ -154,7 +153,7 @@ export default function ProfilePage() {
           setRegistrations(normalized);
           sessionStorage.setItem(cacheKey, JSON.stringify(normalized));
         } else {
-          console.error("Failed to fetch registrations:", res.status);
+          console.error("Failed to fetch registrations");
           setRegistrations([]);
         }
       } catch (err) {
@@ -211,22 +210,13 @@ export default function ProfilePage() {
     setCancellingId(registration.registration_id);
     setCancelConfirmId(null);
     try {
-      const res = await fetch(
-        `${PWA_API_URL}/registrations/self/${encodeURIComponent(registration.registration_id)}`,
-        {
-          method: "DELETE",
-          headers: {
-            Authorization: `Bearer ${session.access_token}`,
-          },
-          cache: "no-store",
-        }
-      );
-
-      const body = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        alert(body.error || "Failed to cancel registration.");
-        return;
-      }
+      await apiRequest(`/registrations/self/${encodeURIComponent(registration.registration_id)}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        cache: "no-store",
+      });
 
       setRegistrations((prev) => prev.filter((r) => r.registration_id !== registration.registration_id));
     } catch {

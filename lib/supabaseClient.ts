@@ -8,7 +8,14 @@ if (!supabaseUrl || !supabaseAnonKey) {
   console.warn("⚠️ Supabase env vars missing — auth will not work");
 }
 
-const isApp = typeof window !== "undefined" && Capacitor.isNativePlatform();
+const isApp = typeof window !== "undefined" && (Capacitor.isNativePlatform() || Capacitor.getPlatform() !== 'web');
+
+console.log("🛠️ [SupabaseClient] Initialization:", {
+  isNative: isApp,
+  platform: typeof window !== "undefined" ? Capacitor.getPlatform() : "SSR",
+  supabaseUrl: !!supabaseUrl,
+  flowType: isApp ? "implicit" : "pkce"
+});
 
 export const supabase = createClient(
   supabaseUrl || "https://placeholder.supabase.co",
@@ -17,8 +24,6 @@ export const supabase = createClient(
     auth: {
       persistSession: true,
       autoRefreshToken: true,
-      // On native app, we handle session restoration manually via handleDeepLink/setSession.
-      // Automatic detection often fails on mobile due to PKCE verifier mismatches.
       detectSessionInUrl: !isApp,
       flowType: isApp ? "implicit" : "pkce",
     },

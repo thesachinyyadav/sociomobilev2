@@ -12,9 +12,7 @@ import { PWA_API_URL } from "@/lib/apiConfig";
  * 4. App receives tokens via socio:// scheme.
  */
 export async function signInWithGoogleNative() {
-  // Use the backend as a proxy to perform the code exchange
-  const backendCallback = `${PWA_API_URL}/auth/callback`;
-  const redirectUrl = `${backendCallback}?next=${encodeURIComponent("socio://auth/callback")}`;
+  const redirectUrl = "socio://auth/callback";
   
   console.log(`[NativeAuth] Initiating OAuth flow. redirectTo: ${redirectUrl}`);
 
@@ -26,7 +24,12 @@ export async function signInWithGoogleNative() {
     },
   });
 
-  if (error) throw error;
+  if (error) {
+    console.error("[NativeAuth] signInWithOAuth Error:", error.message, error);
+    throw error;
+  }
+
+  console.log("[NativeAuth] signInWithOAuth data:", data);
 
   // Manually open the Google login in a Chrome Custom Tab / SFSafariViewController
   if (data?.url) {

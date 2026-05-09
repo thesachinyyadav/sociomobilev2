@@ -714,11 +714,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   /* Actions */
   const signInWithGoogle = useCallback(async () => {
-    const isApp = typeof window !== "undefined" && Capacitor.isNativePlatform();
+    if (typeof window === "undefined") return;
+
+    // Aggressive Native Check
+    const platform = Capacitor.getPlatform();
+    const isNative = Capacitor.isNativePlatform();
+    const isApp = isNative || platform === "android" || platform === "ios";
+    const currentOrigin = window.location.origin;
     
+    console.log("🔍 [AuthDebug] Full Platform Analysis:", {
+      isAppResult: isApp,
+      isNativePlatform: isNative,
+      getPlatform: platform,
+      userAgent: navigator.userAgent,
+      origin: currentOrigin,
+      location: window.location.href
+    });
+
     if (isApp) {
+      console.log("🚀 [AuthDebug] >>> EXECUTING NATIVE AUTH BRANCH <<<");
+      console.log("📍 [AuthDebug] Forced Redirect: socio://auth/callback");
       await signInWithGoogleNative();
     } else {
+      console.log("🌐 [AuthDebug] >>> EXECUTING WEB AUTH BRANCH <<<");
+      console.log("📍 [AuthDebug] Origin-based Redirect Target Selected");
       await signInWithGoogleWeb();
     }
   }, []);

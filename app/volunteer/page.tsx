@@ -257,11 +257,11 @@ export default function VolunteerDashboardPage() {
               const assignedBy = event.volunteer_assignment?.assigned_by;
 
               return (
-                <Link
-                  key={event.event_id}
-                  href={`/volunteer/scanner/${encodeURIComponent(event.event_id)}`}
-                  className="card block p-4 active:scale-[0.99]"
-                >
+                <div key={event.event_id} className="card p-4">
+                  <Link
+                    href={`/volunteer/scanner/${encodeURIComponent(event.event_id)}`}
+                    className="block active:scale-[0.99]"
+                  >
                   <div className="flex items-start gap-3">
                     <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[var(--color-primary-light)] text-[var(--color-primary)]">
                       <QrCodeIcon size={20} />
@@ -309,6 +309,8 @@ export default function VolunteerDashboardPage() {
                     <ArrowRightIcon size={18} className="mt-1 shrink-0 text-[var(--color-text-light)]" />
                   </div>
 
+                  </Link>
+
                   {/* Shake-to-scan toggle row */}
                   <div className="mt-4 flex items-center justify-between rounded-2xl border border-[var(--color-border)] bg-white/80 px-3 py-2">
                     <div>
@@ -325,9 +327,7 @@ export default function VolunteerDashboardPage() {
                       type="button"
                       aria-label="Toggle Shake to Scan"
                       title="Toggle Shake to Scan"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
+                      onClick={() => {
                         void handleToggleShake(event.event_id);
                       }}
                       className={`relative h-7 w-12 rounded-full transition-colors ${
@@ -344,7 +344,7 @@ export default function VolunteerDashboardPage() {
                       />
                     </button>
                   </div>
-                </Link>
+                </div>
               );
             })}
           </section>

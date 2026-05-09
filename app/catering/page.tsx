@@ -199,10 +199,12 @@ export default function CateringDashboardPage() {
   return (
     <div className="min-h-screen bg-[#F8FAFC] pb-24">
       {/* Sticky Header */}
-      <div className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-slate-100 pt-[calc(var(--safe-top)+12px)] px-4">
+      <div className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-slate-100 pt-[calc(var(--safe-top,0px)+24px)] px-4">
         <div className="flex items-center gap-3 mb-6">
           <button
             onClick={() => router.back()}
+            aria-label="Go back"
+            title="Go back"
             className="w-10 h-10 rounded-2xl bg-white shadow-sm border border-slate-100 flex items-center justify-center text-[var(--color-text)] active:scale-90 transition-transform"
           >
             <ArrowLeftIcon size={20} />
@@ -217,6 +219,8 @@ export default function CateringDashboardPage() {
                     setSelectedVendorId(e.target.value);
                     setPage(1);
                   }}
+                  aria-label="Select catering shop"
+                  title="Select catering shop"
                   className="appearance-none bg-blue-50 border-none text-[11px] font-bold text-blue-700 py-1 pl-2 pr-6 rounded-lg focus:ring-1 focus:ring-blue-200 outline-none cursor-pointer uppercase tracking-wider"
                 >
                   <option value="">All Shops</option>
@@ -265,7 +269,7 @@ export default function CateringDashboardPage() {
         </div>
       </div>
 
-      <div className="p-4 max-w-2xl mx-auto">
+      <div className="px-4 pb-4 pt-6 max-w-2xl mx-auto">
         {error ? (
           <div className="bg-white rounded-2xl p-8 text-center flex flex-col items-center mt-10 shadow-sm border border-slate-100">
             <div className="w-14 h-14 bg-red-50 rounded-full flex items-center justify-center mb-4">

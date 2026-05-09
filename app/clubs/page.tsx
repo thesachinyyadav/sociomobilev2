@@ -64,6 +64,11 @@ export default function ClubsPage() {
   const debouncedSearch = useDebounce(search, 250);
   const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (isSearchOpen) searchInputRef.current?.focus();
+  }, [isSearchOpen]);
 
   useEffect(() => {
     (async () => {
@@ -128,7 +133,7 @@ export default function ClubsPage() {
                 className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] pointer-events-none z-[1]"
               />
               <input
-                autoFocus
+                ref={searchInputRef}
                 type="text"
                 placeholder="Search clubs, centres, cells..."
                 value={search}

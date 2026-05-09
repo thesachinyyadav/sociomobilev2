@@ -53,6 +53,11 @@ export default function DiscoverPage() {
   const [festsLoading, setFestsLoading] = useState(true);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isHydrated, setIsHydrated] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (isSearchOpen) searchInputRef.current?.focus();
+  }, [isSearchOpen]);
 
   useEffect(() => {
     setIsHydrated(true);
@@ -247,7 +252,7 @@ export default function DiscoverPage() {
                 className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] pointer-events-none z-[1]"
               />
               <input
-                autoFocus
+                ref={searchInputRef}
                 type="text"
                 placeholder="Search events, clubs..."
                 value={search}

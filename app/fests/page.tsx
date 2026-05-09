@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import FestCard from "@/components/FestCard";
@@ -29,6 +29,11 @@ export default function FestsPage() {
   const [activeCategory, setActiveCategory] = useState("All");
   const [currentPage, setCurrentPage] = useState(1);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (isSearchOpen) searchInputRef.current?.focus();
+  }, [isSearchOpen]);
 
   const { userData } = useAuth();
 
@@ -158,7 +163,7 @@ export default function FestsPage() {
             <div className="relative flex-1 min-w-0">
               <SearchIcon size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] pointer-events-none z-[1]" />
               <input
-                autoFocus
+                ref={searchInputRef}
                 type="text"
                 placeholder="Search fests..."
                 value={search}

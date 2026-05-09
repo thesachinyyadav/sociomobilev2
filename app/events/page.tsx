@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useEvents, matchesSelectedCampus } from "@/context/EventContext";
 import { useAuth } from "@/context/AuthContext";
 import EventCard from "@/components/EventCard";
@@ -29,6 +29,12 @@ export default function EventsPage() {
   const [onlyOpen, setOnlyOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (isSearchOpen) searchInputRef.current?.focus();
+  }, [isSearchOpen]);
+
   const ITEMS_PER_PAGE = 5;
 
   // Seed the selected campus from the user's profile campus
@@ -130,7 +136,7 @@ export default function EventsPage() {
             <div className="relative flex-1 min-w-0">
               <SearchIcon size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] pointer-events-none z-[1]" />
               <input
-                autoFocus
+                ref={searchInputRef}
                 type="text"
                 placeholder="Search events, fests..."
                 value={search}

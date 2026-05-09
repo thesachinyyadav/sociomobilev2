@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { AlertCircleIcon, ArrowRightIcon, HelpCircleIcon, Loader2Icon, SchoolIcon, WifiOffIcon } from "@/components/icons";
+import { AlertCircleIcon, Loader2Icon, SchoolIcon, WifiOffIcon } from "@/components/icons";
 import { useAuth } from "@/context/AuthContext";
 
 function GoogleMark() {
@@ -105,132 +105,69 @@ export default function AuthPage() {
       <div className="absolute -top-20 -right-16 h-72 w-72 rounded-full bg-[var(--color-primary)]/12 blur-3xl" />
       <div className="absolute -bottom-12 -left-12 h-64 w-64 rounded-full bg-[var(--color-accent)]/18 blur-3xl" />
 
-      <main className="relative mx-auto flex min-h-dvh w-full max-w-[420px] flex-col px-6 pt-[calc(var(--nav-height)+var(--safe-top)+32px)] pb-24">
-        <section className="flex flex-1 flex-col justify-center gap-10">
-          <header className="flex flex-col items-center text-center">
-            <div className="flex h-18 w-18 items-center justify-center rounded-[22px] bg-[var(--color-primary)] shadow-[0_14px_40px_rgba(1,31,123,0.18)]">
-              <SchoolIcon className="h-9 w-9 text-white" strokeWidth={2.2} />
+      <main className="relative mx-auto flex min-h-dvh w-full max-w-[420px] flex-col items-center justify-center px-6 pb-16">
+        <div className="w-full space-y-6">
+          <div className="flex flex-col items-center gap-4 text-center">
+            <div className="flex h-16 w-16 items-center justify-center rounded-[20px] bg-[var(--color-primary)] shadow-[0_12px_32px_rgba(1,31,123,0.18)]">
+              <SchoolIcon className="h-8 w-8 text-white" strokeWidth={2.2} />
             </div>
-            <div className="mt-5 space-y-2">
-              <Image
-                src="/logo.svg"
-                alt="SOCIO"
-                width={170}
-                height={50}
-                priority
-                className="mx-auto h-auto w-[170px]"
-              />
-              <p className="mx-auto max-w-[260px] text-sm font-medium leading-relaxed text-[var(--color-text-muted)]">
-                Discover, register, and manage campus events.
-              </p>
-            </div>
-          </header>
+            <Image
+              src="/logo.svg"
+              alt="SOCIO"
+              width={140}
+              height={42}
+              priority
+              className="mx-auto h-auto w-[140px]"
+            />
+          </div>
 
-          <section>
-              <div className="rounded-[28px] border border-white bg-white/92 p-8 shadow-[0_10px_40px_rgba(1,31,123,0.08)] backdrop-blur-sm">
-              <div className="mb-8">
-                <h1 className="text-2xl font-extrabold tracking-tight text-[var(--color-primary-dark)]">
-                  Welcome
-                </h1>
-                <p className="mt-1 text-sm text-[var(--color-text-muted)]">
-                  Sign in to join your campus community.
-                </p>
-              </div>
+          <div className="rounded-[24px] border border-white bg-white/92 p-6 shadow-[0_10px_40px_rgba(1,31,123,0.08)] backdrop-blur-sm">
+            <h1 className="mb-5 text-xl font-extrabold tracking-tight text-[var(--color-primary-dark)]">
+              Sign in
+            </h1>
 
-              <div className="space-y-4">
-                <button
-                  type="button"
-                  onClick={handleGoogleSignIn}
-                  disabled={isSubmitting || isLoading || isOffline}
-                  className="flex h-[52px] w-full items-center justify-center gap-3 rounded-xl bg-[var(--color-primary)] px-4 font-bold text-white shadow-[0_10px_24px_rgba(1,31,123,0.16)] transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {isSubmitting || isLoading ? (
-                    <>
-                      <Loader2Icon className="h-5 w-5 animate-spin" />
-                      <span>Authenticating...</span>
-                    </>
-                  ) : (
-                    <>
-                      <GoogleMark />
-                      <span>Continue with Google</span>
-                    </>
-                  )}
-                </button>
-
-                <p className="px-4 text-center text-[11px] font-semibold leading-relaxed text-[var(--color-text-muted)]">
-                  Students, staff, and approved visitors can continue with Google.
-                </p>
-              </div>
-
-              {authError && (
-                <div className="mt-5 rounded-2xl border border-red-200 bg-red-50 px-4 py-3">
-                  <div className="flex items-start gap-3 text-red-700">
-                    <AlertCircleIcon className="mt-0.5 h-4 w-4 shrink-0" />
-                    <p className="text-xs font-semibold leading-relaxed">{authError}</p>
-                  </div>
-                </div>
+            <button
+              type="button"
+              onClick={handleGoogleSignIn}
+              disabled={isSubmitting || isLoading || isOffline}
+              className="flex h-[52px] w-full items-center justify-center gap-3 rounded-xl bg-[var(--color-primary)] px-4 font-bold text-white shadow-[0_10px_24px_rgba(1,31,123,0.16)] transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {isSubmitting || isLoading ? (
+                <>
+                  <Loader2Icon className="h-5 w-5 animate-spin" />
+                  <span>Signing in...</span>
+                </>
+              ) : (
+                <>
+                  <GoogleMark />
+                  <span>Continue with Google</span>
+                </>
               )}
+            </button>
 
-              {isOffline && (
-                <div className="mt-4 flex items-center gap-3 rounded-2xl bg-[var(--color-bg)] px-4 py-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--color-border)] text-[var(--color-text-muted)]">
-                    <WifiOffIcon className="h-5 w-5" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-xs font-bold">You&apos;re offline</p>
-                    <p className="text-[11px] text-[var(--color-text-muted)]">
-                      Check your connection and try again.
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              <div className="mt-8 flex justify-center">
-                <Link
-                  href="/privacy"
-                  className="text-xs font-bold text-[var(--color-primary)] underline decoration-2 underline-offset-4"
-                >
-                  Privacy &amp; Terms
-                </Link>
-              </div>
-            </div>
-
-            <p className="px-8 pt-5 text-center text-[11px] leading-relaxed text-[var(--color-text-light)]">
-              By continuing, you agree to our <Link href="/terms" className="underline">Terms of Service</Link> and{" "}
-              <Link href="/privacy" className="underline">Privacy Policy</Link>.
-            </p>
-          </section>
-
-          <section className="grid gap-4">
-            <div className="rounded-2xl border border-white bg-white/70 p-4 shadow-sm backdrop-blur-sm">
-              <div className="flex items-center gap-3">
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[var(--color-primary-light)] text-[var(--color-primary)]">
-                  <ArrowRightIcon className="h-5 w-5" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <h2 className="text-sm font-bold text-[var(--color-primary-dark)]">Fast sign-in</h2>
-                  <p className="text-[11px] text-[var(--color-text-muted)]">
-                    Your profile, registrations, and notifications stay in sync.
-                  </p>
+            {authError && (
+              <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3">
+                <div className="flex items-start gap-2 text-red-700">
+                  <AlertCircleIcon className="mt-0.5 h-4 w-4 shrink-0" />
+                  <p className="text-xs font-semibold">{authError}</p>
                 </div>
               </div>
-            </div>
+            )}
 
-            <div className="rounded-2xl border border-[var(--color-border)] bg-white/60 p-4">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--color-bg)] text-[var(--color-text-muted)]">
-                  <HelpCircleIcon className="h-5 w-5" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-xs font-bold">Need help signing in?</p>
-                  <p className="text-[11px] text-[var(--color-text-muted)]">
-                    Use the same Google account you use with SOCIO on web.
-                  </p>
-                </div>
+            {isOffline && (
+              <div className="mt-3 flex items-center gap-2 rounded-xl bg-[var(--color-bg)] px-3 py-2.5">
+                <WifiOffIcon className="h-4 w-4 shrink-0 text-[var(--color-text-muted)]" />
+                <p className="text-xs text-[var(--color-text-muted)]">No connection — check your network.</p>
               </div>
-            </div>
-          </section>
-        </section>
+            )}
+          </div>
+
+          <p className="text-center text-[11px] leading-relaxed text-[var(--color-text-light)]">
+            By continuing, you agree to our{" "}
+            <Link href="/terms" className="underline">Terms</Link> and{" "}
+            <Link href="/privacy" className="underline">Privacy Policy</Link>.
+          </p>
+        </div>
       </main>
 
     </div>

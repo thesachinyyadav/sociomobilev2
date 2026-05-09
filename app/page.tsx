@@ -147,7 +147,7 @@ function UpcomingEventItem({ event }: { event: FetchedEvent }) {
 }
 
 export default function HomePage() {
-  const { user, userData, isLoading: authLoading, isAuthenticated } = useAuth();
+  const { user, userData, isLoading: authLoading, isAuthenticated, isAuthReady } = useAuth();
   const { allEvents, isLoading: eventsLoading } = useEvents();
   const [isHydrated, setIsHydrated] = React.useState(false);
 
@@ -157,17 +157,14 @@ export default function HomePage() {
 
   React.useEffect(() => {
     if (isHydrated) {
-      console.log(`[HOMEPAGE] State: user=${user?.email || "null"}, userData=${userData?.email || "null"}, isAuth=${isAuthenticated}`);
+      console.log(`[HOMEPAGE] State: user=${user?.email || "null"}, userData=${userData?.name || "null"}, isAuth=${isAuthenticated}, isReady=${isAuthReady}`);
     }
-  }, [isHydrated, user, userData, isAuthenticated]);
+  }, [isHydrated, user, userData, isAuthenticated, isAuthReady]);
 
   const isDataLoading = !isHydrated || eventsLoading;
 
   const activeEvents = [...allEvents]
-    .filter((event) => {
-      const eventTime = getEventDateValue(event);
-      return Number.isFinite(eventTime);
-    })
+    .filter((event) => !event.is_draft && !event.is_archived)
     .sort((a, b) => getEventDateValue(a) - getEventDateValue(b));
 
   const upcomingEvents = activeEvents
@@ -175,7 +172,7 @@ export default function HomePage() {
     .slice(0, 5);
 
   const featuredEvent =
-    upcomingEvents.find((event) => !isDeadlinePassed(event.registration_deadline)) ||
+    activeEvents.find((event) => event.fest && event.fest.toLowerCase() !== "none") ||
     activeEvents[0] ||
     null;
 
@@ -214,7 +211,7 @@ export default function HomePage() {
       <div className="relative z-10 mx-auto max-w-[420px] space-y-6">
         <section className="space-y-1 pt-2">
           <h1 className="text-[30px] font-black leading-tight tracking-[-0.03em] text-[var(--color-text)]">
-            {greetingText}, <span className="text-[var(--color-primary)]">{firstName === "Visitor" ? "Visitor" : firstName + "."}</span>
+            {greetingText}, <span className="text-[var(--color-primary)]">{(!isAuthReady && !userData) ? "..." : (firstName === "Visitor" ? "Visitor" : firstName + ".")}</span>
           </h1>
           <p className="max-w-[320px] text-[13px] leading-relaxed text-[var(--color-text-muted)]">
             Here&apos;s your curated feed of what&apos;s happening around campus this week.

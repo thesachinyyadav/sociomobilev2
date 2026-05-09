@@ -90,7 +90,7 @@ function urlBase64ToUint8Array(base64String: string) {
 }
 
 export function NotificationProvider({ children }: { children: ReactNode }) {
-  const { userData, session } = useAuth();
+  const { userData, session, isAuthReady } = useAuth();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
@@ -258,13 +258,18 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
     const targetPage = isLoadMore ? pageRef.current + 1 : 1;
 
+    const platform = Capacitor.getPlatform();
+    console.log(`[API] endpoint: /notifications, token exists: ${!!session?.access_token}, platform: ${platform}`);
+
     try {
       const res = await fetch(
         `${PWA_API_URL}/notifications?email=${encodeURIComponent(userData.email)}&page=${targetPage}&limit=15`,
         {
           headers: session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {},
+          signal: AbortSignal.timeout(8000) // 8s timeout
         }
       );
+      console.log(`[API] response status: ${res.status} for /notifications`);
       if (res.ok) {
         const data = await res.json();
         const raw = (data.notifications || []) as Notification[];
@@ -314,7 +319,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
    * the interval was recreated on every fetch cycle.
    * ─────────────────────────────────────────────────────────────────── */
   useEffect(() => {
-    if (!userData?.email) return;
+    if (!isAuthReady || !userData?.email) return;
     fetchRef.current();
     const timer = setInterval(() => fetchRef.current(), 60000);
     return () => clearInterval(timer);

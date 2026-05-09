@@ -129,6 +129,7 @@ interface AuthCtx {
   user: User | null;
   userData: UserData | null;
   isLoading: boolean;
+  isAuthReady: boolean;
   isAuthenticated: boolean;
   needsCampus: boolean;
   signInWithGoogle: () => Promise<void>;
@@ -185,11 +186,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [isHydrated, setIsHydrated] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAuthReady, setIsAuthReady] = useState(false);
+  const [authTimings, setAuthTimings] = useState({ start: 0, sessionReady: 0, profileReady: 0 });
 
   // 🔍 [AuthDebug] Trace all critical state changes
   useEffect(() => {
-    console.log(`🔍 [AuthDebug] contextState: isLoading=${isLoading}, isHydrated=${isHydrated}, user=${user?.email || "null"}, userData=${userData?.email || "null"}, isAuth=${isAuthenticated}`);
-  }, [isLoading, isHydrated, user, userData, isAuthenticated]);
+    console.log(`🔍 [AuthDebug] contextState: isLoading=${isLoading}, isAuthReady=${isAuthReady}, user=${user?.email || "null"}, userData=${userData?.name || "null"}, isAuth=${isAuthenticated}`);
+  }, [isLoading, isAuthReady, user, userData, isAuthenticated]);
+
+  useEffect(() => {
+    if (isHydrated && isAuthReady) {
+      const total = Date.now() - authTimings.start;
+      console.log(`🚀 [PERF] Auth Flow Complete in ${total}ms. Session: ${authTimings.sessionReady - authTimings.start}ms, Profile: ${authTimings.profileReady - authTimings.sessionReady}ms`);
+    }
+  }, [isHydrated, isAuthReady, authTimings]);
 
   // Ensure isAuthenticated is always in sync with user
   useEffect(() => {
@@ -229,16 +239,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   /* Fetch profile from backend */
   const fetchUserData = useCallback(async function fetchUserDataInternal(email: string, accessToken?: string, retryCount = 0): Promise<UserData | null> {
+    const platform = Capacitor.getPlatform();
     console.time(`🔍 [AuthDebug] ProfileFetch-${email}`);
-    console.log(`🔍 [AuthDebug] fetchUserData: Starting attempt ${retryCount + 1} for ${email}.`);
-    console.log(`[PROFILE] session exists: ${!!accessToken}, token preview: ${accessToken ? accessToken.substring(0, 10) + "..." : "NONE"}`);
+    console.log(`[API] endpoint: /users/me, token exists: ${!!accessToken}, user id: ${email}, platform: ${platform}`);
     
     const headers: Record<string, string> = {};
     if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
 
     // Abort controller for timeout
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+    const timeoutId = setTimeout(() => controller.abort(), 8000); // 8s timeout protection
 
     try {
       const res = await fetch(
@@ -249,6 +259,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           signal: controller.signal
         }
       );
+      console.log(`[API] response status: ${res.status} for /users/me (${email}), platform: ${platform}`);
       clearTimeout(timeoutId);
 
       if (res.ok) {
@@ -273,10 +284,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         if (volEvents === undefined && accessToken) {
           try {
+            console.log(`[API] endpoint: /volunteer/events, token exists: ${!!accessToken}, platform: ${Capacitor.getPlatform()}`);
             const volRes = await fetch(`${PWA_API_URL}/volunteer/events`, {
               headers: { Authorization: `Bearer ${accessToken}` },
               cache: "no-store",
+              signal: AbortSignal.timeout(8000)
             });
+            console.log(`[API] response status: ${volRes.status} for /volunteer/events`);
             if (volRes.ok) {
               const volData = await volRes.json();
               volEvents = volData.events || [];
@@ -442,17 +456,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.error("🔍 [AuthDebug] ensureUser: Setup error:", err);
       }
 
-      // Fetch the final profile data
+      // 3. Serialized Profile Hydration (Only after POST attempt)
+      console.log(`🔍 [AuthDebug] ensureUser: Proceeding to Profile Hydration...`);
       const { data: { session: currentSession } } = await supabase.auth.getSession();
       const fetchedUser = await fetchUserData(email, currentSession?.access_token);
       
       if (fetchedUser) {
-        console.log(`🔍 [AuthDebug] ensureUser: SUCCESS. Profile hydrated for ${fetchedUser.email}`);
+        console.log(`🔍 [AuthDebug] ensureUser: SUCCESS. Profile hydrated.`);
+        setAuthTimings(prev => ({ ...prev, profileReady: Date.now() }));
+        setIsAuthReady(true);
         maybeShowOutsiderWelcome(fetchedUser, supaUser.id);
       } else {
-        console.warn(`🔍 [AuthDebug] ensureUser: Profile fetch failed/timed out for ${email}. USING FALLBACK HYDRATION.`);
-        
-        // FALLBACK HYDRATION: Synthesize user data from Supabase session to prevent "blank" UI
+        console.warn(`🔍 [AuthDebug] ensureUser: Profile fetch failed. USING FALLBACK HYDRATION.`);
+        // ... (fallback logic)
         const fallbackUser: UserData = {
           id: supaUser.id,
           email: supaUser.email!,
@@ -473,9 +489,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           volunteerEvents: []
         };
         
-        console.log("🔍 [AuthDebug] Fallback User Synthesized:", fallbackUser.name);
         setUserData(fallbackUser);
         persistUserDataToLS(fallbackUser);
+        setAuthTimings(prev => ({ ...prev, profileReady: Date.now() }));
+        setIsAuthReady(true);
       }
       
       console.timeEnd(`🔍 [AuthDebug] TotalProfileInit-${email}`);
@@ -744,8 +761,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               setIsLoading(false);
               setIsHydrated(true);
             }
-            return;
+        const lsUser = restoreUserDataFromLS();
+        if (lsSession && lsSession.user) {
+          setAuthTimings(prev => ({ ...prev, start: Date.now(), sessionReady: Date.now() }));
+          console.log("🔍 [AuthDebug] Bootstrap: Restoring from LS.");
+          setSession(lsSession);
+          setUser(lsSession.user);
+          setUserData(lsUser);
+          setIsAuthenticated(true);
+          // If we have LS data, we can consider auth "ready" for initial UI
+          if (lsUser) {
+            console.log("🔍 [AuthDebug] Bootstrap: LS Profile exists, setting isAuthReady=true");
+            setIsAuthReady(true);
           }
+          
+          void ensureUser(lsSession.user);
+        } else {
+          setAuthTimings(prev => ({ ...prev, start: Date.now() }));
         }
 
         // 3. No valid session anywhere
@@ -780,8 +812,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       scheduleTokenRefresh(s);
 
       if (s?.user?.email) {
-        console.log(`🔍 [AuthDebug] onAuthStateChange: User authenticated. Resolving loading state.`);
-        // BACKGROUND profile sync: Do NOT await this. App should enter immediately.
+        console.log(`🔍 [AuthDebug] onAuthStateChange: User authenticated. Waiting for Profile Hydration.`);
+        setAuthTimings(prev => ({ ...prev, sessionReady: Date.now() }));
         void ensureUser(s.user);
         setIsLoading(false);
         setIsHydrated(true);
@@ -853,6 +885,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         user, 
         userData, 
         isLoading: !isHydrated || isLoading, 
+        isAuthReady,
         isAuthenticated, 
         needsCampus, 
         signInWithGoogle, 

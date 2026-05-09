@@ -16,6 +16,7 @@ export default function TopBar() {
   const router = useRouter();
   const pathname = usePathname();
   const [isHydrated, setIsHydrated] = useState(false);
+  const [imgError, setImgError] = useState(false);
 
   useEffect(() => {
     setIsHydrated(true);
@@ -23,9 +24,9 @@ export default function TopBar() {
 
   useEffect(() => {
     if (isHydrated) {
-      console.log(`[NAVBAR] State: user=${user?.email || "null"}, userData=${userData?.email || "null"}, isAuth=${isAuthenticated}`);
+      console.log(`[NAVBAR] State: user=${user?.email || "null"}, userData=${userData?.name || "null"}, isAuth=${isAuthenticated}, isReady=${isAuthReady}`);
     }
-  }, [isHydrated, user, userData, isAuthenticated]);
+  }, [isHydrated, user, userData, isAuthenticated, isAuthReady]);
 
   const showBack = BACK_PAGES.some((p) => pathname.startsWith(p));
   const isProfile = pathname === "/profile";
@@ -60,13 +61,15 @@ export default function TopBar() {
         ) : isUserLoggedIn ? (
           <Link href="/profile" className="shrink-0">
             <div className="w-[34px] h-[34px] rounded-full overflow-hidden ring-2 ring-[#1a3a7a] shadow-[0_4px_14px_rgba(0,0,0,0.3)] bg-white/10 flex items-center justify-center">
-              {userData?.avatar_url ? (
+              {userData?.avatar_url && !imgError ? (
                 <Image
                   src={userData.avatar_url}
                   alt={userData.name || "User"}
                   width={34}
                   height={34}
                   className="w-full h-full object-cover"
+                  onError={() => setImgError(true)}
+                  referrerPolicy="no-referrer"
                 />
               ) : (
                 <span className="text-[13px] font-black text-white drop-shadow-sm">

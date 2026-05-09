@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabaseClient";
+import { API_BASE } from "@/lib/apiConfig";
 
 /**
  * Web Authentication Strategy
@@ -11,7 +12,7 @@ export async function signInWithGoogleWeb() {
     provider: "google",
     options: {
       // Redirect to the backend callback, passing the current origin so it knows where to return
-      redirectTo: `https://socio2026v2server.vercel.app/api/auth/callback?next=${encodeURIComponent(window.location.origin)}`,
+      redirectTo: `${API_BASE}/api/auth/callback?next=${encodeURIComponent(window.location.origin)}`,
     },
   });
 

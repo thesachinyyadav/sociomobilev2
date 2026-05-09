@@ -1,6 +1,5 @@
 import { supabase } from "@/lib/supabaseClient";
 import { Browser } from "@capacitor/browser";
-import { PWA_API_URL } from "@/lib/apiConfig";
 
 /**
  * Native Authentication Strategy (Capacitor)

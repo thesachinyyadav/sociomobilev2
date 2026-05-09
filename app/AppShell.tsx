@@ -27,7 +27,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const hideBottom = NO_BOTTOM_NAV.some((p) => pathname.startsWith(p));
   const hideTop = NO_TOP_BAR.some((p) => pathname.startsWith(p));
-  const { userData, user, session, needsCampus, refreshUserData, isAuthenticated } = useAuth();
+  const { userData, user, needsCampus, refreshUserData, isAuthenticated } = useAuth();
   const [campusDismissed, setCampusDismissed] = useState(false);
   const [isNative, setIsNative] = useState(false);
 
@@ -124,7 +124,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       {needsCampus && !campusDismissed && userData && (
         <CampusSelector
           email={userData.email}
-          accessToken={session?.access_token ?? ""}
           onComplete={handleCampusComplete}
           onDismiss={handleCampusDismiss}
         />

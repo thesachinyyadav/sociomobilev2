@@ -18,7 +18,6 @@ import {
   ChevronLeftIcon,
 } from "@/components/icons";
 import { formatDateShort, formatTime } from "@/lib/dateUtils";
-import { PWA_API_URL } from "@/lib/apiConfig";
 import { apiRequest } from "@/lib/apiClient";
 
 interface CateringBooking {
@@ -84,9 +83,6 @@ export default function CateringDashboardPage() {
       const payload: any = await apiRequest(
         `/catering/bookings?page=${pageNum}&pageSize=${pageSize}&status=${statusQuery}${vendorQuery}`,
         {
-          headers: {
-            Authorization: `Bearer ${session.access_token}`,
-          },
           cache: "no-store",
         }
       );
@@ -147,9 +143,6 @@ export default function CateringDashboardPage() {
     try {
       await apiRequest(`/catering/bookings/${bookingId}/action`, {
         method: "PATCH",
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-        },
         body: JSON.stringify({ action }),
       });
 

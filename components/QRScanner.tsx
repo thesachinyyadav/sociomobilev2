@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { AlertTriangleIcon, CameraIcon, CheckCircleIcon, QrCodeIcon, XIcon } from "@/components/icons";
 import { Button } from "@/components/Button";
-import { PWA_API_URL } from "@/lib/apiConfig";
 import { apiRequest } from "@/lib/apiClient";
 import { getScanner, IScanner, ScannerResult } from "@/lib/ScannerService";
 import { Haptics, ImpactStyle, NotificationType } from "@capacitor/haptics";
@@ -107,9 +106,6 @@ export default function QRScanner({ eventId, onScanSuccess }: QRScannerProps) {
     try {
       const payload: any = await apiRequest(`/events/${encodeURIComponent(eventId)}/scan-qr`, {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-        },
         body: JSON.stringify({
           qrCodeData,
           volunteerId: userData?.register_number,

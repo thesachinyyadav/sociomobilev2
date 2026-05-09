@@ -18,7 +18,6 @@ import {
 } from "@/components/icons";
 import { formatDateShort, formatTime } from "@/lib/dateUtils";
 import { getActiveVolunteerEvents } from "@/lib/volunteerAccess";
-import { PWA_API_URL } from "@/lib/apiConfig";
 import { apiRequest } from "@/lib/apiClient";
 
 const DENIED_MESSAGE = "You do not have permission to access this feature";
@@ -96,9 +95,6 @@ export default function VolunteerDashboardPage() {
 
     try {
       const payload: any = await apiRequest(`/volunteer/events`, {
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-        },
         cache: "no-store",
       });
 

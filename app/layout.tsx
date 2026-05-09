@@ -7,7 +7,6 @@ import { NotificationProvider } from "@/context/NotificationContext";
 import { ShakeToScanProvider } from "@/context/ShakeToScanContext";
 import type { FetchedEvent } from "@/context/EventContext";
 import AppShell from "./AppShell";
-import { PWA_API_URL } from "@/lib/apiConfig";
 import { apiRequest } from "@/lib/apiClient";
 
 export const metadata: Metadata = {

@@ -10,7 +10,6 @@ import { SearchIcon, XIcon, SparklesIcon, HeartIcon, CalendarIcon, FlameIcon, Ar
 import { Button } from "@/components/Button";
 import { FilterChip } from "@/components/FilterChip";
 import { apiRequest } from "@/lib/apiClient";
-import { PWA_API_URL, APP_URL } from "@/lib/apiConfig";
 import { SectionContainer } from "@/components/SectionContainer";
 import type { Fest } from "@/context/EventContext";
 import { matchesSelectedCampus } from "@/context/EventContext";

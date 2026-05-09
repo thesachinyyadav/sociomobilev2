@@ -34,7 +34,6 @@ import { Button } from "@/components/Button";
 import type { FetchedEvent } from "@/context/EventContext";
 import { getActiveVolunteerEvents } from "@/lib/volunteerAccess";
 import { apiRequest } from "@/lib/apiClient";
-import { PWA_API_URL } from "@/lib/apiConfig";
 
 interface Registration {
   event_id: string;
@@ -123,13 +122,8 @@ export default function ProfilePage() {
         if (registerNumber) params.set("registerNumber", registerNumber);
         if (userData.email) params.set("email", userData.email);
 
-        const headers: Record<string, string> = {};
-        if (session?.access_token) {
-          headers.Authorization = `Bearer ${session.access_token}`;
-        }
-
         const res = (await apiRequest(`/registrations?${params.toString()}`, {
-          headers
+          cache: "no-store",
         })) as any;
         if (res) {
           const regs = Array.isArray(res) ? res : res.registrations ?? res ?? [];
@@ -212,9 +206,6 @@ export default function ProfilePage() {
     try {
       await apiRequest<any>(`/registrations/self/${encodeURIComponent(registration.registration_id)}`, {
         method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-        },
         cache: "no-store",
       });
 
@@ -248,7 +239,6 @@ export default function ProfilePage() {
     try {
       await apiRequest(`/users/${encodeURIComponent(userData.email)}/name`, {
         method: "PUT",
-        headers: session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {},
         body: JSON.stringify({
           name: nameInput.trim(),
           visitor_id: visitorId,

@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { MapPinIcon, Loader2Icon, RefreshCwIcon, CopyIcon, CheckIcon } from "@/components/icons";
-import { PWA_API_URL } from "@/lib/apiConfig";
 import { apiRequest } from "@/lib/apiClient";
 
 /* ── Christ University campus coordinates (match web) ── */
@@ -32,7 +31,6 @@ function haversine(lat1: number, lon1: number, lat2: number, lon2: number): numb
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-type Status = "detecting" | "saving" | "success" | "error";
 type ModalState = "detecting" | "confirm" | "finalConfirm" | "notOnCampus" | "saving" | "success" | "error";
 
 export function isCampusDismissedRecently(): boolean {
@@ -54,12 +52,11 @@ function markDismissed() {
 
 interface CampusSelectorProps {
   email: string;
-  accessToken: string;
   onComplete: (campus: string) => void;
   onDismiss: () => void;
 }
 
-export default function CampusSelector({ email, accessToken, onComplete, onDismiss }: CampusSelectorProps) {
+export default function CampusSelector({ email, onComplete, onDismiss }: CampusSelectorProps) {
   const [state, setState] = useState<ModalState>("detecting");
   const [detectedCampus, setDetectedCampus] = useState<string | null>(null);
   const [detectedDistance, setDetectedDistance] = useState<number>(0);
@@ -117,9 +114,6 @@ export default function CampusSelector({ email, accessToken, onComplete, onDismi
     try {
       await apiRequest(`/users/${encodeURIComponent(email)}/campus`, {
         method: "PUT",
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
         body: JSON.stringify({ campus }),
       });
       setState("success");

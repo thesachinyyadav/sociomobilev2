@@ -5,7 +5,7 @@ const config: CapacitorConfig = {
   appName: 'SOCIO',
   webDir: 'out',
   android: {
-    allowMixedContent: true
+    allowMixedContent: false
   }
 
 };

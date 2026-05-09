@@ -9,7 +9,6 @@ import QRScanner from "@/components/QRScanner";
 import { Button } from "@/components/Button";
 import { AlertTriangleIcon, ArrowLeftIcon, QrCodeIcon, ShieldCheckIcon } from "@/components/icons";
 import { getActiveVolunteerEvents } from "@/lib/volunteerAccess";
-import { PWA_API_URL } from "@/lib/apiConfig";
 import { apiRequest } from "@/lib/apiClient";
 
 const DENIED_MESSAGE = "You do not have permission to access this feature";
@@ -52,9 +51,6 @@ export default function ScannerClient() {
 
       try {
         const payload: any = await apiRequest(`/volunteer/events/${encodeURIComponent(eventId)}/access`, {
-          headers: {
-            Authorization: `Bearer ${session!.access_token}`,
-          },
           cache: "no-store",
         });
 

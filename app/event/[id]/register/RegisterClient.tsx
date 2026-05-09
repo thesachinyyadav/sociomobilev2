@@ -47,7 +47,6 @@ export default function RegisterClient({ eventId }: { eventId: string }) {
       return;
     }
     apiRequest<any>(`/events/${eventId}`)
-      .then((r) => (r.ok ? r.json() : Promise.reject()))
       .then((d) => setEvent(d.event ?? d))
       .catch(() => {})
       .finally(() => setLoading(false));

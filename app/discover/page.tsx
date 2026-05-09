@@ -17,7 +17,6 @@ import { formatDateShort, isDeadlinePassed } from "@/lib/dateUtils";
 import type { Fest } from "@/context/EventContext";
 import { useDebounce } from "@/lib/useDebounce";
 import { apiRequest } from "@/lib/apiClient";
-import { PWA_API_URL } from "@/lib/apiConfig";
 
 const ITEMS_PER_PAGE = 10;
 const QUICK_CATEGORY_LIMIT = 4;

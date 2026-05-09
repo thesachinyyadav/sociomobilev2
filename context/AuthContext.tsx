@@ -17,7 +17,6 @@ import type { Session, User } from "@supabase/supabase-js";
 import { signInWithGoogleWeb } from "@/lib/auth/webAuth";
 import { signInWithGoogleNative } from "@/lib/auth/nativeAuth";
 import { apiRequest } from "@/lib/apiClient";
-import { PWA_API_URL } from "@/lib/apiConfig";
 
 /* ── Local-storage helpers for PWA session persistence ── */
 const LS_SESSION_KEY = "socio_pwa_session";
@@ -240,13 +239,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   /* Fetch profile from backend */
-  const fetchUserData = useCallback(async function fetchUserDataInternal(email: string, accessToken?: string, retryCount = 0): Promise<UserData | null> {
+  const fetchUserData = useCallback(async function fetchUserDataInternal(email: string, retryCount = 0): Promise<UserData | null> {
     const platform = Capacitor.getPlatform();
     console.time(`🔍 [AuthDebug] ProfileFetch-${email}`);
-    console.log(`[API] endpoint: /users/me, token exists: ${!!accessToken}, user id: ${email}, platform: ${platform}`);
-    
-    const headers: Record<string, string> = {};
-    if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
+    console.log(`[API] endpoint: /users/me, user id: ${email}, platform: ${platform}`);
 
     // Abort controller for timeout
     const controller = new AbortController();
@@ -254,9 +250,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     try {
       const res = await apiRequest(
-        accessToken ? `/users/me` : `/users/${encodeURIComponent(email)}`,
+        `/users/me`,
         {
-          headers,
           cache: "no-store",
           signal: controller.signal
         }
@@ -283,11 +278,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           ? data.volunteerEvents
           : undefined;
 
-      if (volEvents === undefined && accessToken) {
+      if (volEvents === undefined) {
         try {
-          console.log(`[API] endpoint: /volunteer/events, token exists: ${!!accessToken}, platform: ${Capacitor.getPlatform()}`);
+          console.log(`[API] endpoint: /volunteer/events, platform: ${Capacitor.getPlatform()}`);
           const volRes = (await apiRequest(`/volunteer/events`, {
-            headers: { Authorization: `Bearer ${accessToken}` },
             cache: "no-store",
             signal: AbortSignal.timeout(8000)
           })) as any;
@@ -312,7 +306,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (retryCount < 2) {
       console.log(`🔍 [AuthDebug] fetchUserData: Retrying (${retryCount + 1})...`);
       await new Promise(r => setTimeout(r, 2000));
-      return fetchUserDataInternal(email, accessToken, retryCount + 1);
+      return fetchUserDataInternal(email, retryCount + 1);
     }
 
     return null;
@@ -335,8 +329,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const refreshUserData = useCallback(async () => {
-    if (user?.email) await fetchUserData(user.email, session?.access_token);
-  }, [fetchUserData, session?.access_token, user?.email]);
+    if (user?.email) await fetchUserData(user.email);
+  }, [fetchUserData, user?.email]);
 
   const ensureUser = useCallback(
     async (supaUser: User) => {
@@ -367,15 +361,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       try {
-        const { data: { session: s } } = await supabase.auth.getSession();
-        const headers: Record<string, string> = { "Content-Type": "application/json" };
-        if (s?.access_token) headers.Authorization = `Bearer ${s.access_token}`;
-
         // Non-blocking POST
         console.log(`🔍 [AuthDebug] ensureUser: Sending POST /users for ${email}...`);
         await apiRequest(`/users`, {
           method: "POST",
-          headers,
           body: JSON.stringify({
             user: {
               id: supaUser.id,
@@ -394,8 +383,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       // 3. Serialized Profile Hydration (Only after POST attempt)
       console.log(`🔍 [AuthDebug] ensureUser: Proceeding to Profile Hydration...`);
-      const { data: { session: currentSession } } = await supabase.auth.getSession();
-      const fetchedUser = await fetchUserData(email, currentSession?.access_token);
+      const fetchedUser = await fetchUserData(email);
       
       if (fetchedUser) {
         console.log(`🔍 [AuthDebug] ensureUser: SUCCESS. Profile hydrated.`);
@@ -445,7 +433,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         await apiRequest(`/users/${encodeURIComponent(userData.email)}/name`, {
           method: "PUT",
-          headers: session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {},
           body: JSON.stringify({
             name: name.trim(),
             visitor_id: outsiderVisitorId,
@@ -454,14 +441,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         setShowOutsiderWarning(false);
         setIsEditingOutsiderName(false);
-        await fetchUserData(userData.email, session?.access_token);
+        await fetchUserData(userData.email);
       } catch (err: any) {
         setOutsiderNameError(getFriendlyOutsiderNameError(err.message || "Network error"));
       } finally {
         setIsSavingOutsiderName(false);
       }
     },
-    [fetchUserData, outsiderVisitorId, session?.access_token, userData?.email]
+    [fetchUserData, outsiderVisitorId, userData?.email]
   );
 
   /* Note: Background 60-second role refresh was removed for mobile to ensure it only fetches once */

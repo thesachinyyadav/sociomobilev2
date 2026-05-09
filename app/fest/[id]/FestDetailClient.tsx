@@ -12,7 +12,6 @@ import {
 } from "@/components/icons";
 import { shareEvent } from "@/lib/share";
 
-import { PWA_API_URL } from "@/lib/apiConfig";
 import { apiRequest } from "@/lib/apiClient";
 
 export default function FestDetailClient({ festId }: { festId: string }) {

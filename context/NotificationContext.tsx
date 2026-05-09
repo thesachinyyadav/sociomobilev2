@@ -6,7 +6,6 @@ import { Capacitor } from "@capacitor/core";
 import { useRouter } from "next/navigation";
 import { toast } from "react-hot-toast";
 import { apiRequest } from "@/lib/apiClient";
-import { PWA_API_URL } from "@/lib/apiConfig";
 
 export interface Notification {
   id: string;
@@ -91,7 +90,7 @@ function urlBase64ToUint8Array(base64String: string) {
 }
 
 export function NotificationProvider({ children }: { children: ReactNode }) {
-  const { userData, session, isAuthReady } = useAuth();
+  const { userData, isAuthReady } = useAuth();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
@@ -219,17 +218,14 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
         // Send to backend
         if (userData?.email) {
-          const headers: Record<string, string> = { "Content-Type": "application/json" };
-          if (session?.access_token) headers.Authorization = `Bearer ${session.access_token}`;
-
-      await apiRequest<any>(`/notifications/push/subscribe`, {
-        method: "POST",
-        headers,
-        body: JSON.stringify({
-          email: userData.email,
-          subscription,
-        }),
-      });
+          await apiRequest<any>(`/notifications/push/subscribe`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              email: userData.email,
+              subscription,
+            }),
+          });
         }
 
         setPushStatus("granted");
@@ -244,7 +240,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     } catch (e) {
       console.error("Web push error", e);
     }
-  }, [oneSignal, userData?.email, session?.access_token, updatePromptStatus]);
+  }, [oneSignal, userData?.email, updatePromptStatus]);
 
   /* ── Fetch notifications ──────────────────────────────────────────────
    * IMPORTANT: `unreadCount` and `page` are intentionally NOT in the dep
@@ -260,14 +256,12 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     const targetPage = isLoadMore ? pageRef.current + 1 : 1;
 
     const platform = Capacitor.getPlatform();
-    console.log(`[API] endpoint: /notifications, token exists: ${!!session?.access_token}, platform: ${platform}`);
+    console.log(`[API] endpoint: /notifications, platform: ${platform}`);
 
     try {
       const data: any = await apiRequest(
         `/notifications?email=${encodeURIComponent(userData.email)}&page=${targetPage}&limit=15`,
-        {
-          headers: session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {},
-        }
+        { cache: "no-store" }
       );
       
       const raw = (data.notifications || []) as Notification[];
@@ -299,7 +293,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     setIsLoading(false);
   // Stable deps: only email and token. page is tracked via pageRef.
   // unreadCount is updated via functional setState — never read here.
-  }, [userData?.email, session?.access_token]);
+  }, [userData?.email]);
 
   /* ── Stable fetch ref: the polling interval always calls the latest
    * version of fetchNotifications without needing to recreate the interval
@@ -320,7 +314,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     fetchRef.current();
     const timer = setInterval(() => fetchRef.current(), 60000);
     return () => clearInterval(timer);
-  }, [userData?.email, session?.access_token]);
+  }, [userData?.email]);
 
   const loadMore = useCallback(() => {
     if (!isLoading && hasMore) {

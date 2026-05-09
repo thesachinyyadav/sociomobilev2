@@ -1,81 +1,261 @@
-
 import { PWA_API_URL } from "@/lib/apiConfig";
 import { Capacitor } from "@capacitor/core";
 
-/**
- * Centralized API client for all backend requests.
- * Ensures absolute URLs, injects authentication, and provides detailed logging for Capacitor.
- */
-export async function apiRequest<T>(
-  endpoint: string,
-  options: RequestInit = {}
-): Promise<T> {
-  // 1. Ensure absolute URL (CRITICAL for Capacitor)
-  const baseUrl = PWA_API_URL.replace(/\/$/, "");
-  const cleanEndpoint = endpoint.startsWith("/") ? endpoint : `/${endpoint}`;
-  const url = `${baseUrl}${cleanEndpoint}`;
+type ApiFetchOptions = RequestInit & {
+  requireAuth?: boolean;
+  retryOnAuthFailure?: boolean;
+  timeoutMs?: number;
+};
 
-  // Android WebView/Capacitor hardening
-  if (Capacitor.isNativePlatform() && !url.startsWith("https://")) {
-    console.error(`🚨 [API_CLIENT] SECURITY VIOLATION: Non-HTTPS URL detected in Capacitor: ${url}`);
-    throw new Error("API requests must be HTTPS on mobile.");
+export class ApiError extends Error {
+  status: number;
+  code: string;
+  url: string;
+  method: string;
+  responseBody: unknown;
+
+  constructor(args: {
+    message: string;
+    status: number;
+    code: string;
+    url: string;
+    method: string;
+    responseBody: unknown;
+  }) {
+    super(args.message);
+    this.name = "ApiError";
+    this.status = args.status;
+    this.code = args.code;
+    this.url = args.url;
+    this.method = args.method;
+    this.responseBody = args.responseBody;
   }
+}
 
-  const headers = new Headers(options.headers);
-  if (!headers.has("Content-Type") && (options.method === "POST" || options.method === "PUT")) {
-    headers.set("Content-Type", "application/json");
-  }
+function trimTrailingSlash(value: string): string {
+  return value.replace(/\/+$/, "");
+}
 
-  const authHeader = headers.get("Authorization");
-  
-  // 2. Default Timeout (10s)
-  const timeoutMs = 10000;
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-  
-  const finalOptions: RequestInit = {
-    ...options,
-    headers,
-    mode: "cors", // Explicitly enable CORS
-    credentials: "omit", // standard for OAuth-based bearer tokens
-    referrerPolicy: "no-referrer",
-    signal: options.signal || controller.signal,
-  };
+function normalizeEndpoint(endpoint: string): string {
+  if (/^https?:\/\//i.test(endpoint)) return endpoint;
+  const clean = endpoint.trim();
+  if (!clean) return "/";
+  if (clean.startsWith("/api/")) return clean.slice(4);
+  if (clean === "/api") return "/";
+  return clean.startsWith("/") ? clean : `/${clean}`;
+}
 
-  console.log(`🚀 [API REQUEST] ${options.method || "GET"} ${url}`, {
-    tokenPresent: !!authHeader,
-    platform: Capacitor.getPlatform(),
-    origin: typeof window !== "undefined" ? window.location.origin : "SSR",
+function buildUrl(endpoint: string): string {
+  const normalized = normalizeEndpoint(endpoint);
+  if (/^https?:\/\//i.test(normalized)) return normalized;
+  return `${trimTrailingSlash(PWA_API_URL)}${normalized}`;
+}
+
+function headersToObject(headers: Headers): Record<string, string> {
+  const out: Record<string, string> = {};
+  headers.forEach((value, key) => {
+    out[key] = value;
   });
+  return out;
+}
+
+function parseBody(bodyText: string, contentType: string | null): unknown {
+  if (!bodyText) return null;
+  const isJson = Boolean(contentType && contentType.toLowerCase().includes("application/json"));
+  if (!isJson) return bodyText;
+  try {
+    return JSON.parse(bodyText);
+  } catch {
+    return bodyText;
+  }
+}
+
+function isNetworkFailure(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
+  if (error.name === "AbortError") return true;
+  const message = (error.message || "").toLowerCase();
+  return message.includes("failed to fetch") || message.includes("network");
+}
+
+function shouldSetJsonContentType(body: BodyInit | null | undefined): boolean {
+  if (!body) return false;
+  if (typeof body === "string") return true;
+  if (body instanceof URLSearchParams) return false;
+  if (body instanceof FormData) return false;
+  if (body instanceof Blob) return false;
+  if (body instanceof ArrayBuffer) return false;
+  if (ArrayBuffer.isView(body)) return false;
+  return true;
+}
+
+async function getSupabaseAccessToken(): Promise<string | null> {
+  if (typeof window === "undefined") return null;
+  const { supabase } = await import("@/lib/supabaseClient");
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+  return session?.access_token ?? null;
+}
+
+async function refreshSupabaseAccessToken(): Promise<string | null> {
+  if (typeof window === "undefined") return null;
+  const { supabase } = await import("@/lib/supabaseClient");
+  const { data, error } = await supabase.auth.refreshSession();
+  if (error) return null;
+  return data.session?.access_token ?? null;
+}
+
+async function fetchWithTimeout(
+  url: string,
+  init: RequestInit,
+  timeoutMs: number
+): Promise<Response> {
+  const timeoutController = new AbortController();
+  const timeoutId = setTimeout(() => timeoutController.abort(), timeoutMs);
+
+  const externalSignal = init.signal;
+  let abortListener: (() => void) | null = null;
+
+  if (externalSignal) {
+    if (externalSignal.aborted) {
+      timeoutController.abort();
+    } else {
+      abortListener = () => timeoutController.abort();
+      externalSignal.addEventListener("abort", abortListener, { once: true });
+    }
+  }
 
   try {
-    const startTime = Date.now();
-    const response = await fetch(url, finalOptions);
-    const duration = Date.now() - startTime;
-
-    console.log(`✅ [API RESPONSE] ${response.status} (${duration}ms) ${url}`);
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`❌ [API ERROR] ${response.status} ${url}: ${errorText}`);
-
-      const error = new Error(errorText || `API Error ${response.status}`);
-      (error as any).status = response.status;
-      (error as any).code = "API_ERROR";
-      (error as any).url = url;
-      throw error;
-    }
-
-    const data = await response.json();
-    return data;
-  } catch (error: any) {
-    if (error.name === "AbortError") {
-      console.error(`⏱️ [API TIMEOUT] ${url} exceeded ${timeoutMs}ms`);
-      throw new Error(`Request timed out after ${timeoutMs}ms`);
-    }
-    console.error(`📡 [API NETWORK FAILURE] ${url}:`, error.message || error);
-    throw error;
+    return await fetch(url, {
+      ...init,
+      signal: timeoutController.signal,
+    });
   } finally {
     clearTimeout(timeoutId);
+    if (externalSignal && abortListener) {
+      externalSignal.removeEventListener("abort", abortListener);
+    }
   }
+}
+
+export async function apiFetch<T = any>(
+  endpoint: string,
+  options: ApiFetchOptions = {}
+): Promise<T> {
+  const {
+    requireAuth = true,
+    retryOnAuthFailure = true,
+    timeoutMs = 10_000,
+    ...requestInit
+  } = options;
+
+  const url = buildUrl(endpoint);
+  const method = (requestInit.method || "GET").toUpperCase();
+
+  if (Capacitor.isNativePlatform() && !url.startsWith("https://")) {
+    throw new Error("API requests must use HTTPS on native platforms.");
+  }
+
+  let authRetried = false;
+  let networkRetried = false;
+  let token = requireAuth ? await getSupabaseAccessToken() : null;
+
+  for (;;) {
+    const headers = new Headers(requestInit.headers);
+    if (!headers.has("Accept")) headers.set("Accept", "application/json");
+    if (!headers.has("Content-Type") && shouldSetJsonContentType(requestInit.body)) {
+      headers.set("Content-Type", "application/json");
+    }
+    if (requireAuth && token && !headers.has("Authorization")) {
+      headers.set("Authorization", `Bearer ${token}`);
+    }
+
+    console.log("🔍 [NetworkDebug] Request", {
+      url,
+      method,
+      headers: headersToObject(headers),
+      tokenPresent: Boolean(headers.get("Authorization")),
+      platform: Capacitor.getPlatform(),
+      origin: typeof window !== "undefined" ? window.location.origin : "SSR",
+    });
+
+    try {
+      const startedAt = Date.now();
+      const response = await fetchWithTimeout(
+        url,
+        {
+          ...requestInit,
+          method,
+          headers,
+          mode: "cors",
+          credentials: requestInit.credentials ?? "omit",
+          referrerPolicy: requestInit.referrerPolicy ?? "no-referrer",
+        },
+        timeoutMs
+      );
+      const durationMs = Date.now() - startedAt;
+
+      const rawBody = await response.text();
+      const parsedBody = parseBody(rawBody, response.headers.get("content-type"));
+
+      console.log("🔍 [NetworkDebug] Response", {
+        url,
+        method,
+        status: response.status,
+        durationMs,
+        body: parsedBody,
+      });
+
+      if (response.status === 401 && requireAuth && retryOnAuthFailure && !authRetried) {
+        const refreshed = await refreshSupabaseAccessToken();
+        if (refreshed) {
+          token = refreshed;
+          authRetried = true;
+          console.warn("🔍 [NetworkDebug] Retrying after token refresh", { url, method });
+          continue;
+        }
+      }
+
+      if (!response.ok) {
+        const message =
+          typeof parsedBody === "string"
+            ? parsedBody
+            : (parsedBody as any)?.error || `Request failed with status ${response.status}`;
+        throw new ApiError({
+          message,
+          status: response.status,
+          code: "API_ERROR",
+          url,
+          method,
+          responseBody: parsedBody,
+        });
+      }
+
+      return parsedBody as T;
+    } catch (error) {
+      console.error("🔍 [NetworkDebug] FetchError", {
+        url,
+        method,
+        error: error instanceof Error ? error.message : String(error),
+      });
+
+      if (isNetworkFailure(error) && !networkRetried) {
+        networkRetried = true;
+        console.warn("🔍 [NetworkDebug] Retrying after network failure", { url, method });
+        continue;
+      }
+
+      if (error instanceof Error && error.name === "AbortError") {
+        throw new Error(`Request timed out after ${timeoutMs}ms`);
+      }
+      throw error;
+    }
+  }
+}
+
+export async function apiRequest<T>(
+  endpoint: string,
+  options: ApiFetchOptions = {}
+): Promise<T> {
+  return apiFetch<T>(endpoint, options);
 }

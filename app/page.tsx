@@ -5,7 +5,7 @@ import Link from "next/link";
 import React from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useEvents, type FetchedEvent } from "@/context/EventContext";
-import { CalendarDaysIcon, BellIcon, CompassIcon, ArrowRightIcon, MapPinIcon, Clock3Icon, FlameIcon, TicketIcon, QrCodeIcon, BuildingIcon } from "@/components/icons";
+import { CalendarDaysIcon, BellIcon, CompassIcon, ArrowRightIcon, MapPinIcon, Clock3Icon, FlameIcon, TicketIcon, QrCodeIcon, BuildingIcon, UtensilsIcon } from "@/components/icons";
 import { formatDateShort, formatTime, isDeadlinePassed } from "@/lib/dateUtils";
 import { getActiveVolunteerEvents } from "@/lib/volunteerAccess";
 import EventCardSkeleton from "@/components/skeletons/EventCardSkeleton";
@@ -31,7 +31,7 @@ function getEventImage(event: FetchedEvent) {
   );
 }
 
-function getQuickActions(notificationCount: number, volunteerCount: number) {
+function getQuickActions(notificationCount: number, volunteerCount: number, isCaterer: boolean) {
   const actions: { href: string; label: string; icon: any; tone: string; badge?: number }[] = [
     {
       href: "/discover",
@@ -66,6 +66,15 @@ function getQuickActions(notificationCount: number, volunteerCount: number) {
       icon: QrCodeIcon,
       tone: "bg-[#e7f8ec] text-[#15803d]",
       badge: volunteerCount,
+    });
+  }
+
+  if (isCaterer) {
+    actions.splice(2, 0, {
+      href: "/catering",
+      label: "Catering\nOrders",
+      icon: UtensilsIcon,
+      tone: "bg-[#fff0e6] text-[#c2410c]",
     });
   }
 
@@ -182,7 +191,8 @@ export default function HomePage() {
   const firstName = userData?.name?.split(" ")?.[0] || (isVisitor ? "Visitor" : "there");
   const notificationCount = 0;
   const activeVolunteerEvents = getActiveVolunteerEvents(userData?.volunteerEvents);
-  const quickActions = getQuickActions(notificationCount, activeVolunteerEvents.length);
+  const isCaterer = !!(userData?.roles?.catering || userData?.is_masteradmin || (userData?.caters?.length ?? 0) > 0);
+  const quickActions = getQuickActions(notificationCount, activeVolunteerEvents.length, isCaterer);
 
   const currentHour = new Date().getHours();
   let greetingText = "Good morning";

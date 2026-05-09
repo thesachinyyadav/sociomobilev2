@@ -185,7 +185,7 @@ export default function CateringDashboardPage() {
 
   if (!userData?.is_masteradmin && !userData?.roles?.catering) {
     return (
-      <div className="min-h-screen bg-[var(--color-bg)] flex flex-col items-center justify-center p-6 text-center">
+      <div className="min-h-screen bg-[var(--color-bg)] flex flex-col items-center justify-center p-6 text-center pt-[calc(var(--nav-height,54px)+var(--safe-top,0px)+24px)] pb-[calc(var(--bottom-nav,60px)+var(--safe-bottom,0px)+16px)]">
         <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mb-4">
           <AlertTriangleIcon className="text-red-500" size={32} />
         </div>
@@ -197,9 +197,9 @@ export default function CateringDashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] pb-24">
+    <div className="min-h-screen bg-[#F8FAFC] pb-[calc(var(--bottom-nav,60px)+var(--safe-bottom,0px)+16px)]">
       {/* Sticky Header */}
-      <div className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-slate-100 pt-[calc(var(--safe-top,0px)+48px)] px-4">
+      <div className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-slate-100 pt-[calc(var(--nav-height,54px)+var(--safe-top,0px))] px-4">
         <div className="flex items-center gap-3 mb-6">
           <button
             onClick={() => router.back()}

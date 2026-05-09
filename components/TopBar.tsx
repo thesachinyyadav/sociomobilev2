@@ -12,7 +12,7 @@ import { useState, useEffect } from "react";
 const BACK_PAGES = ["/event/", "/fest/", "/notifications", "/club/"];
 
 export default function TopBar() {
-  const { user, userData, isAuthenticated, isAuthReady } = useAuth();
+  const { user, userData, isAuthenticated, isAuthReady, isLoading } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
   const [isHydrated, setIsHydrated] = useState(false);
@@ -21,12 +21,6 @@ export default function TopBar() {
   useEffect(() => {
     setIsHydrated(true);
   }, []);
-
-  useEffect(() => {
-    if (isHydrated) {
-      console.log(`[NAVBAR] State: user=${user?.email || "null"}, userData=${userData?.name || "null"}, isAuth=${isAuthenticated}, isReady=${isAuthReady}`);
-    }
-  }, [isHydrated, user, userData, isAuthenticated, isAuthReady]);
 
   const showBack = BACK_PAGES.some((p) => pathname.startsWith(p));
   const isProfile = pathname === "/profile";
@@ -56,8 +50,8 @@ export default function TopBar() {
           >
             <ArrowLeftIcon size={18} strokeWidth={2.2} />
           </button>
-        ) : !isHydrated ? (
-          <div className="w-[34px] h-[34px] rounded-full bg-gray-200 animate-pulse" />
+        ) : !isHydrated || isLoading ? (
+          <div className="w-[34px] h-[34px] rounded-full bg-gray-200/60 animate-pulse" />
         ) : isUserLoggedIn ? (
           <Link href="/profile" className="shrink-0">
             <div className="w-[34px] h-[34px] rounded-full overflow-hidden ring-2 ring-[#1a3a7a] shadow-[0_4px_14px_rgba(0,0,0,0.3)] bg-white/10 flex items-center justify-center">
@@ -99,8 +93,8 @@ export default function TopBar() {
         <div className="flex-1" />
 
         {/* Right actions */}
-        {!isHydrated ? (
-          <div className="w-16 h-8 rounded-lg bg-gray-200 animate-pulse" />
+        {!isHydrated || isLoading ? (
+          <div className="w-16 h-8 rounded-lg bg-gray-200/60 animate-pulse" />
         ) : isUserLoggedIn ? (
           <NotificationBell />
         ) : (

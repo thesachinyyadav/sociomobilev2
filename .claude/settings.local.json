@@ -3,7 +3,8 @@
     "allow": [
       "Bash(find \"D:\\\\CODES\\\\SOCIO\\\\socioapp\" -type f \\\\\\( -name \"*.tsx\" -o -name \"*.ts\" -o -name \"*.jsx\" -o -name \"*.js\" \\\\\\))",
       "Read(//tmp/**)",
-      "Bash(xargs grep *)"
+      "Bash(xargs grep *)",
+      "Bash(grep -E \"\\\\.\\(tsx|jsx\\)$\")"
     ]
   }
 }

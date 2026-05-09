@@ -7,7 +7,7 @@ import Image from "next/image";
 import { useEvents, type FetchedEvent } from "@/context/EventContext";
 import { useAuth } from "@/context/AuthContext";
 import { useNotifications } from "@/context/NotificationContext";
-import { PWA_API_URL } from "@/lib/apiConfig";
+import { apiRequest } from "@/lib/apiClient";
 import { formatDateUTC, formatTime, getDaysUntil, generateGoogleCalendarUrl } from "@/lib/dateUtils";
 import {
   CalendarIcon as CalendarDays,
@@ -101,9 +101,11 @@ export default function EventDetailClient({ eventId }: { eventId: string }) {
     if (ctxLoading) return;
     const found = allEvents.find((e) => e.event_id === eventId);
     if (found) { setEvent(found); setLoading(false); return; }
-    fetch(`${PWA_API_URL}/events/${eventId}`)
-      .then((r) => { if (!r.ok) throw new Error("Not found"); return r.json(); })
-      .then((d) => setEvent(d.event ?? d))
+    apiRequest<any>(`/events/${eventId}`)
+      .then((d) => {
+        if (d && typeof d === 'object' && 'event' in d) setEvent(d.event);
+        else setEvent(d);
+      })
       .catch(() => setError("Event not found"))
       .finally(() => setLoading(false));
   }, [eventId, allEvents, ctxLoading]);
@@ -115,11 +117,11 @@ export default function EventDetailClient({ eventId }: { eventId: string }) {
     const params = new URLSearchParams();
     if (registerNumber) params.set("registerNumber", String(registerNumber));
     if (userData.email) params.set("email", userData.email);
-    fetch(`${PWA_API_URL}/registrations?${params.toString()}`)
-      .then((r) => (r.ok ? r.json() : []))
+    apiRequest<any>(`/registrations?${params.toString()}`)
+      .then((r) => (Array.isArray(r) ? r : (r as any)?.registrations ?? (r as any)?.events ?? []))
       .then((data) => {
-        const registrations = Array.isArray(data) ? data : data?.registrations ?? data?.events ?? [];
-        setRegisteredIds((Array.isArray(registrations) ? registrations : []).map((item: any) => item?.event_id || item?.id || item?.event?.event_id || item?.event?.id).filter(Boolean).map((id: any) => String(id)));
+        const registrations = Array.isArray(data) ? data : [];
+        setRegisteredIds(registrations.map((item: any) => item?.event_id || item?.id || item?.event?.event_id || item?.event?.id).filter(Boolean).map((id: any) => String(id)));
       })
       .catch(() => {});
   }, [userData, authLoading]);
@@ -144,22 +146,27 @@ export default function EventDetailClient({ eventId }: { eventId: string }) {
     }
     setIsRegistering(true);
     try {
-      const res = await fetch(`${PWA_API_URL}/register`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ eventId: event.event_id, teamName: null, teammates: [{ name: userData.name || "Unknown", registerNumber: regNum, email: userData.email || "" }] }) });
-      if (res.ok) { 
-        setShowSuccess(true); 
-        setRegisteredIds((p) => (p.includes(event.event_id) ? p : [...p, event.event_id])); 
-        // Trigger smart prompt after registration
-        if (pushStatus === "not_requested") {
-          triggerPrompt();
-        }
+      await apiRequest<any>(`/register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ eventId: event.event_id, teamName: null, teammates: [{ name: userData.name || "Unknown", registerNumber: regNum, email: userData.email || "" }] })
+      });
+
+      setShowSuccess(true);
+      setRegisteredIds((p) => (p.includes(event.event_id) ? p : [...p, event.event_id]));
+      if (pushStatus === "not_requested") {
+        triggerPrompt();
       }
-      else {
-        const d = await res.json();
-        if (res.status === 409 || d.code === "ALREADY_REGISTERED") { setRegisteredIds((p) => (p.includes(event.event_id) ? p : [...p, event.event_id])); setRegError(null); return; }
-        setRegError(d.error || d.message || "Registration failed.");
+    } catch (err: any) {
+      if (err.message?.includes("409") || err.code === "ALREADY_REGISTERED") {
+        setRegisteredIds((p) => (p.includes(event.event_id) ? p : [...p, event.event_id]));
+        setRegError(null);
+      } else {
+        setRegError(err.message || "Registration failed.");
       }
-    } catch { setRegError("Network error. Please try again."); }
-    finally { setIsRegistering(false); }
+    } finally {
+      setIsRegistering(false);
+    }
   };
 
   const isRegistered = event ? registeredIds.includes(event.event_id) : false;

@@ -7,7 +7,7 @@ import { useEvents, type FetchedEvent } from "@/context/EventContext";
 import { useAuth } from "@/context/AuthContext";
 import { ArrowLeftIcon, CheckCircleIcon, AlertCircleIcon, Loader2Icon, UserIcon, HashIcon, MailIcon, UsersIcon, MessageCircleIcon } from "@/components/icons";
 import { Button } from "@/components/Button";
-import { PWA_API_URL } from "@/lib/apiConfig";
+import { apiRequest } from "@/lib/apiClient";
 
 interface Teammate {
   name: string;
@@ -46,7 +46,7 @@ export default function RegisterClient({ eventId }: { eventId: string }) {
       setLoading(false);
       return;
     }
-    fetch(`${PWA_API_URL}/events/${eventId}`)
+    apiRequest<any>(`/events/${eventId}`)
       .then((r) => (r.ok ? r.json() : Promise.reject()))
       .then((d) => setEvent(d.event ?? d))
       .catch(() => {})
@@ -158,7 +158,7 @@ export default function RegisterClient({ eventId }: { eventId: string }) {
 
     setSubmitting(true);
     try {
-      const res = await fetch(`${PWA_API_URL}/register`, {
+      const res = await apiRequest(`/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

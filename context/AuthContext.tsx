@@ -129,6 +129,7 @@ interface AuthCtx {
   user: User | null;
   userData: UserData | null;
   isLoading: boolean;
+  isAuthenticated: boolean;
   needsCampus: boolean;
   signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
@@ -140,6 +141,7 @@ const AuthContext = createContext<AuthCtx>({
   user: null,
   userData: null,
   isLoading: true,
+  isAuthenticated: false,
   needsCampus: false,
   signInWithGoogle: async () => {},
   signOut: async () => {},
@@ -182,11 +184,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [userData, setUserData] = useState<UserData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isHydrated, setIsHydrated] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   // 🔍 [AuthDebug] Trace all critical state changes
   useEffect(() => {
-    console.log(`🔍 [AuthDebug] State Change: isLoading=${isLoading}, isHydrated=${isHydrated}, session=${!!session}, user=${!!user}`);
-  }, [isLoading, isHydrated, session, user]);
+    console.log(`🔍 [AuthDebug] State Change: isLoading=${isLoading}, isHydrated=${isHydrated}, session=${!!session}, user=${!!user}, isAuth=${isAuthenticated}`);
+  }, [isLoading, isHydrated, session, user, isAuthenticated]);
   
   const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [showOutsiderWarning, setShowOutsiderWarning] = useState(false);
@@ -549,6 +552,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             if (data.session) {
               setSession(data.session);
               setUser(data.session.user);
+              setIsAuthenticated(true);
               persistSessionToLS(data.session);
               scheduleTokenRefresh(data.session);
               void ensureUser(data.session.user);
@@ -565,7 +569,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } else if (authCode) {
           console.log("✅ [DeepLink] Auth code received, exchanging for session...");
 
-          // IMPORTANT: Close browser BEFORE exchange to prevent UI hanging
+          // IMPORTANT: Close browser BEFORE exchange to la prevent UI hanging
           try {
             await Browser.close();
           } catch (e) {
@@ -586,6 +590,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             if (data.session) {
               setSession(data.session);
               setUser(data.session.user);
+              setIsAuthenticated(true);
               persistSessionToLS(data.session);
               scheduleTokenRefresh(data.session);
               void ensureUser(data.session.user);
@@ -802,7 +807,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ session, user, userData, isLoading: !isHydrated || isLoading, needsCampus, signInWithGoogle, signOut, refreshUserData }}
+      value={{ session, user, userData, isLoading: !isHydrated || isLoading, isAuthenticated, needsCampus, signInWithGoogle, signOut, refreshUserData }}
     >
       {children}
       {showOutsiderWarning && outsiderVisitorId && userData && (

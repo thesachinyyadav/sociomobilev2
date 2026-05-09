@@ -413,6 +413,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       try {
+        const { data: { session: s } } = await supabase.auth.getSession();
+        const headers: Record<string, string> = { "Content-Type": "application/json" };
+        if (s?.access_token) headers.Authorization = `Bearer ${s.access_token}`;
+
         // Non-blocking POST
         console.log(`🔍 [AuthDebug] ensureUser: Sending POST /users for ${email}...`);
         const res = await fetch(`${PWA_API_URL}/users`, {

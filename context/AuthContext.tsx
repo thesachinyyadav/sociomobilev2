@@ -181,6 +181,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [userData, setUserData] = useState<UserData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isHydrated, setIsHydrated] = useState(false);
   
   const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [showOutsiderWarning, setShowOutsiderWarning] = useState(false);
@@ -501,7 +502,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Parse tokens from hash fragment (#) - used by Supabase Implicit Flow
         // Example: socio://auth/callback#access_token=...&refresh_token=...
         const hashParams = new URLSearchParams(url.hash.substring(1));
-        
+
         const token = hashParams.get("access_token") || url.searchParams.get("token") || url.searchParams.get("access_token");
         const refreshToken = hashParams.get("refresh_token") || url.searchParams.get("refresh_token") || url.searchParams.get("refreshToken") || url.searchParams.get("refresh");
         const authCode = url.searchParams.get("code");
@@ -538,6 +539,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             }
           } else {
             console.log("🎉 [DeepLink] Session set successfully for:", data.user?.email);
+
+            // 🔍 [AuthDebug] DIRECT STATE UPDATE: Preventing "Authenticating..." hang
+            if (data.session) {
+              setSession(data.session);
+              setUser(data.session.user);
+              persistSessionToLS(data.session);
+              scheduleTokenRefresh(data.session);
+              void ensureUser(data.session.user);
+              setIsLoading(false);
+              console.log("🔍 [AuthDebug] Session restored and state updated immediately from deep-link.");
+            }
           }
         } else if (authCode) {
           console.log("✅ [DeepLink] Auth code received, exchanging for session...");
@@ -558,6 +570,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             }
           } else {
             console.log("🎉 [DeepLink] Session exchanged successfully for:", data.user?.email);
+
+            // 🔍 [AuthDebug] DIRECT STATE UPDATE: Preventing "Authenticating..." hang
+            if (data.session) {
+              setSession(data.session);
+              setUser(data.session.user);
+              persistSessionToLS(data.session);
+              scheduleTokenRefresh(data.session);
+              void ensureUser(data.session.user);
+              setIsLoading(false);
+              console.log("🔍 [AuthDebug] Session exchanged and state updated immediately from deep-link.");
+            }
           }
         } else {
           console.warn("⚠️ [DeepLink] Missing tokens or code in URL params", {
@@ -618,6 +641,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         // 1. Try Supabase cookie-based session first
         const { data: { session: s } } = await supabase.auth.getSession();
+        console.log(`🔍 [AuthDebug] Bootstrap getSession result: ${s ? "Session Found" : "No Session"}`);
 
         if (s?.user?.email) {
           if (mounted) {
@@ -631,13 +655,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           } catch (err) {
             console.error("[Auth] ensureUser failed during bootstrap:", err);
           }
-          if (mounted) setIsLoading(false);
+          if (mounted) {
+            setIsLoading(false);
+            setIsHydrated(true);
+          }
           return;
         }
 
         // 2. Cookie session missing — try localStorage backup (PWA standalone)
         const lsSession = restoreSessionFromLS();
         if (lsSession?.refresh_token) {
+          console.log("🔍 [AuthDebug] Attempting restoration from LocalStorage backup...");
           const { data: refreshed } = await supabase.auth.setSession({
             access_token: lsSession.access_token,
             refresh_token: lsSession.refresh_token,
@@ -649,6 +677,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             persistSessionToLS(refreshed.session);
             scheduleTokenRefresh(refreshed.session);
             void ensureUser(refreshed.session.user);
+            if (mounted) {
+              setIsLoading(false);
+              setIsHydrated(true);
+            }
             return;
           }
         }
@@ -664,6 +696,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } finally {
         if (mounted) {
           setIsLoading(false);
+          setIsHydrated(true);
         }
       }
     }
@@ -748,7 +781,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ session, user, userData, isLoading, needsCampus, signInWithGoogle, signOut, refreshUserData }}
+      value={{ session, user, userData, isLoading: !isHydrated || isLoading, needsCampus, signInWithGoogle, signOut, refreshUserData }}
     >
       {children}
       {showOutsiderWarning && outsiderVisitorId && userData && (

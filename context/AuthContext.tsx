@@ -231,6 +231,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const fetchUserData = useCallback(async function fetchUserDataInternal(email: string, accessToken?: string, retryCount = 0): Promise<UserData | null> {
     console.time(`🔍 [AuthDebug] ProfileFetch-${email}`);
     console.log(`🔍 [AuthDebug] fetchUserData: Starting attempt ${retryCount + 1} for ${email}.`);
+    console.log(`[PROFILE] session exists: ${!!accessToken}, token preview: ${accessToken ? accessToken.substring(0, 10) + "..." : "NONE"}`);
     
     const headers: Record<string, string> = {};
     if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
@@ -252,6 +253,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (res.ok) {
         const data = await res.json();
+        console.log(`🔍 [AuthDebug] fetchUserData: SUCCESS. Data keys: ${Object.keys(data).join(", ")}`);
         const fetchedUser = data.user ?? data;
         fetchedUser.roles = fetchedUser.roles ?? data.roles ?? {};
         
@@ -411,13 +413,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       try {
-        console.log(`🔍 [AuthDebug] ensureUser: Async profile sync (POST /users)...`);
-        const { data: { session: s } } = await supabase.auth.getSession();
-        const headers: Record<string, string> = { "Content-Type": "application/json" };
-        if (s?.access_token) headers.Authorization = `Bearer ${s.access_token}`;
-
-        // Non-blocking POST (we don't strictly need to wait for it before the GET fallback, but we'll await briefly)
-        await fetch(`${PWA_API_URL}/users`, {
+        // Non-blocking POST
+        console.log(`🔍 [AuthDebug] ensureUser: Sending POST /users for ${email}...`);
+        const res = await fetch(`${PWA_API_URL}/users`, {
           method: "POST",
           headers,
           body: JSON.stringify({
@@ -430,9 +428,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               course,
             },
           }),
-        }).catch(err => console.warn("🔍 [AuthDebug] ensureUser: POST failed (ignoring):", err));
+        });
+        console.log(`🔍 [AuthDebug] ensureUser: POST /users status = ${res.status}`);
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          console.error(`🔍 [AuthDebug] ensureUser: POST failed with status ${res.status}`, errData);
+        }
       } catch (err) {
-        console.warn("🔍 [AuthDebug] ensureUser: Setup error (ignoring):", err);
+        console.error("🔍 [AuthDebug] ensureUser: Setup error:", err);
       }
 
       // Fetch the final profile data
@@ -443,7 +446,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.log(`🔍 [AuthDebug] ensureUser: SUCCESS. Profile hydrated for ${fetchedUser.email}`);
         maybeShowOutsiderWelcome(fetchedUser, supaUser.id);
       } else {
-        console.warn(`🔍 [AuthDebug] ensureUser: Profile fetch failed/timed out for ${email}. Continuing with partial session.`);
+        console.warn(`🔍 [AuthDebug] ensureUser: Profile fetch failed/timed out for ${email}. USING FALLBACK HYDRATION.`);
+        
+        // FALLBACK HYDRATION: Synthesize user data from Supabase session to prevent "blank" UI
+        const fallbackUser: UserData = {
+          id: supaUser.id,
+          email: supaUser.email!,
+          name: supaUser.user_metadata?.full_name || supaUser.user_metadata?.name || supaUser.email!.split("@")[0],
+          avatar_url: supaUser.user_metadata?.avatar_url || null,
+          organization_type: getOrgType(supaUser.email!),
+          register_number: registerNumber,
+          course: course,
+          campus: null,
+          department: null,
+          is_organiser: false,
+          is_support: false,
+          is_masteradmin: false,
+          visitor_id: null,
+          outsider_name_edit_used: false,
+          created_at: new Date().toISOString(),
+          roles: {},
+          volunteerEvents: []
+        };
+        
+        console.log("🔍 [AuthDebug] Fallback User Synthesized:", fallbackUser.name);
+        setUserData(fallbackUser);
+        persistUserDataToLS(fallbackUser);
       }
       
       console.timeEnd(`🔍 [AuthDebug] TotalProfileInit-${email}`);
@@ -829,6 +857,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }}
     >
       {children}
+      
+      {/* 🛠️ [DEBUG OVERLAY] - Temporary floating state indicator */}
+      {process.env.NODE_ENV === "development" && (
+        <div 
+          className="fixed bottom-24 right-4 z-[9999] p-2 bg-black/80 text-[10px] text-white rounded-lg pointer-events-none border border-white/20 font-mono"
+          style={{ maxWidth: "200px" }}
+        >
+          <div className="flex justify-between border-b border-white/10 pb-1 mb-1">
+            <span className="text-blue-400">AUTH DEBUG</span>
+            <span className={isAuthenticated ? "text-green-400" : "text-red-400"}>
+              {isAuthenticated ? "AUTH" : "GUEST"}
+            </span>
+          </div>
+          <div className="truncate">U: {user?.email || "none"}</div>
+          <div className="truncate">P: {userData?.name || "null"}</div>
+          <div className="truncate">L: {isLoading ? "loading..." : "idle"}</div>
+          <div className="truncate">T: {session?.access_token ? "OK" : "MISSING"}</div>
+        </div>
+      )}
+
       {showOutsiderWarning && outsiderVisitorId && userData && (
         <div className="modal-backdrop">
           <div className="modal-card overflow-hidden">

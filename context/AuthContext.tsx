@@ -212,17 +212,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   /* Fetch profile from backend */
   const fetchUserData = useCallback(async function fetchUserDataInternal(email: string, accessToken?: string, retryCount = 0): Promise<UserData | null> {
     try {
-      console.log(`🔍 [AuthDebug] fetchUserData: Attempt ${retryCount + 1} for ${email}. Token: ${!!accessToken}`);
+      console.time(`🔍 [AuthDebug] ProfileFetch-${email}`);
+      console.log(`🔍 [AuthDebug] fetchUserData: Starting attempt ${retryCount + 1} for ${email}.`);
+      
       const headers: Record<string, string> = {};
       if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
 
-      const res = await fetch(
-        accessToken ? `${PWA_API_URL}/users/me` : `${PWA_API_URL}/users/${encodeURIComponent(email)}`,
-        {
-          headers,
-          cache: "no-store",
-        }
-      );
+      // Abort controller for timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+
+      try {
+        const res = await fetch(
+          accessToken ? `${PWA_API_URL}/users/me` : `${PWA_API_URL}/users/${encodeURIComponent(email)}`,
+          {
+            headers,
+            cache: "no-store",
+            signal: controller.signal
+          }
+        );
+        clearTimeout(timeoutId);
       if (res.ok) {
         const data = await res.json();
         const fetchedUser = data.user ?? data;
@@ -344,12 +353,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return fetchedUser;
         }
       }
-    } catch (e) {
-      console.error("Failed to fetch user data", e);
+    } catch (e: any) {
+      console.error(`🔍 [AuthDebug] fetchUserData Error: ${e.message}`);
+    } finally {
+      console.timeEnd(`🔍 [AuthDebug] ProfileFetch-${email}`);
     }
 
     if (retryCount < 2) {
-      console.log(`Retrying fetchUserData (${retryCount + 1})...`);
+      console.log(`🔍 [AuthDebug] fetchUserData: Retrying (${retryCount + 1})...`);
       await new Promise(r => setTimeout(r, 2000));
       return fetchUserDataInternal(email, accessToken, retryCount + 1);
     }
@@ -382,12 +393,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const ensureUser = useCallback(
     async (supaUser: User) => {
       const email = supaUser.email!;
-      console.log(`🔍 [AuthDebug] ensureUser: Starting initialization for ${email}`);
+      console.time(`🔍 [AuthDebug] TotalProfileInit-${email}`);
+      console.log(`🔍 [AuthDebug] ensureUser: Starting background initialization for ${email}`);
+      
       const orgType = getOrgType(email);
-      let fullName =
-        supaUser.user_metadata?.full_name ||
-        supaUser.user_metadata?.name ||
-        "";
+      let fullName = supaUser.user_metadata?.full_name || supaUser.user_metadata?.name || "";
       let registerNumber: string | null = null;
       let course: string | null = null;
 
@@ -409,12 +419,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       try {
-        console.log(`🔍 [AuthDebug] ensureUser: Syncing profile via POST /users...`);
+        console.log(`🔍 [AuthDebug] ensureUser: Async profile sync (POST /users)...`);
         const { data: { session: s } } = await supabase.auth.getSession();
         const headers: Record<string, string> = { "Content-Type": "application/json" };
         if (s?.access_token) headers.Authorization = `Bearer ${s.access_token}`;
 
-        const postRes = await fetch(`${PWA_API_URL}/users`, {
+        // Non-blocking POST (we don't strictly need to wait for it before the GET fallback, but we'll await briefly)
+        await fetch(`${PWA_API_URL}/users`, {
           method: "POST",
           headers,
           body: JSON.stringify({
@@ -427,27 +438,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               course,
             },
           }),
-        });
-        console.log(`🔍 [AuthDebug] ensureUser: POST /users status ${postRes.status}`);
+        }).catch(err => console.warn("🔍 [AuthDebug] ensureUser: POST failed (ignoring):", err));
       } catch (err) {
-        console.error("🔍 [AuthDebug] ensureUser: Profile sync failed:", err);
+        console.warn("🔍 [AuthDebug] ensureUser: Setup error (ignoring):", err);
       }
 
       // Fetch the final profile data
-      console.log(`🔍 [AuthDebug] ensureUser: Fetching final profile data...`);
       const { data: { session: currentSession } } = await supabase.auth.getSession();
       const fetchedUser = await fetchUserData(email, currentSession?.access_token);
       
-      if (!fetchedUser) {
-        console.error(`🔍 [AuthDebug] ensureUser: CRITICAL - Failed to load profile for ${email}`);
-        if (typeof window !== "undefined") {
-          window.dispatchEvent(new CustomEvent("auth_error", { detail: "Failed to load user profile. Please try again." }));
-        }
+      if (fetchedUser) {
+        console.log(`🔍 [AuthDebug] ensureUser: SUCCESS. Profile hydrated for ${fetchedUser.email}`);
+        maybeShowOutsiderWelcome(fetchedUser, supaUser.id);
       } else {
-        console.log(`🔍 [AuthDebug] ensureUser: SUCCESS. Profile loaded for ${fetchedUser.email}`);
+        console.warn(`🔍 [AuthDebug] ensureUser: Profile fetch failed/timed out for ${email}. Continuing with partial session.`);
       }
       
-      maybeShowOutsiderWelcome(fetchedUser, supaUser.id);
+      console.timeEnd(`🔍 [AuthDebug] TotalProfileInit-${email}`);
     },
     [fetchUserData, maybeShowOutsiderWelcome]
   );
@@ -691,9 +698,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, s) => {
+    } = supabase.auth.onAuthStateChange((event, s) => {
       if (!mounted) return;
-      console.log(`🔍 [AuthDebug] onAuthStateChange: Event=${event}, User=${s?.user?.email || 'none'}`);
+      console.log(`🔍 [AuthDebug] onAuthStateChange: Event=${event}, SessionPresent=${!!s}`);
       
       setSession(s);
       setUser(s?.user ?? null);
@@ -701,18 +708,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       scheduleTokenRefresh(s);
 
       if (s?.user?.email) {
-        try {
-          setIsLoading(true);
-          await ensureUser(s.user);
-        } catch (err) {
-          console.error("🔍 [AuthDebug] onAuthStateChange: ensureUser failed:", err);
-        } finally {
-          if (mounted) setIsLoading(false);
-        }
+        console.log(`🔍 [AuthDebug] onAuthStateChange: User authenticated. Resolving loading state.`);
+        // BACKGROUND profile sync: Do NOT await this. App should enter immediately.
+        void ensureUser(s.user);
+        setIsLoading(false);
       } else {
+        console.log(`🔍 [AuthDebug] onAuthStateChange: No session. Clearing data.`);
         setUserData(null);
         persistUserDataToLS(null);
-        if (mounted) setIsLoading(false);
+        setIsLoading(false);
       }
     });
 

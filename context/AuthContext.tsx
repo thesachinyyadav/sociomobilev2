@@ -211,8 +211,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   /* Fetch profile from backend */
   const fetchUserData = useCallback(async function fetchUserDataInternal(email: string, accessToken?: string, retryCount = 0): Promise<UserData | null> {
-    console.log(`fetchUserData called for ${email}, accessToken present: ${!!accessToken}, attempt: ${retryCount + 1}`);
     try {
+      console.log(`🔍 [AuthDebug] fetchUserData: Attempt ${retryCount + 1} for ${email}. Token: ${!!accessToken}`);
       const headers: Record<string, string> = {};
       if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
 
@@ -382,7 +382,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const ensureUser = useCallback(
     async (supaUser: User) => {
       const email = supaUser.email!;
-      console.log(`👉 [Auth] ensureUser started for: ${email}`);
+      console.log(`🔍 [AuthDebug] ensureUser: Starting initialization for ${email}`);
       const orgType = getOrgType(email);
       let fullName =
         supaUser.user_metadata?.full_name ||
@@ -409,7 +409,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       try {
-        console.log(`[Auth] ensureUser: Sending POST /users for ${email}`);
+        console.log(`🔍 [AuthDebug] ensureUser: Syncing profile via POST /users...`);
         const { data: { session: s } } = await supabase.auth.getSession();
         const headers: Record<string, string> = { "Content-Type": "application/json" };
         if (s?.access_token) headers.Authorization = `Bearer ${s.access_token}`;
@@ -428,20 +428,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             },
           }),
         });
-        console.log(`[Auth] ensureUser: POST /users returned status ${postRes.status}`);
+        console.log(`🔍 [AuthDebug] ensureUser: POST /users status ${postRes.status}`);
       } catch (err) {
-        console.error("ensureUser failed during POST /users:", err);
+        console.error("🔍 [AuthDebug] ensureUser: Profile sync failed:", err);
       }
 
-      console.log(`[Auth] ensureUser: Fetching user data via GET for ${email}`);
-      const {
-        data: { session: currentSession },
-      } = await supabase.auth.getSession();
+      // Fetch the final profile data
+      console.log(`🔍 [AuthDebug] ensureUser: Fetching final profile data...`);
+      const { data: { session: currentSession } } = await supabase.auth.getSession();
       const fetchedUser = await fetchUserData(email, currentSession?.access_token);
-      console.log(`[Auth] ensureUser: fetchUserData complete. Received data for: ${fetchedUser?.email || 'null'}`);
       
-      if (!fetchedUser && typeof window !== "undefined") {
-        window.dispatchEvent(new CustomEvent("auth_error", { detail: "Failed to load user profile. Please try again." }));
+      if (!fetchedUser) {
+        console.error(`🔍 [AuthDebug] ensureUser: CRITICAL - Failed to load profile for ${email}`);
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new CustomEvent("auth_error", { detail: "Failed to load user profile. Please try again." }));
+        }
+      } else {
+        console.log(`🔍 [AuthDebug] ensureUser: SUCCESS. Profile loaded for ${fetchedUser.email}`);
       }
       
       maybeShowOutsiderWelcome(fetchedUser, supaUser.id);
@@ -688,20 +691,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event, s) => {
+    } = supabase.auth.onAuthStateChange(async (event, s) => {
       if (!mounted) return;
+      console.log(`🔍 [AuthDebug] onAuthStateChange: Event=${event}, User=${s?.user?.email || 'none'}`);
+      
       setSession(s);
       setUser(s?.user ?? null);
       persistSessionToLS(s);
       scheduleTokenRefresh(s);
 
       if (s?.user?.email) {
-        void ensureUser(s.user);
-        setIsLoading(false);
+        try {
+          setIsLoading(true);
+          await ensureUser(s.user);
+        } catch (err) {
+          console.error("🔍 [AuthDebug] onAuthStateChange: ensureUser failed:", err);
+        } finally {
+          if (mounted) setIsLoading(false);
+        }
       } else {
         setUserData(null);
         persistUserDataToLS(null);
-        setIsLoading(false);
+        if (mounted) setIsLoading(false);
       }
     });
 

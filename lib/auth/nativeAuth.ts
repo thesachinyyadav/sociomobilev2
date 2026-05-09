@@ -14,7 +14,7 @@ import { PWA_API_URL } from "@/lib/apiConfig";
 export async function signInWithGoogleNative() {
   const redirectUrl = "socio://auth/callback";
   
-  console.log(`[NativeAuth] Initiating OAuth flow. redirectTo: ${redirectUrl}`);
+  console.log(`🔍 [AuthDebug] [NativeAuth] Initiating OAuth flow. redirectTo: ${redirectUrl}`);
 
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",
@@ -25,15 +25,15 @@ export async function signInWithGoogleNative() {
   });
 
   if (error) {
-    console.error("[NativeAuth] signInWithOAuth Error:", error.message, error);
+    console.error("🔍 [AuthDebug] [NativeAuth] signInWithOAuth Error:", error.message, error);
     throw error;
   }
 
-  console.log("[NativeAuth] signInWithOAuth data:", data);
+  console.log("🔍 [AuthDebug] [NativeAuth] signInWithOAuth data:", data);
 
   // Manually open the Google login in a Chrome Custom Tab / SFSafariViewController
   if (data?.url) {
-    console.log("[NativeAuth] Opening Browser with URL:", data.url);
+    console.log("🔍 [AuthDebug] [NativeAuth] Opening Browser with URL:", data.url);
     await Browser.open({ url: data.url });
   } else {
     throw new Error("No OAuth URL returned from Supabase.");

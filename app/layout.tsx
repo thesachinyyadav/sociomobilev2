@@ -8,6 +8,7 @@ import { ShakeToScanProvider } from "@/context/ShakeToScanContext";
 import type { FetchedEvent } from "@/context/EventContext";
 import AppShell from "./AppShell";
 import { PWA_API_URL } from "@/lib/apiConfig";
+import { apiRequest } from "@/lib/apiClient";
 
 export const metadata: Metadata = {
   title: "SOCIO – Campus Events",
@@ -30,11 +31,10 @@ export const viewport: Viewport = {
 
 async function fetchEvents(): Promise<FetchedEvent[]> {
   try {
-    const res = await fetch(`${PWA_API_URL}/events`, {
+    const data: any = await apiRequest(`/events`, {
       next: { revalidate: 300 },
-    });
-    if (!res.ok) return [];
-    const data = await res.json();
+    } as any);
+    
     // Handle both { events: [] } and { success: true, data: [] } patterns
     const events = data.events ?? data.data ?? data ?? [];
     return Array.isArray(events) ? events : [];

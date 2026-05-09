@@ -10,6 +10,7 @@ import { Button } from "@/components/Button";
 import { AlertTriangleIcon, ArrowLeftIcon, QrCodeIcon, ShieldCheckIcon } from "@/components/icons";
 import { getActiveVolunteerEvents } from "@/lib/volunteerAccess";
 import { PWA_API_URL } from "@/lib/apiConfig";
+import { apiRequest } from "@/lib/apiClient";
 
 const DENIED_MESSAGE = "You do not have permission to access this feature";
 
@@ -50,13 +51,12 @@ export default function ScannerClient() {
       setEvent(cachedEvent);
 
       try {
-        const res = await fetch(`${PWA_API_URL}/volunteer/events/${encodeURIComponent(eventId)}/access`, {
+        const payload: any = await apiRequest(`/volunteer/events/${encodeURIComponent(eventId)}/access`, {
           headers: {
             Authorization: `Bearer ${session!.access_token}`,
           },
           cache: "no-store",
         });
-        const payload = await res.json().catch(() => ({}));
 
         if (cancelled) return;
 
@@ -66,25 +66,14 @@ export default function ScannerClient() {
           return;
         }
 
-        if (!res.ok) {
-          if (cachedEvent) {
-            console.warn("Scanner access validation failed, falling back to cached event.");
-            setEvent(cachedEvent);
-          } else {
-            setEvent(null);
-            setError(payload.error || DENIED_MESSAGE);
-          }
-          return;
-        }
-
         setEvent(payload.event || cachedEvent);
-      } catch {
+      } catch (err: any) {
         if (!cancelled) {
           if (cachedEvent) {
              setEvent(cachedEvent);
           } else {
              setEvent(null);
-             setError("Unable to validate scanner access.");
+             setError(err.message || "Unable to validate scanner access.");
           }
         }
       } finally {

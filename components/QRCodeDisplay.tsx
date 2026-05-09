@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { DownloadIcon, XIcon, AlertCircleIcon, Loader2Icon } from "@/components/icons";
 import { useAuth } from "@/context/AuthContext";
 import { PWA_API_URL } from "@/lib/apiConfig";
+import { apiRequest } from "@/lib/apiClient";
 
 interface QRCodeDisplayProps {
   registrationId: string;
@@ -35,22 +36,16 @@ export default function QRCodeDisplay({
         setLoading(true);
         setError(null);
 
-        const res = await fetch(`${PWA_API_URL}/registrations/${encodeURIComponent(registrationId)}/qr-code`, {
+        const data: any = await apiRequest(`/registrations/${encodeURIComponent(registrationId)}/qr-code`, {
           headers: {
             Authorization: `Bearer ${session.access_token}`,
           },
           cache: "no-store",
         });
 
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok) {
-          setError(data.error || "Failed to fetch QR code.");
-          return;
-        }
-
         setQrImage(data.qrCodeImage || null);
-      } catch {
-        setError("Network error while loading QR code.");
+      } catch (err: any) {
+        setError(err.message || "Network error while loading QR code.");
       } finally {
         setLoading(false);
       }

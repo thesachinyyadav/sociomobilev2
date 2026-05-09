@@ -246,27 +246,19 @@ export default function ProfilePage() {
 
     setIsSubmittingName(true);
     try {
-      const headers: Record<string, string> = { "Content-Type": "application/json" };
-      if (session?.access_token) headers.Authorization = `Bearer ${session.access_token}`;
-
-      const resp = await fetch(`${PWA_API_URL}/users/${encodeURIComponent(userData.email)}/name`, {
+      await apiRequest(`/users/${encodeURIComponent(userData.email)}/name`, {
         method: "PUT",
-        headers,
+        headers: session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {},
         body: JSON.stringify({
           name: nameInput.trim(),
           visitor_id: visitorId,
         }),
       });
-      const data = await resp.json().catch(() => ({}));
-      if (!resp.ok) {
-        setNameEditError(data.error || "Failed to update name");
-        return;
-      }
 
       setIsEditingName(false);
       await refreshUserData();
-    } catch {
-      setNameEditError("Network error");
+    } catch (err: any) {
+      setNameEditError(err.message || "Network error");
     } finally {
       setIsSubmittingName(false);
     }

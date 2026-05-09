@@ -13,6 +13,7 @@ import {
 import { shareEvent } from "@/lib/share";
 
 import { PWA_API_URL } from "@/lib/apiConfig";
+import { apiRequest } from "@/lib/apiClient";
 
 export default function FestDetailClient({ festId }: { festId: string }) {
   const router = useRouter();
@@ -29,14 +30,18 @@ export default function FestDetailClient({ festId }: { festId: string }) {
     }
 
     // Fests are not globally in context, so we fetch directly
-    fetch(`${PWA_API_URL}/fests/${festId}`)
-      .then((r) => {
-        if (!r.ok) throw new Error();
-        return r.json();
-      })
-      .then((d) => setFest(d))
-      .catch(() => setError("Fest not found"))
-      .finally(() => setLoading(false));
+    const fetchFest = async () => {
+      try {
+        const d = await apiRequest(`/fests/${festId}`);
+        setFest(d as any);
+      } catch {
+        setError("Fest not found");
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchFest();
   }, [festId, allEvents]);
 
   if (loading || ctxLoading) {

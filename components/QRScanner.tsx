@@ -5,6 +5,7 @@ import { useAuth } from "@/context/AuthContext";
 import { AlertTriangleIcon, CameraIcon, CheckCircleIcon, QrCodeIcon, XIcon } from "@/components/icons";
 import { Button } from "@/components/Button";
 import { PWA_API_URL } from "@/lib/apiConfig";
+import { apiRequest } from "@/lib/apiClient";
 import { getScanner, IScanner, ScannerResult } from "@/lib/ScannerService";
 import { Haptics, ImpactStyle, NotificationType } from "@capacitor/haptics";
 import { Capacitor } from "@capacitor/core";
@@ -104,10 +105,9 @@ export default function QRScanner({ eventId, onScanSuccess }: QRScannerProps) {
     scannerRef.current?.pause();
 
     try {
-      const response = await fetch(`${PWA_API_URL}/events/${encodeURIComponent(eventId)}/scan-qr`, {
+      const payload: any = await apiRequest(`/events/${encodeURIComponent(eventId)}/scan-qr`, {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
           Authorization: `Bearer ${session.access_token}`,
         },
         body: JSON.stringify({
@@ -123,26 +123,17 @@ export default function QRScanner({ eventId, onScanSuccess }: QRScannerProps) {
         }),
         cache: "no-store",
       });
-
-      const payload = (await response.json().catch(() => ({}))) as ScanPayload;
       
-      if (!response.ok) {
-        setResult(null);
-        setError(payload.error || "Unable to process this QR code.");
-        void triggerHaptic("error");
-        resumeScanner(2200);
-        return;
-      }
-
       setError(null);
       setResult(payload.participant || null);
       void triggerHaptic("success");
       playSuccessSound();
       onScanSuccess?.(payload);
       resumeScanner(3000);
-    } catch {
+    } catch (err: any) {
       setResult(null);
-      setError("Network error. Please try again.");
+      setError(err.message || "Network error. Please try again.");
+      void triggerHaptic("error");
       resumeScanner(2200);
     }
   };

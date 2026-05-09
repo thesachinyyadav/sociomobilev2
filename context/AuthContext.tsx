@@ -443,29 +443,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setIsSavingOutsiderName(true);
       setOutsiderNameError(null);
       try {
-        const headers: Record<string, string> = { "Content-Type": "application/json" };
-        if (session?.access_token) headers.Authorization = `Bearer ${session.access_token}`;
-
-        const resp = await fetch(`${PWA_API_URL}/users/${encodeURIComponent(userData.email)}/name`, {
+        await apiRequest(`/users/${encodeURIComponent(userData.email)}/name`, {
           method: "PUT",
-          headers,
+          headers: session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {},
           body: JSON.stringify({
             name: name.trim(),
             visitor_id: outsiderVisitorId,
           }),
         });
 
-        const data = await resp.json().catch(() => ({}));
-        if (!resp.ok) {
-          setOutsiderNameError(getFriendlyOutsiderNameError(data.error));
-          return;
-        }
-
         setShowOutsiderWarning(false);
         setIsEditingOutsiderName(false);
         await fetchUserData(userData.email, session?.access_token);
-      } catch {
-        setOutsiderNameError(getFriendlyOutsiderNameError("Network error"));
+      } catch (err: any) {
+        setOutsiderNameError(getFriendlyOutsiderNameError(err.message || "Network error"));
       } finally {
         setIsSavingOutsiderName(false);
       }

@@ -263,17 +263,14 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     console.log(`[API] endpoint: /notifications, token exists: ${!!session?.access_token}, platform: ${platform}`);
 
     try {
-      const res = await fetch(
-        `${PWA_API_URL}/notifications?email=${encodeURIComponent(userData.email)}&page=${targetPage}&limit=15`,
+      const data: any = await apiRequest(
+        `/notifications?email=${encodeURIComponent(userData.email)}&page=${targetPage}&limit=15`,
         {
           headers: session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {},
-          signal: AbortSignal.timeout(8000) // 8s timeout
         }
       );
-      console.log(`[API] response status: ${res.status} for /notifications`);
-      if (res.ok) {
-        const data = await res.json();
-        const raw = (data.notifications || []) as Notification[];
+      
+      const raw = (data.notifications || []) as Notification[];
 
         const readSet = getLocalSet(LS_READ_KEY);
         const dismissedSet = getLocalSet(LS_DISMISSED_KEY);
@@ -296,7 +293,6 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         }
 
         setHasMore(raw.length === 15);
-      }
     } catch (err) {
       console.error("Fetch error", err);
     }

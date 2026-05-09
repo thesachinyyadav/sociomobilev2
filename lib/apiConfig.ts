@@ -1,12 +1,23 @@
+import { Capacitor } from "@capacitor/core";
 
 const getApiBase = () => {
+  // 1. Force Production URL if running in a native app (Capacitor)
+  if (Capacitor.isNativePlatform()) {
+    console.log("📱 [API_CONFIG] Running on Native Platform. Forcing Production API.");
+    return "https://socio2026v2server.vercel.app";
+  }
+
+  // 2. Handle browser/PWA logic
   if (typeof window !== "undefined") {
     const hostname = window.location.hostname;
+    // In Capacitor WebView, hostname is 'localhost', but we handled it above.
     const isLocal = hostname === "localhost" || hostname === "127.0.0.1" || hostname.startsWith("192.168.");
     if (!isLocal) {
       return "https://socio2026v2server.vercel.app";
     }
   }
+  
+  // 3. Fallback to ENV or Production
   return process.env.NEXT_PUBLIC_API_URL || "https://socio2026v2server.vercel.app";
 };
 

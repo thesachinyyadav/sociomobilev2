@@ -19,6 +19,7 @@ import {
 } from "@/components/icons";
 import { formatDateShort, formatTime } from "@/lib/dateUtils";
 import { PWA_API_URL } from "@/lib/apiConfig";
+import { apiRequest } from "@/lib/apiClient";
 
 interface CateringBooking {
   booking_id: string;
@@ -80,26 +81,23 @@ export default function CateringDashboardPage() {
     const vendorQuery = selectedVendorId ? `&catering_id=${selectedVendorId}` : "";
 
     try {
-      const res = await fetch(`${PWA_API_URL}/catering/bookings?page=${pageNum}&pageSize=${pageSize}&status=${statusQuery}${vendorQuery}`, {
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-        },
-        cache: "no-store",
-      });
-      const payload = await res.json().catch(() => ({}));
+      const payload: any = await apiRequest(
+        `/catering/bookings?page=${pageNum}&pageSize=${pageSize}&status=${statusQuery}${vendorQuery}`,
+        {
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          cache: "no-store",
+        }
+      );
 
-      if (!res.ok) {
-        if (!append) setBookings([]);
-        setError(payload.error || DENIED_MESSAGE);
-      } else {
-        const newBookings = payload.bookings || [];
-        setBookings(prev => append ? [...prev, ...newBookings] : newBookings);
-        setPagination(payload.pagination || null);
-        if (payload.vendors) setVendors(payload.vendors);
-      }
-    } catch (err) {
+      const newBookings = payload.bookings || [];
+      setBookings((prev) => (append ? [...prev, ...newBookings] : newBookings));
+      setPagination(payload.pagination || null);
+      if (payload.vendors) setVendors(payload.vendors);
+    } catch (err: any) {
       console.error("Failed to fetch catering bookings:", err);
-      setError("Failed to load catering orders. Please check your connection.");
+      setError(err.message || "Failed to load catering orders. Please check your connection.");
     } finally {
       setIsFetching(false);
     }
@@ -147,35 +145,27 @@ export default function CateringDashboardPage() {
     if (!session?.access_token) return;
 
     try {
-      const res = await fetch(`${PWA_API_URL}/catering/bookings/${bookingId}/action`, {
+      await apiRequest(`/catering/bookings/${bookingId}/action`, {
         method: "PATCH",
         headers: {
-          "Content-Type": "application/json",
           Authorization: `Bearer ${session.access_token}`,
         },
         body: JSON.stringify({ action }),
       });
 
-      if (res.ok) {
-        // Remove from pending tab instantly
-        if (activeTab === "pending") {
-          setBookings(prev => prev.filter(b => b.booking_id !== bookingId));
-          // Re-fetch to fix pagination counts if needed, but not strictly necessary immediately
-          // fetchBookings(page, activeTab);
-        } else {
-          setBookings(prev => prev.map(b => 
-            b.booking_id === bookingId 
-              ? { ...b, status: action === "accept" ? "accepted" : "declined" } 
-              : b
-          ));
-        }
+      // Remove from pending tab instantly
+      if (activeTab === "pending") {
+        setBookings((prev) => prev.filter((b) => b.booking_id !== bookingId));
       } else {
-        const data = await res.json();
-        alert(data.error || `Failed to ${action} booking`);
+        setBookings((prev) =>
+          prev.map((b) =>
+            b.booking_id === bookingId ? { ...b, status: action === "accept" ? "accepted" : "declined" } : b
+          )
+        );
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error(`Error performing ${action} on booking:`, err);
-      alert("Network error. Please try again.");
+      alert(err.message || "Network error. Please try again.");
     }
   };
 

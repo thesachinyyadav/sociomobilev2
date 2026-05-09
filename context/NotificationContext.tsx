@@ -5,7 +5,7 @@ import { useAuth } from "@/context/AuthContext";
 import { Capacitor } from "@capacitor/core";
 import { useRouter } from "next/navigation";
 import { toast } from "react-hot-toast";
-import { PWA_API_URL } from "@/lib/apiConfig";
+import { apiRequest } from "@/lib/apiClient";
 
 export interface Notification {
   id: string;
@@ -221,14 +221,14 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
           const headers: Record<string, string> = { "Content-Type": "application/json" };
           if (session?.access_token) headers.Authorization = `Bearer ${session.access_token}`;
 
-          await fetch(`${PWA_API_URL}/notifications/push/subscribe`, {
-            method: "POST",
-            headers,
-            body: JSON.stringify({
-              email: userData.email,
-              subscription,
-            }),
-          });
+      await apiRequest<any>(`/notifications/push/subscribe`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          email: userData.email,
+          subscription,
+        }),
+      });
         }
 
         setPushStatus("granted");

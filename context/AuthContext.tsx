@@ -545,7 +545,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           } else {
             console.log("🎉 [DeepLink] Session set successfully for:", data.user?.email);
 
-            // 🔍 [AuthDebug] DIRECT STATE UPDATE: Preventing "Authenticating..." hang
+            // 🔍 [AuthDebug] DIRECT STATE UPDATE
             if (data.session) {
               setSession(data.session);
               setUser(data.session.user);
@@ -553,7 +553,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               scheduleTokenRefresh(data.session);
               void ensureUser(data.session.user);
               setIsLoading(false);
-              console.log("🔍 [AuthDebug] Session restored and state updated immediately from deep-link.");
+              console.log("🔍 [AuthDebug] Session restored. Triggering HARD RELOAD to clear stale state.");
+
+              // FORCE RELOAD: This is the nuclear option to clear "Authenticating..." hang
+              // and force the app to re-bootstrap with the new session.
+              setTimeout(() => {
+                window.location.reload();
+              }, 500);
             }
           }
         } else if (authCode) {
@@ -576,7 +582,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           } else {
             console.log("🎉 [DeepLink] Session exchanged successfully for:", data.user?.email);
 
-            // 🔍 [AuthDebug] DIRECT STATE UPDATE: Preventing "Authenticating..." hang
+            // 🔍 [AuthDebug] DIRECT STATE UPDATE
             if (data.session) {
               setSession(data.session);
               setUser(data.session.user);
@@ -584,7 +590,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               scheduleTokenRefresh(data.session);
               void ensureUser(data.session.user);
               setIsLoading(false);
-              console.log("🔍 [AuthDebug] Session exchanged and state updated immediately from deep-link.");
+              console.log("🔍 [AuthDebug] Session exchanged. Triggering HARD RELOAD to clear stale state.");
+
+              // FORCE RELOAD: Ensure clean slate after OAuth return
+              setTimeout(() => {
+                window.location.reload();
+              }, 500);
             }
           }
         } else {

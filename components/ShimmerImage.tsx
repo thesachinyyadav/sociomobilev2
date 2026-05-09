@@ -14,8 +14,7 @@ export default function ShimmerImage(props: ImageProps) {
         onLoad={(e) => {
           setIsLoaded(true);
           if (props.onLoad) {
-            // @ts-ignore
-            props.onLoad(e);
+            (props.onLoad as any)(e);
           }
         }}
       />

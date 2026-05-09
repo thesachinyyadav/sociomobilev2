@@ -520,6 +520,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         
         const token = hashParams.get("access_token") || url.searchParams.get("token") || url.searchParams.get("access_token");
         const refreshToken = hashParams.get("refresh_token") || url.searchParams.get("refresh_token") || url.searchParams.get("refreshToken") || url.searchParams.get("refresh");
+        const authCode = url.searchParams.get("code");
         const error = url.searchParams.get("error") || hashParams.get("error");
 
         if (error) {
@@ -554,13 +555,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           } else {
             console.log("🎉 [DeepLink] Session set successfully for:", data.user?.email);
           }
+        } else if (authCode) {
+          console.log("✅ [DeepLink] Auth code received, exchanging for session...");
+
+          // IMPORTANT: Close browser BEFORE exchange to prevent UI hanging
+          try {
+            await Browser.close();
+          } catch (e) {
+            console.warn("[DeepLink] Browser.close() failed:", e);
+          }
+
+          const { data, error: exchangeErr } = await supabase.auth.exchangeCodeForSession(authCode);
+
+          if (exchangeErr) {
+            console.error("❌ [DeepLink] exchangeCodeForSession failed:", exchangeErr.message, exchangeErr);
+            if (typeof window !== "undefined") {
+              window.dispatchEvent(new CustomEvent("auth_error", { detail: exchangeErr.message }));
+            }
+          } else {
+            console.log("🎉 [DeepLink] Session exchanged successfully for:", data.user?.email);
+          }
         } else {
-          console.warn("⚠️ [DeepLink] Missing tokens in URL params", {
+          console.warn("⚠️ [DeepLink] Missing tokens or code in URL params", {
             tokenPresent: !!token,
             refreshPresent: !!refreshToken,
+            codePresent: !!authCode,
           });
           if (typeof window !== "undefined") {
-            window.dispatchEvent(new CustomEvent("auth_error", { detail: "Authentication tokens were missing from the callback." }));
+            window.dispatchEvent(new CustomEvent("auth_error", { detail: "Authentication data was missing from the callback." }));
           }
         }
       } catch (err: any) {
@@ -620,7 +642,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             persistSessionToLS(s);
             scheduleTokenRefresh(s);
           }
-          void ensureUser(s.user);
+          try {
+            await ensureUser(s.user);
+          } catch (err) {
+            console.error("[Auth] ensureUser failed during bootstrap:", err);
+          }
           if (mounted) setIsLoading(false);
           return;
         }

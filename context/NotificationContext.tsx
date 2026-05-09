@@ -342,7 +342,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
     // Backend sync (best effort)
     if (userData?.email) {
-      fetch(`${PWA_API_URL}/notifications/${id}/read`, {
+      apiRequest(`/notifications/${id}/read`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: userData.email }),
@@ -359,7 +359,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     saveLocalSet(LS_READ_KEY, set);
 
     if (userData?.email) {
-      fetch(`${PWA_API_URL}/notifications/mark-read`, {
+      apiRequest(`/notifications/mark-read`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: userData.email }),
@@ -375,7 +375,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     saveLocalSet(LS_DISMISSED_KEY, set);
 
     if (userData?.email) {
-      fetch(`${PWA_API_URL}/notifications/${encodeURIComponent(id)}?email=${encodeURIComponent(userData.email)}`, {
+      apiRequest(`/notifications/${encodeURIComponent(id)}?email=${encodeURIComponent(userData.email)}`, {
         method: "DELETE",
       }).catch(() => {});
     }

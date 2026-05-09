@@ -27,9 +27,13 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const hideBottom = NO_BOTTOM_NAV.some((p) => pathname.startsWith(p));
   const hideTop = NO_TOP_BAR.some((p) => pathname.startsWith(p));
-  const { userData, session, needsCampus, refreshUserData } = useAuth();
+  const { userData, user, session, needsCampus, refreshUserData, isAuthenticated } = useAuth();
   const [campusDismissed, setCampusDismissed] = useState(false);
   const [isNative, setIsNative] = useState(false);
+
+  useEffect(() => {
+    console.log(`[APPSHELL] State: user=${user?.email || "null"}, userData=${userData?.email || "null"}, isAuth=${isAuthenticated}`);
+  }, [user, userData, isAuthenticated]);
 
   useEffect(() => {
     // Check if dismissed recently — isCampusDismissedRecently is a pure

@@ -147,13 +147,19 @@ function UpcomingEventItem({ event }: { event: FetchedEvent }) {
 }
 
 export default function HomePage() {
-  const { userData, isLoading: authLoading } = useAuth();
+  const { user, userData, isLoading: authLoading, isAuthenticated } = useAuth();
   const { allEvents, isLoading: eventsLoading } = useEvents();
   const [isHydrated, setIsHydrated] = React.useState(false);
 
   React.useEffect(() => {
     setIsHydrated(true);
   }, []);
+
+  React.useEffect(() => {
+    if (isHydrated) {
+      console.log(`[HOMEPAGE] State: user=${user?.email || "null"}, userData=${userData?.email || "null"}, isAuth=${isAuthenticated}`);
+    }
+  }, [isHydrated, user, userData, isAuthenticated]);
 
   const isDataLoading = !isHydrated || eventsLoading;
 

@@ -6,17 +6,32 @@ import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import NotificationBell from "@/components/NotificationBell";
 import { ArrowLeftIcon, UserIcon } from "@/components/icons";
+import { useState, useEffect } from "react";
 
 // Pages that show back button instead of logo
 const BACK_PAGES = ["/event/", "/fest/", "/notifications", "/club/"];
 
 export default function TopBar() {
-  const { userData } = useAuth();
+  const { user, userData, isAuthenticated } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
+  const [isHydrated, setIsHydrated] = useState(false);
+
+  useEffect(() => {
+    setIsHydrated(true);
+  }, []);
+
+  useEffect(() => {
+    if (isHydrated) {
+      console.log(`[NAVBAR] State: user=${user?.email || "null"}, userData=${userData?.email || "null"}, isAuth=${isAuthenticated}`);
+    }
+  }, [isHydrated, user, userData, isAuthenticated]);
 
   const showBack = BACK_PAGES.some((p) => pathname.startsWith(p));
   const isProfile = pathname === "/profile";
+
+  // Use user/isAuthenticated for login check, userData for profile enrichment
+  const isUserLoggedIn = !!user || isAuthenticated;
 
   return (
     <header
@@ -40,10 +55,12 @@ export default function TopBar() {
           >
             <ArrowLeftIcon size={18} strokeWidth={2.2} />
           </button>
-        ) : userData ? (
+        ) : !isHydrated ? (
+          <div className="w-[34px] h-[34px] rounded-full bg-gray-200 animate-pulse" />
+        ) : isUserLoggedIn ? (
           <Link href="/profile" className="shrink-0">
             <div className="w-[34px] h-[34px] rounded-full overflow-hidden ring-2 ring-[#1a3a7a] shadow-[0_4px_14px_rgba(0,0,0,0.3)] bg-white/10 flex items-center justify-center">
-              {userData.avatar_url ? (
+              {userData?.avatar_url ? (
                 <Image
                   src={userData.avatar_url}
                   alt={userData.name || "User"}
@@ -53,7 +70,7 @@ export default function TopBar() {
                 />
               ) : (
                 <span className="text-[13px] font-black text-white drop-shadow-sm">
-                  {userData.name?.[0]?.toUpperCase() || "U"}
+                  {userData?.name?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || "U"}
                 </span>
               )}
             </div>
@@ -79,7 +96,9 @@ export default function TopBar() {
         <div className="flex-1" />
 
         {/* Right actions */}
-        {userData ? (
+        {!isHydrated ? (
+          <div className="w-16 h-8 rounded-lg bg-gray-200 animate-pulse" />
+        ) : isUserLoggedIn ? (
           <NotificationBell />
         ) : (
           <Link

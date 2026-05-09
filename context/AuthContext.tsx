@@ -188,8 +188,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // 🔍 [AuthDebug] Trace all critical state changes
   useEffect(() => {
-    console.log(`🔍 [AuthDebug] State Change: isLoading=${isLoading}, isHydrated=${isHydrated}, session=${!!session}, user=${!!user}, isAuth=${isAuthenticated}`);
-  }, [isLoading, isHydrated, session, user, isAuthenticated]);
+    console.log(`🔍 [AuthDebug] contextState: isLoading=${isLoading}, isHydrated=${isHydrated}, user=${user?.email || "null"}, userData=${userData?.email || "null"}, isAuth=${isAuthenticated}`);
+  }, [isLoading, isHydrated, user, userData, isAuthenticated]);
+
+  // Ensure isAuthenticated is always in sync with user
+  useEffect(() => {
+    const isAuth = !!user;
+    if (isAuth !== isAuthenticated) {
+      console.log(`🔍 [AuthDebug] Syncing isAuthenticated -> ${isAuth}`);
+      setIsAuthenticated(isAuth);
+    }
+  }, [user, isAuthenticated]);
   
   const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [showOutsiderWarning, setShowOutsiderWarning] = useState(false);
@@ -807,7 +816,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ session, user, userData, isLoading: !isHydrated || isLoading, isAuthenticated, needsCampus, signInWithGoogle, signOut, refreshUserData }}
+      value={{ 
+        session, 
+        user, 
+        userData, 
+        isLoading: !isHydrated || isLoading, 
+        isAuthenticated, 
+        needsCampus, 
+        signInWithGoogle, 
+        signOut, 
+        refreshUserData 
+      }}
     >
       {children}
       {showOutsiderWarning && outsiderVisitorId && userData && (

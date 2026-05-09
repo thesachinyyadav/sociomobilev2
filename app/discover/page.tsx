@@ -71,7 +71,7 @@ export default function DiscoverPage() {
       const timeoutId = setTimeout(() => controller.abort(), 8000);
 
       try {
-        const data = await apiRequest(`/fests`);
+        const data = (await apiRequest(`/fests`)) as any;
         const arr = data.fests ?? data.data ?? data ?? [];
         setFests(Array.isArray(arr) ? arr : []);
       } catch {}

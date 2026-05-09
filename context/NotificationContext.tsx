@@ -6,6 +6,7 @@ import { Capacitor } from "@capacitor/core";
 import { useRouter } from "next/navigation";
 import { toast } from "react-hot-toast";
 import { apiRequest } from "@/lib/apiClient";
+import { PWA_API_URL } from "@/lib/apiConfig";
 
 export interface Notification {
   id: string;

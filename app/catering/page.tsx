@@ -199,7 +199,7 @@ export default function CateringDashboardPage() {
   return (
     <div className="min-h-screen bg-[#F8FAFC] pb-24">
       {/* Sticky Header */}
-      <div className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-slate-100 pt-[calc(var(--safe-top,0px)+24px)] px-4">
+      <div className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-slate-100 pt-[calc(var(--safe-top,0px)+48px)] px-4">
         <div className="flex items-center gap-3 mb-6">
           <button
             onClick={() => router.back()}

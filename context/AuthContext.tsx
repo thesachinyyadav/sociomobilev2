@@ -14,6 +14,8 @@ import { App as CapacitorApp } from "@capacitor/app";
 import { Browser } from "@capacitor/browser";
 import { supabase } from "@/lib/supabaseClient";
 import type { Session, User } from "@supabase/supabase-js";
+import { signInWithGoogleWeb } from "@/lib/auth/webAuth";
+import { signInWithGoogleNative } from "@/lib/auth/nativeAuth";
 import { PWA_API_URL } from "@/lib/apiConfig";
 
 /* ── Local-storage helpers for PWA session persistence ── */
@@ -706,39 +708,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signInWithGoogle = useCallback(async () => {
     const isApp = typeof window !== "undefined" && Capacitor.isNativePlatform();
     
-    // For native app, redirect to backend callback so it can exchange tokens
-    // and redirect back using the socio:// scheme.
-    // For web, use the standard Next.js callback route.
-    const redirectUrl = isApp 
-      ? `${PWA_API_URL}/auth/callback`
-      : `${window.location.origin}/auth/callback`;
-
-    console.log(`[Auth] Initiating OAuth flow. isApp: ${isApp}, redirectUrl: ${redirectUrl}`);
-
-    const { data, error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: { 
-        redirectTo: redirectUrl,
-        skipBrowserRedirect: isApp 
-      },
-    });
-
-    if (error) {
-      console.error("Google sign-in error", error);
-      throw error;
-    }
-
-    if (isApp && data?.url) {
-      try {
-        await Browser.open({ url: data.url });
-      } catch (browserErr: any) {
-        console.warn("Browser.open failed, falling back to window.location redirect:", browserErr);
-        // Plugin not installed or app not rebuilt after cap sync —
-        // fall back to a normal redirect so the user can still sign in.
-        if (typeof window !== "undefined") {
-          window.location.href = data.url;
-        }
-      }
+    if (isApp) {
+      await signInWithGoogleNative();
+    } else {
+      await signInWithGoogleWeb();
     }
   }, []);
 

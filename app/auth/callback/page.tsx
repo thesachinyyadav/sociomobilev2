@@ -19,17 +19,6 @@ function AuthCallbackContent() {
     if (session) {
       const next = searchParams.get("next") || "/";
       
-      // Handle deep links for Capacitor — redirect back to the native app.
-      // Use the `socio://auth/callback` scheme so native listener can match reliably.
-      if (searchParams.get("source") === "capacitor") {
-        const token = session.access_token;
-        const refreshToken = session.refresh_token;
-        const redirect = `socio://auth/callback?token=${encodeURIComponent(token)}&refresh_token=${encodeURIComponent(refreshToken)}`;
-        console.log("👉 [AuthCallback] Redirecting to native deep link:", redirect);
-        window.location.href = redirect;
-        return;
-      }
-
       const returnTo = sessionStorage.getItem("returnTo");
       if (returnTo) sessionStorage.removeItem("returnTo");
       router.replace(returnTo || next);

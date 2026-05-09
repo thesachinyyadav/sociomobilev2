@@ -182,6 +182,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [userData, setUserData] = useState<UserData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isHydrated, setIsHydrated] = useState(false);
+
+  // 🔍 [AuthDebug] Trace all critical state changes
+  useEffect(() => {
+    console.log(`🔍 [AuthDebug] State Change: isLoading=${isLoading}, isHydrated=${isHydrated}, session=${!!session}, user=${!!user}`);
+  }, [isLoading, isHydrated, session, user]);
   
   const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [showOutsiderWarning, setShowOutsiderWarning] = useState(false);
@@ -630,6 +635,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     async function bootstrap() {
       if (typeof window === "undefined") return;
 
+      console.log("🔍 [AuthDebug] Bootstrap: Starting sequence...");
       try {
         const cachedUser = restoreUserDataFromLS();
         if (cachedUser && mounted) {
@@ -687,6 +693,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         // 3. No valid session anywhere
         if (mounted) {
+          console.log("🔍 [AuthDebug] Bootstrap: No valid session found, clearing data.");
           persistSessionToLS(null);
           persistUserDataToLS(null);
           setUserData(null);
@@ -695,6 +702,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.error("Auth bootstrap failed", err);
       } finally {
         if (mounted) {
+          console.log("🔍 [AuthDebug] Bootstrap: Completed.");
           setIsLoading(false);
           setIsHydrated(true);
         }
@@ -708,7 +716,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } = supabase.auth.onAuthStateChange((event, s) => {
       if (!mounted) return;
       console.log(`🔍 [AuthDebug] onAuthStateChange: Event=${event}, SessionPresent=${!!s}`);
-      
+
       setSession(s);
       setUser(s?.user ?? null);
       persistSessionToLS(s);
@@ -719,11 +727,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // BACKGROUND profile sync: Do NOT await this. App should enter immediately.
         void ensureUser(s.user);
         setIsLoading(false);
+        setIsHydrated(true);
       } else {
         console.log(`🔍 [AuthDebug] onAuthStateChange: No session. Clearing data.`);
         setUserData(null);
         persistUserDataToLS(null);
         setIsLoading(false);
+        setIsHydrated(true);
       }
     });
 

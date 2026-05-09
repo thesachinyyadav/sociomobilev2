@@ -57,15 +57,21 @@ export default function AuthPage() {
     const error = new URLSearchParams(window.location.search).get("error");
     if (!error) {
       setAuthError(null);
-      return;
-    }
-
-    if (error === "missing_supabase_config") {
+    } else if (error === "missing_supabase_config") {
       setAuthError("Sign-in is not configured for this environment yet.");
-      return;
+    } else {
+      setAuthError("Authentication failed. Please try again.");
     }
 
-    setAuthError("Authentication failed. Please try again.");
+    const handleAuthError = (e: any) => {
+      setAuthError(e.detail || "Authentication failed during deep link restoration.");
+      setIsSubmitting(false);
+    };
+
+    window.addEventListener("auth_error", handleAuthError);
+    return () => {
+      window.removeEventListener("auth_error", handleAuthError);
+    };
   }, []);
 
   useEffect(() => {

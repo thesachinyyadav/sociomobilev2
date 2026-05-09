@@ -380,6 +380,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const ensureUser = useCallback(
     async (supaUser: User) => {
       const email = supaUser.email!;
+      console.log(`👉 [Auth] ensureUser started for: ${email}`);
       const orgType = getOrgType(email);
       let fullName =
         supaUser.user_metadata?.full_name ||
@@ -406,11 +407,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       try {
+        console.log(`[Auth] ensureUser: Sending POST /users for ${email}`);
         const { data: { session: s } } = await supabase.auth.getSession();
         const headers: Record<string, string> = { "Content-Type": "application/json" };
         if (s?.access_token) headers.Authorization = `Bearer ${s.access_token}`;
 
-        await fetch(`${PWA_API_URL}/users`, {
+        const postRes = await fetch(`${PWA_API_URL}/users`, {
           method: "POST",
           headers,
           body: JSON.stringify({
@@ -424,14 +426,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             },
           }),
         });
+        console.log(`[Auth] ensureUser: POST /users returned status ${postRes.status}`);
       } catch (err) {
-        console.error("ensureUser failed:", err);
+        console.error("ensureUser failed during POST /users:", err);
       }
 
+      console.log(`[Auth] ensureUser: Fetching user data via GET for ${email}`);
       const {
         data: { session: currentSession },
       } = await supabase.auth.getSession();
       const fetchedUser = await fetchUserData(email, currentSession?.access_token);
+      console.log(`[Auth] ensureUser: fetchUserData complete. Received data for: ${fetchedUser?.email || 'null'}`);
+      
+      if (!fetchedUser && typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("auth_error", { detail: "Failed to load user profile. Please try again." }));
+      }
+      
       maybeShowOutsiderWelcome(fetchedUser, supaUser.id);
     },
     [fetchUserData, maybeShowOutsiderWelcome]
@@ -509,6 +519,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         if (error) {
           console.error("❌ [DeepLink] Auth error from backend:", error);
+          if (typeof window !== "undefined") {
+            window.dispatchEvent(new CustomEvent("auth_error", { detail: error }));
+          }
           return;
         }
 
@@ -518,6 +531,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const { error: exchangeErr } = await supabase.auth.exchangeCodeForSession(code);
           if (exchangeErr) {
             console.error("❌ [DeepLink] exchangeCodeForSession failed:", exchangeErr.message, exchangeErr);
+            if (typeof window !== "undefined") {
+              window.dispatchEvent(new CustomEvent("auth_error", { detail: exchangeErr.message }));
+            }
             return;
           }
 
@@ -547,6 +563,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
           if (sessionErr) {
             console.error("❌ [DeepLink] setSession failed:", sessionErr.message, sessionErr);
+            if (typeof window !== "undefined") {
+              window.dispatchEvent(new CustomEvent("auth_error", { detail: sessionErr.message }));
+            }
           } else {
             console.log("🎉 [DeepLink] Session set successfully for:", data.user?.email);
           }
@@ -556,9 +575,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             tokenPresent: !!token,
             refreshPresent: !!refreshToken,
           });
+          if (typeof window !== "undefined") {
+            window.dispatchEvent(new CustomEvent("auth_error", { detail: "Authentication tokens were missing from the callback." }));
+          }
         }
-      } catch (err) {
+      } catch (err: any) {
         console.error("❌ [DeepLink] Critical handling error:", err);
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new CustomEvent("auth_error", { detail: err?.message || "Critical auth error" }));
+        }
       }
     };
 

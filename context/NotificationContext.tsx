@@ -391,7 +391,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     saveLocalSet(LS_DISMISSED_KEY, set);
 
     if (userData?.email) {
-      fetch(`${PWA_API_URL}/notifications?email=${encodeURIComponent(userData.email)}`, {
+      apiRequest(`/notifications?email=${encodeURIComponent(userData.email)}`, {
         method: "DELETE",
       }).catch(() => {});
     }

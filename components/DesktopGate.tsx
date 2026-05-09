@@ -3,7 +3,7 @@
 import { usePathname } from "next/navigation";
 import { MonitorIcon, ArrowRightIcon, SmartphoneIcon } from "@/components/icons";
 
-const WEB_URL = "https://socio.christuniversity.in";
+const WEB_URL = process.env.NEXT_PUBLIC_WEB_URL!;
 
 /**
  * Full-screen overlay shown on viewports ≥ 768 px.

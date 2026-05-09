@@ -27,5 +27,8 @@ export const supabase = createClient(
       detectSessionInUrl: !isApp,
       flowType: isApp ? "implicit" : "pkce",
     },
+    realtime: {
+      reconnectAfterMs: (tries: number) => ([2000, 5000, 15000, 30000][tries] ?? 1_800_000),
+    },
   }
 );

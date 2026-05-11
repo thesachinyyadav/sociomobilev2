@@ -62,7 +62,7 @@ export default function FestDetailClient({ festId }: { festId: string }) {
     );
   }
 
-  const festEvents = allEvents.filter((e) => e.fest === festId);
+  const festEvents = fest ? allEvents.filter((e) => e.fest === fest.fest_id) : [];
 
   return (
     <div className="pwa-page pb-24 pt-[calc(var(--nav-height)+var(--safe-top)+16px)]">

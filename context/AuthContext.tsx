@@ -342,11 +342,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (user?.email) await fetchUserData(user.email);
   }, [fetchUserData, user?.email]);
 
+  const hydrationPromiseRef = useRef<Promise<void> | null>(null);
+
   const ensureUser = useCallback(
     async (supaUser: User) => {
       const email = supaUser.email!;
+      
+      // Atomic Synchronization Lock
+      if (hydrationPromiseRef.current) {
+        console.log(`🔍 [AuthRaceDebug] ensureUser: Sync lock active for ${email}. Awaiting existing promise...`);
+        await hydrationPromiseRef.current;
+        return;
+      }
+
+      let resolveLock: () => void;
+      hydrationPromiseRef.current = new Promise((resolve) => {
+        resolveLock = resolve;
+      });
+
       console.time(`🔍 [AuthDebug] TotalProfileInit-${email}`);
-      console.log(`🔍 [AuthDebug] ${new Date().toISOString()} ensureUser: Starting background initialization for ${email}`);
+      console.log(`🔍 [AuthRaceDebug] ${Date.now()} ensureUser: START for ${email}`);
       
       const orgType = getOrgType(email);
       let fullName = supaUser.user_metadata?.full_name || supaUser.user_metadata?.name || "";
@@ -371,8 +386,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       try {
-        // Non-blocking POST
-        console.log(`🔍 [AuthDebug] ensureUser: Sending POST /users for ${email}...`);
+        console.log(`🔍 [AuthRaceDebug] ${Date.now()} ensureUser: POST /users...`);
         await apiRequest(`/users`, {
           method: "POST",
           body: JSON.stringify({
@@ -386,23 +400,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             },
           }),
         });
-        console.log(`🔍 [AuthDebug] ensureUser: POST /users request completed`);
       } catch (err) {
         console.error("🔍 [AuthDebug] ensureUser: Setup error:", err);
       }
 
-      // 3. Serialized Profile Hydration (Only after POST attempt)
-      console.log(`🔍 [AuthDebug] ensureUser: Proceeding to Profile Hydration...`);
+      console.log(`🔍 [AuthRaceDebug] ${Date.now()} ensureUser: Fetching profile...`);
       const fetchedUser = await fetchUserData(email);
       
       if (fetchedUser) {
-        console.log(`🔍 [AuthDebug] ${new Date().toISOString()} ensureUser: SUCCESS. Profile hydrated.`);
+        console.log(`🔍 [AuthRaceDebug] ${Date.now()} ensureUser: SUCCESS`);
         setAuthTimings(prev => ({ ...prev, profileReady: Date.now() }));
         setIsAuthReady(true);
         maybeShowOutsiderWelcome(fetchedUser, supaUser.id);
       } else {
         console.warn(`🔍 [AuthDebug] ensureUser: Profile fetch failed. USING FALLBACK HYDRATION.`);
-        // ... (fallback logic)
         const fallbackUser: UserData = {
           id: supaUser.id,
           email: supaUser.email!,
@@ -430,6 +441,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       
       console.timeEnd(`🔍 [AuthDebug] TotalProfileInit-${email}`);
+      hydrationPromiseRef.current = null;
+      resolveLock!();
     },
     [fetchUserData, maybeShowOutsiderWelcome]
   );
@@ -468,54 +481,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (typeof window === "undefined" || !Capacitor.isNativePlatform()) return;
 
     const handleDeepLink = async (incomingUrl: string) => {
-      console.log(`👉 [DeepLink] ${new Date().toISOString()} Incoming URL: ${incomingUrl}`);
+      const now = Date.now();
+      console.log(`🔍 [AuthRaceDebug] ${now} [DeepLink] Received: ${incomingUrl}`);
       try {
         const url = new URL(incomingUrl);
-        console.log("👉 [DeepLink] Parsed URL:", {
-          href: url.href,
-          protocol: url.protocol,
-          host: url.host,
-          pathname: url.pathname,
-          search: url.search,
-        });
-
-        // Accept multiple callback variants from backend/frontend:
-        // - socio://auth/callback?token=...&refresh_token=...
-        // - socio://auth?token=...&refresh_token=...
-        // - socio://callback?token=...&refresh_token=...
         const isSocioScheme = url.protocol === "socio:" || url.protocol === "socio";
-        if (!isSocioScheme) {
-          console.log("[DeepLink] Not a socio: scheme, ignoring.");
-          return;
-        }
+        if (!isSocioScheme) return;
 
-        // Parse tokens from hash fragment (#) - used by Supabase Implicit Flow
-        // Example: socio://auth/callback#access_token=...&refresh_token=...
         const hashParams = new URLSearchParams(url.hash.substring(1));
-
         const token = hashParams.get("access_token") || url.searchParams.get("token") || url.searchParams.get("access_token");
         const refreshToken = hashParams.get("refresh_token") || url.searchParams.get("refresh_token") || url.searchParams.get("refreshToken") || url.searchParams.get("refresh");
         const authCode = url.searchParams.get("code");
         const error = url.searchParams.get("error") || hashParams.get("error");
 
         if (error) {
-          console.error("❌ [DeepLink] Auth error from backend:", error);
-          if (typeof window !== "undefined") {
-            window.dispatchEvent(new CustomEvent("auth_error", { detail: error }));
-          }
+          console.error(`🔍 [AuthRaceDebug] ${Date.now()} [DeepLink] Error:`, error);
           return;
         }
 
         if (token && refreshToken) {
-          console.log("✅ [DeepLink] Tokens received, setting session...");
-
-          // Try to close the browser first (best-effort), then set session.
-          try {
-            await Browser.close();
-            console.log("✅ [DeepLink] Browser closed successfully.");
-          } catch (e) {
-            console.warn("[DeepLink] Browser.close() failed or not available:", e);
-          }
+          console.log(`🔍 [AuthRaceDebug] ${Date.now()} [DeepLink] Tokens found. Starting setSession...`);
+          try { await Browser.close(); } catch {}
 
           const { data, error: sessionErr } = await supabase.auth.setSession({
             access_token: token,
@@ -523,72 +509,44 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           });
 
           if (sessionErr) {
-            console.error("❌ [DeepLink] setSession failed:", sessionErr.message, sessionErr);
-            if (typeof window !== "undefined") {
-              window.dispatchEvent(new CustomEvent("auth_error", { detail: sessionErr.message }));
-            }
+            console.error(`🔍 [AuthRaceDebug] ${Date.now()} [DeepLink] setSession FAIL:`, sessionErr.message);
           } else {
-            console.log(`🎉 [DeepLink] ${new Date().toISOString()} Session set successfully for: ${data.user?.email}`);
-
-            // 🔍 [AuthDebug] DIRECT STATE UPDATE
+            console.log(`🔍 [AuthRaceDebug] ${Date.now()} [DeepLink] setSession SUCCESS for: ${data.user?.email}`);
             if (data.session) {
               setSession(data.session);
               setUser(data.session.user);
               setIsAuthenticated(true);
               persistSessionToLS(data.session);
-              scheduleTokenRefresh(data.session);
-              void ensureUser(data.session.user);
+              console.log(`🔍 [AuthRaceDebug] ${Date.now()} [DeepLink] Manual state update: Session/User set. Starting ensureUser...`);
+              await ensureUser(data.session.user);
+              console.log(`🔍 [AuthRaceDebug] ${Date.now()} [DeepLink] ensureUser COMPLETE. Setting isLoading(false)`);
               setIsLoading(false);
-              console.log(`🔍 [AuthDebug] ${new Date().toISOString()} Session restored. Syncing state...`);
             }
           }
         } else if (authCode) {
-          console.log("✅ [DeepLink] Auth code received, exchanging for session...");
-
-          // IMPORTANT: Close browser BEFORE exchange to la prevent UI hanging
-          try {
-            await Browser.close();
-          } catch (e) {
-            console.warn("[DeepLink] Browser.close() failed:", e);
-          }
+          console.log(`🔍 [AuthRaceDebug] ${Date.now()} [DeepLink] Code found. Starting exchange...`);
+          try { await Browser.close(); } catch {}
 
           const { data, error: exchangeErr } = await supabase.auth.exchangeCodeForSession(authCode);
 
           if (exchangeErr) {
-            console.error("❌ [DeepLink] exchangeCodeForSession failed:", exchangeErr.message, exchangeErr);
-            if (typeof window !== "undefined") {
-              window.dispatchEvent(new CustomEvent("auth_error", { detail: exchangeErr.message }));
-            }
+            console.error(`🔍 [AuthRaceDebug] ${Date.now()} [DeepLink] Exchange FAIL:`, exchangeErr.message);
           } else {
-            console.log("🎉 [DeepLink] Session exchanged successfully for:", data.user?.email);
-
-            // 🔍 [AuthDebug] DIRECT STATE UPDATE
+            console.log(`🔍 [AuthRaceDebug] ${Date.now()} [DeepLink] Exchange SUCCESS for: ${data.user?.email}`);
             if (data.session) {
               setSession(data.session);
               setUser(data.session.user);
               setIsAuthenticated(true);
               persistSessionToLS(data.session);
-              scheduleTokenRefresh(data.session);
-              void ensureUser(data.session.user);
+              console.log(`🔍 [AuthRaceDebug] ${Date.now()} [DeepLink] Manual state update: Session/User set. Starting ensureUser...`);
+              await ensureUser(data.session.user);
+              console.log(`🔍 [AuthRaceDebug] ${Date.now()} [DeepLink] ensureUser COMPLETE. Setting isLoading(false)`);
               setIsLoading(false);
-              console.log(`🔍 [AuthDebug] ${new Date().toISOString()} Session exchanged. Syncing state...`);
             }
-          }
-        } else {
-          console.warn("⚠️ [DeepLink] Missing tokens or code in URL params", {
-            tokenPresent: !!token,
-            refreshPresent: !!refreshToken,
-            codePresent: !!authCode,
-          });
-          if (typeof window !== "undefined") {
-            window.dispatchEvent(new CustomEvent("auth_error", { detail: "Authentication data was missing from the callback." }));
           }
         }
       } catch (err: any) {
-        console.error("❌ [DeepLink] Critical handling error:", err);
-        if (typeof window !== "undefined") {
-          window.dispatchEvent(new CustomEvent("auth_error", { detail: err?.message || "Critical auth error" }));
-        }
+        console.error(`🔍 [AuthRaceDebug] ${Date.now()} [DeepLink] CRITICAL:`, err);
       }
     };
 
@@ -696,27 +654,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((event, s) => {
+    } = supabase.auth.onAuthStateChange(async (event, s) => {
       if (!mounted) return;
-      console.log(`🔍 [AuthDebug] ${new Date().toISOString()} onAuthStateChange: Event=${event}, SessionPresent=${!!s}`);
+      console.log(`🔍 [AuthRaceDebug] ${Date.now()} onAuthStateChange: Event=${event}, SessionPresent=${!!s}`);
 
+      // Basic session sync
       setSession(s);
       setUser(s?.user ?? null);
       persistSessionToLS(s);
       scheduleTokenRefresh(s);
 
       if (s?.user?.email) {
-        console.log(`🔍 [AuthDebug] onAuthStateChange: User authenticated. Waiting for Profile Hydration.`);
-        setAuthTimings(prev => ({ ...prev, sessionReady: Date.now() }));
-        void ensureUser(s.user);
-        setIsLoading(false);
-        setIsHydrated(true);
-      } else {
-        console.log(`🔍 [AuthDebug] onAuthStateChange: No session. Clearing data.`);
+        if (event === "SIGNED_IN" || event === "INITIAL_SESSION") {
+           // During login/startup, ensure profile is ready before unlocking UI
+           console.log(`🔍 [AuthRaceDebug] ${Date.now()} onAuthStateChange: ${event}. Hydrating profile...`);
+           await ensureUser(s.user);
+           if (mounted) {
+             setIsLoading(false);
+             setIsHydrated(true);
+             console.log(`🔍 [AuthRaceDebug] ${Date.now()} onAuthStateChange: Hydration complete. UI UNLOCKED.`);
+           }
+        } else {
+           // For token refreshes etc, we don't need to block UI
+           void ensureUser(s.user);
+           if (mounted) {
+             setIsLoading(false);
+             setIsHydrated(true);
+           }
+        }
+      } else if (event === "SIGNED_OUT") {
+        console.log(`🔍 [AuthRaceDebug] ${Date.now()} onAuthStateChange: SIGNED_OUT. Clearing data.`);
         setUserData(null);
+        setIsAuthReady(false);
         persistUserDataToLS(null);
-        setIsLoading(false);
-        setIsHydrated(true);
+        if (mounted) {
+          setIsLoading(false);
+          setIsHydrated(true);
+        }
       }
     });
 

@@ -74,6 +74,19 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           console.log("👉 [AppShell] Deep Link Hit:", data.url);
           try {
             const url = new URL(data.url);
+            
+            // 🛑 [AuthRaceFix] If this is an auth callback with tokens, do NOT navigate.
+            // Let AuthContext handle the session exchange.
+            const isAuthCallback = url.pathname.includes('/auth/callback') || 
+                                   url.hash.includes('access_token=') || 
+                                   url.searchParams.has('access_token') ||
+                                   url.searchParams.has('code');
+            
+            if (isAuthCallback) {
+              console.log("🛑 [AppShell] Auth callback detected. Suppressing navigation to let AuthContext handle it.");
+              return;
+            }
+
             const path = url.pathname + url.search;
             if (path && path !== '/') {
               console.log("🚀 [AppShell] Navigating to:", path);

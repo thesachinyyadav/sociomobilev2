@@ -158,7 +158,8 @@ interface EventCtx {
   allEvents: FetchedEvent[];
   isLoading: boolean;
   error: string | null;
-  refreshEvents: () => Promise<void>;
+  refreshEvents: (silent?: boolean) => Promise<void>;
+  lastUpdated: number | null;
 }
 
 const EventContext = createContext<EventCtx>({
@@ -166,6 +167,7 @@ const EventContext = createContext<EventCtx>({
   isLoading: false,
   error: null,
   refreshEvents: async () => {},
+  lastUpdated: null,
 });
 
 export const useEvents = () => useContext(EventContext);
@@ -180,30 +182,37 @@ export function EventProvider({
   const [allEvents, setAllEvents] = useState<FetchedEvent[]>(initialEvents);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [lastUpdated, setLastUpdated] = useState<number | null>(null);
 
-  const refreshEvents = useCallback(async () => {
-    setIsLoading(true);
+  const refreshEvents = useCallback(async (silent = false) => {
+    if (!silent) setIsLoading(true);
     setError(null);
     try {
-      const data: any = await apiRequest(`/events`, { cache: "no-store" });
+      const data: any = await apiRequest(`/events`, { 
+        cache: "no-store",
+        timeoutMs: 15000 
+      });
       const events = data.events ?? data.data ?? data ?? [];
       setAllEvents(Array.isArray(events) ? events : []);
+      setLastUpdated(Date.now());
     } catch (err: any) {
-      setError(err.message || "Failed to fetch events");
+      console.error("🔍 [EventCtx] Refresh failed:", err);
+      if (!silent) setError(err.message || "Failed to fetch events");
     } finally {
-      setIsLoading(false);
+      if (!silent) setIsLoading(false);
     }
   }, []);
 
-  // Fetch events on mount if we have none (e.g. static export fallback)
+  // Fetch events on mount if we have none OR if they are older than 5 minutes
   useEffect(() => {
-    if (allEvents.length === 0) {
-      void refreshEvents();
+    const shouldRefresh = allEvents.length === 0 || (lastUpdated && Date.now() - lastUpdated > 300000);
+    if (shouldRefresh) {
+      void refreshEvents(allEvents.length > 0);
     }
-  }, [allEvents.length, refreshEvents]);
+  }, [allEvents.length, lastUpdated, refreshEvents]);
 
   return (
-    <EventContext.Provider value={{ allEvents, isLoading, error, refreshEvents }}>
+    <EventContext.Provider value={{ allEvents, isLoading, error, refreshEvents, lastUpdated }}>
       {children}
     </EventContext.Provider>
   );

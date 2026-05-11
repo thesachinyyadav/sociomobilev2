@@ -6,6 +6,7 @@ import { CalendarIcon, UsersIcon, TrendingUpIcon, ShareIcon } from "@/components
 import type { Fest } from "@/context/EventContext";
 import { formatDateRange } from "@/lib/dateUtils";
 import { shareEvent } from "@/lib/share";
+import { apiRequest } from "@/lib/apiClient";
 
 
 function formatCompactCount(count: number) {
@@ -35,6 +36,12 @@ export default function FestCard({ fest, isTrending }: { fest: Fest; isTrending?
   if (!rawId) return null;
 
   const href = `/fest/${rawId}`;
+
+  const prefetchFestData = () => {
+    // Warm up the API memory cache
+    void apiRequest(`/fests/${encodeURIComponent(rawId)}`);
+  };
+
   const img = fest.fest_image_url || fest.banner_url || fest.image_url;
   const title = fest.fest_title || fest.name || "Fest";
   const dept = fest.organizing_dept || fest.department;
@@ -55,6 +62,8 @@ export default function FestCard({ fest, isTrending }: { fest: Fest; isTrending?
   return (
     <Link
       href={href}
+      onMouseEnter={prefetchFestData}
+      onTouchStart={prefetchFestData}
       className="card-elevated relative block w-full h-[220px] group cursor-pointer border border-white/40"
     >
       <ShimmerImage

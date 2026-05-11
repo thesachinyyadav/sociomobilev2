@@ -135,6 +135,14 @@ export default function FestsPage() {
   const featuredFest = displayedFests.length > 0 ? displayedFests[0] : null;
   const upcomingFests = displayedFests.slice(1);
 
+  // Prefetch featured fest data for instant transition
+  useEffect(() => {
+    if (featuredFest) {
+      const id = featuredFest.slug || featuredFest.fest_id;
+      if (id) void apiRequest(`/fests/${encodeURIComponent(id)}`);
+    }
+  }, [featuredFest]);
+
   return (
     <div className="pwa-page pt-[calc(var(--nav-height)+var(--safe-top))] pb-8 bg-[#f9fafb] max-w-[420px] mx-auto">
       {/* Search Bar Row — Only visible when searching */}

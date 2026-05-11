@@ -22,39 +22,41 @@ const fetcher = async (url: string) => {
 
 export default function FestDetailClient({ festId }: { festId: string }) {
   const router = useRouter();
-  const { allEvents, isLoading: ctxLoading, refreshEvents } = useEvents();
+  const { allEvents, isLoading: ctxLoading, refreshEvents, lastUpdated } = useEvents();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
-    // Proactively refresh events if we have none, to ensure fest events show up
-    if (allEvents.length === 0) {
-      void refreshEvents();
+    // Background refresh events if they are stale
+    const isStale = !lastUpdated || Date.now() - lastUpdated > 300000;
+    if (isStale) {
+      void refreshEvents(allEvents.length > 0);
     }
-  }, [allEvents.length, refreshEvents]);
+  }, [allEvents.length, lastUpdated, refreshEvents]);
 
-  const { data: fest, error, isLoading: loading } = useSWR(
+  const { data: fest, error, isLoading: festLoading } = useSWR(
     festId ? `/fests/${encodeURIComponent(festId)}` : null,
     fetcher,
     { 
       revalidateOnFocus: false, 
       dedupingInterval: 60000,
-      shouldRetryOnError: true
+      shouldRetryOnError: true,
+      // Keep data if we have it in the API cache
+      keepPreviousData: true,
     }
   );
 
   const festEvents = useMemo(() => {
     if (!fest || !allEvents.length) return [];
-    // Filter events belonging to this fest. 
-    // Handle both ID and Slug matching if the backend returns them.
     return allEvents.filter((e) => e.fest === fest.fest_id || e.fest === fest.slug);
   }, [fest, allEvents]);
 
-  if (!mounted || loading || (ctxLoading && allEvents.length === 0)) {
+  // Only block if we have NO fest data at all
+  if (!mounted || (festLoading && !fest)) {
     return <LoadingScreen />;
   }
 
-  if (error || !fest) {
+  if (error && !fest) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3 px-6 text-center">
         <p className="font-bold text-lg text-[var(--color-text)]">{error?.message || "Fest not found"}</p>
@@ -67,6 +69,9 @@ export default function FestDetailClient({ festId }: { festId: string }) {
       </div>
     );
   }
+
+  // Fallback if fest is still null after loading finishes
+  if (!fest) return <LoadingScreen />;
 
   return (
     <div className="pwa-page pb-24 pt-[calc(var(--nav-height)+var(--safe-top)+16px)] animate-fade-in">

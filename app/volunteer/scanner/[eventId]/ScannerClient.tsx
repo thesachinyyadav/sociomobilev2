@@ -33,6 +33,12 @@ interface HistoryItem {
   message?: string;
 }
 
+interface QueuedScan {
+  id: string;
+  payload: any;
+  timestamp: number;
+}
+
 export default function ScannerClient() {
   const params = useParams();
   const router = useRouter();
@@ -47,14 +53,18 @@ export default function ScannerClient() {
   const [permission, setPermission] = useState<PermissionStatus>('prompt');
   const [scannerError, setScannerError] = useState<string | null>(null);
   const [history, setHistory] = useState<HistoryItem[]>([]);
-  const [lastScanResult, setLastScanResult] = useState<HistoryItem | null>(null);
+  
+  // Advanced State
+  const [notifications, setNotifications] = useState<HistoryItem[]>([]);
+  const [syncQueue, setSyncQueue] = useState<QueuedScan[]>([]);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [showSuccessGlow, setShowSuccessGlow] = useState(false);
 
   // Refs
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const scannerRef = useRef<IScanner | null>(null);
   const cooldownMapRef = useRef<Map<string, number>>(new Map());
   const attendeeCacheRef = useRef<Map<string, { name: string; status: string }>>(new Map());
-  const feedbackTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const isNative = useMemo(() => Capacitor.isNativePlatform(), []);
 
@@ -119,12 +129,13 @@ export default function ScannerClient() {
     return () => { cancelled = true; };
   }, [cachedEvent, eventId, authLoading, session]);
 
-  // History Persistence
+  // History & Queue Persistence
   useEffect(() => {
     try {
-      const saved = sessionStorage.getItem(`scanner_history_${eventId}`);
-      if (saved) {
-        const parsed = JSON.parse(saved);
+      // Load History
+      const savedHistory = sessionStorage.getItem(`scanner_history_${eventId}`);
+      if (savedHistory) {
+        const parsed = JSON.parse(savedHistory);
         const historyItems = parsed.map((item: any) => ({ ...item, time: new Date(item.time) }));
         setHistory(historyItems);
         historyItems.forEach((item: HistoryItem) => {
@@ -132,6 +143,12 @@ export default function ScannerClient() {
             attendeeCacheRef.current.set(item.qrData, { name: item.name || "Attendee", status: "already_present" });
           }
         });
+      }
+
+      // Load Sync Queue
+      const savedQueue = localStorage.getItem(`scanner_queue_${eventId}`);
+      if (savedQueue) {
+        setSyncQueue(JSON.parse(savedQueue));
       }
     } catch {}
   }, [eventId]);
@@ -142,13 +159,47 @@ export default function ScannerClient() {
     }
   }, [history, eventId]);
 
+  useEffect(() => {
+    localStorage.setItem(`scanner_queue_${eventId}`, JSON.stringify(syncQueue));
+  }, [syncQueue, eventId]);
+
+  // Background Sync Manager
+  useEffect(() => {
+    if (syncQueue.length === 0 || isSyncing || !session?.access_token) return;
+
+    const syncTimer = setTimeout(async () => {
+      setIsSyncing(true);
+      const nextBatch = [...syncQueue];
+      const remaining: QueuedScan[] = [];
+
+      for (const item of nextBatch) {
+        try {
+          await apiRequest(`/events/${encodeURIComponent(eventId)}/scan-qr`, {
+            method: "POST",
+            body: JSON.stringify(item.payload),
+            cache: "no-store",
+            timeoutMs: 5000,
+          });
+          // Update history item to show synced
+          setHistory(prev => prev.map(h => h.id === item.id ? { ...h, message: "Synced" } : h));
+        } catch (err) {
+          remaining.push(item);
+        }
+      }
+
+      setSyncQueue(remaining);
+      setIsSyncing(false);
+    }, 5000);
+
+    return () => clearTimeout(syncTimer);
+  }, [syncQueue, isSyncing, session, eventId]);
+
   // Lifecycle
   useEffect(() => {
     scannerRef.current = getScanner();
     void scannerRef.current.checkPermission().then(setPermission);
     return () => {
       void scannerRef.current?.stop();
-      if (feedbackTimeoutRef.current) clearTimeout(feedbackTimeoutRef.current);
     };
   }, []);
 
@@ -177,12 +228,11 @@ export default function ScannerClient() {
     } catch (e) {}
   }, [isNative]);
 
-  const showFeedback = (item: HistoryItem, duration = 4000) => {
-    if (feedbackTimeoutRef.current) clearTimeout(feedbackTimeoutRef.current);
-    setLastScanResult(item);
-    feedbackTimeoutRef.current = setTimeout(() => {
-      setLastScanResult(null);
-    }, duration);
+  const addNotification = (item: HistoryItem) => {
+    setNotifications(prev => [item, ...prev].slice(0, 3));
+    setTimeout(() => {
+      setNotifications(prev => prev.filter(n => n.id !== item.id));
+    }, 4000);
   };
 
   const processScan = async (scanResult: ScannerResult) => {
@@ -192,7 +242,7 @@ export default function ScannerClient() {
     const now = Date.now();
     const lastScanTime = cooldownMapRef.current.get(qrCodeData);
 
-    // Cooldown check
+    // Cooldown check (3s for bulk safety)
     if (lastScanTime && now - lastScanTime < 3000) return; 
     cooldownMapRef.current.set(qrCodeData, now);
 
@@ -212,53 +262,63 @@ export default function ScannerClient() {
 
     if (isLocallyPresent) {
        void triggerFeedback("warning");
-       const item: HistoryItem = { id: Math.random().toString(), qrData: qrCodeData, name: optimisticName, status: "already_present", time: new Date(), message: "Already scanned" };
-       showFeedback(item);
+       const item: HistoryItem = { id: Math.random().toString(), qrData: qrCodeData, name: optimisticName, status: "already_present", time: new Date(), message: "Duplicate" };
+       addNotification(item);
        return;
     }
 
+    // [OPTIMISTIC SUCCESS]
     attendeeCacheRef.current.set(qrCodeData, { name: optimisticName, status: "already_present" });
     void triggerFeedback("success");
+    setShowSuccessGlow(true);
+    setTimeout(() => setShowSuccessGlow(false), 600);
 
     const historyId = Math.random().toString(36).substr(2, 9);
-    const newSuccessItem: HistoryItem = { id: historyId, qrData: qrCodeData, name: optimisticName, status: "success", time: new Date(), message: "Syncing..." };
+    const optimisticItem: HistoryItem = { id: historyId, qrData: qrCodeData, name: optimisticName, status: "success", time: new Date(), message: "Pending sync..." };
     
-    setHistory(prev => [newSuccessItem, ...prev].slice(0, 50)); 
-    showFeedback(newSuccessItem);
+    setHistory(prev => [optimisticItem, ...prev].slice(0, 50)); 
+    addNotification(optimisticItem);
     
-    const requestBody = {
+    const payload = {
       qrCodeData,
       volunteerId: userData?.register_number,
       scannerInfo: { source: "sociomobilev2", platform: Capacitor.getPlatform(), format: scanResult.format, userAgent: navigator.userAgent, timestamp: new Date().toISOString() },
     };
 
+    // Try immediate sync
     try {
-      const payload: any = await apiRequest(`/events/${encodeURIComponent(event.event_id)}/scan-qr`, {
+      const result: any = await apiRequest(`/events/${encodeURIComponent(event.event_id)}/scan-qr`, {
         method: "POST",
-        body: JSON.stringify(requestBody),
+        body: JSON.stringify(payload),
         cache: "no-store",
+        timeoutMs: 4000,
       });
 
-      const participant = payload.participant;
+      const participant = result.participant;
       const isAlreadyPresent = participant?.status === "already_present";
       const finalName = participant?.name || optimisticName;
 
       attendeeCacheRef.current.set(qrCodeData, { name: finalName, status: "already_present" });
-
-      const updatedItem: HistoryItem = { ...newSuccessItem, name: finalName, status: isAlreadyPresent ? "already_present" : "success", message: isAlreadyPresent ? "Attendance confirmed" : "Attendance marked" };
+      const updatedItem: HistoryItem = { ...optimisticItem, name: finalName, status: isAlreadyPresent ? "already_present" : "success", message: isAlreadyPresent ? "Already confirmed" : "Attendance marked" };
       
       setHistory(prev => prev.map(item => item.id === historyId ? updatedItem : item));
-      if (lastScanResult?.id === historyId) setLastScanResult(updatedItem);
+      setNotifications(prev => prev.map(item => item.id === historyId ? updatedItem : item));
       
       if (isAlreadyPresent) void triggerFeedback("warning");
     } catch (err: any) {
-      attendeeCacheRef.current.delete(qrCodeData);
-      cooldownMapRef.current.set(qrCodeData, 0); 
-      const errMsg = err.message || "Invalid QR or Network Error";
-      void triggerFeedback("error");
-      const errorItem: HistoryItem = { ...newSuccessItem, status: "error", message: errMsg };
-      setHistory(prev => prev.map(item => item.id === historyId ? errorItem : item));
-      if (lastScanResult?.id === historyId) setLastScanResult(errorItem);
+      // Add to background sync queue if it was a network error
+      const isNetworkError = err.message?.includes("Network") || err.name === "TimeoutError" || err.message?.includes("failed to fetch");
+      if (isNetworkError) {
+        setSyncQueue(prev => [...prev, { id: historyId, payload, timestamp: Date.now() }]);
+      } else {
+        // Validation error
+        attendeeCacheRef.current.delete(qrCodeData);
+        cooldownMapRef.current.set(qrCodeData, 0); 
+        void triggerFeedback("error");
+        const errorItem: HistoryItem = { ...optimisticItem, status: "error", message: err.message || "Invalid QR" };
+        setHistory(prev => prev.map(item => item.id === historyId ? errorItem : item));
+        setNotifications(prev => prev.map(item => item.id === historyId ? errorItem : item));
+      }
     }
   };
 
@@ -325,6 +385,14 @@ export default function ScannerClient() {
         </div>
       </header>
 
+      {/* Sync Queue Indicator */}
+      {syncQueue.length > 0 && (
+        <div className="sync-queue-badge">
+          <div className="sync-spinner" />
+          <span>{syncQueue.length} PENDING SYNC</span>
+        </div>
+      )}
+
       <div className="mx-auto max-w-[420px] px-4 space-y-6 pt-[calc(var(--nav-height)+var(--safe-top)+40px)]">
         
         {/* Immersive Viewport */}
@@ -335,6 +403,8 @@ export default function ScannerClient() {
             muted
             playsInline
           />
+
+          {showSuccessGlow && <div className="scanner-success-glow" />}
           
           <AnimatePresence>
             {!isScanning && (
@@ -363,6 +433,7 @@ export default function ScannerClient() {
               <div className="scanner-guide-corner guide-tr" />
               <div className="scanner-guide-corner guide-bl" />
               <div className="scanner-guide-corner guide-br" />
+              <div className="scanner-roi-box" />
               <div className="scanner-laser-premium" />
             </>
           )}
@@ -378,13 +449,15 @@ export default function ScannerClient() {
         {/* Controls (Hidden when scanning for maximum immersion) */}
         {!isScanning && (
           <div className="grid grid-cols-2 gap-3 stagger">
-            <div className="card p-4 bg-white shadow-sm flex flex-col items-center justify-center text-center">
+            <div className="card p-4 bg-white shadow-sm flex flex-col items-center justify-center text-center border-none">
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Total Scans</span>
               <span className="text-2xl font-black text-slate-900">{history.length}</span>
             </div>
-            <div className="card p-4 bg-white shadow-sm flex flex-col items-center justify-center text-center">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Status</span>
-              <span className="text-sm font-black text-emerald-600 uppercase">Online</span>
+            <div className="card p-4 bg-white shadow-sm flex flex-col items-center justify-center text-center border-none">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Sync Status</span>
+              <span className={`text-sm font-black uppercase ${syncQueue.length > 0 ? 'text-amber-500' : 'text-emerald-600'}`}>
+                {syncQueue.length > 0 ? 'Queued' : 'Synced'}
+              </span>
             </div>
           </div>
         )}
@@ -405,7 +478,7 @@ export default function ScannerClient() {
             <span className="text-[10px] font-bold text-slate-400">{history.length} records</span>
           </div>
 
-          <div className="scanner-ledger space-y-2">
+          <div className="scanner-ledger space-y-2 border-none">
             {history.length === 0 ? (
               <div className="py-12 text-center opacity-30">
                 <QrCodeIcon size={40} className="mx-auto mb-3" />
@@ -413,7 +486,7 @@ export default function ScannerClient() {
               </div>
             ) : (
               history.map((item) => (
-                <div key={item.id} className="ledger-item group">
+                <div key={item.id} className="ledger-item group border-none">
                   <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-sm ${
                     item.status === 'success' ? 'bg-emerald-100 text-emerald-600' :
                     item.status === 'already_present' ? 'bg-amber-100 text-amber-600' : 'bg-red-100 text-red-600'
@@ -435,37 +508,37 @@ export default function ScannerClient() {
         </section>
       </div>
 
-      {/* Premium Floating Feedback Bubble */}
-      <AnimatePresence>
-        {lastScanResult && (
-          <div className="scanner-feedback-card">
+      {/* Advanced Notification Stack */}
+      <div className="notification-stack">
+        <AnimatePresence mode="popLayout">
+          {notifications.map((item) => (
             <motion.div 
-              initial={{ y: 60, opacity: 0, scale: 0.8 }} 
+              key={item.id}
+              initial={{ y: 20, opacity: 0, scale: 0.9 }} 
               animate={{ y: 0, opacity: 1, scale: 1 }} 
-              exit={{ y: 20, opacity: 0, scale: 0.8 }}
-              className={`feedback-bubble ${
-                lastScanResult.status === 'success' ? 'feedback-success' :
-                lastScanResult.status === 'already_present' ? 'feedback-warning' :
-                'feedback-error'
-              }`}
+              exit={{ opacity: 0, scale: 0.8, x: 20 }}
+              className="notification-bubble"
             >
-              <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 shadow-lg ${
-                lastScanResult.status === 'success' ? 'bg-emerald-500 text-white' :
-                lastScanResult.status === 'already_present' ? 'bg-amber-500 text-white' :
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-lg ${
+                item.status === 'success' ? 'bg-emerald-500 text-white' :
+                item.status === 'already_present' ? 'bg-amber-500 text-white' :
                 'bg-red-500 text-white'
               }`}>
-                {lastScanResult.status === 'error' ? <XIcon size={24} /> : 
-                 lastScanResult.status === 'already_present' ? <AlertTriangleIcon size={24} /> : <CheckCircleIcon size={24} />}
+                {item.status === 'error' ? <XIcon size={20} /> : 
+                 item.status === 'already_present' ? <AlertTriangleIcon size={20} /> : <CheckCircleIcon size={20} />}
               </div>
-              <div className="min-w-0">
-                <p className="text-[15px] font-black leading-tight text-slate-900 truncate">{lastScanResult.name}</p>
-                <p className="text-[11px] font-bold text-slate-500 mt-1 uppercase tracking-tight">{lastScanResult.message}</p>
+              <div className="min-w-0 flex-1">
+                <p className="text-[13px] font-black leading-tight text-slate-900 truncate">{item.name}</p>
+                <p className={`text-[10px] font-bold mt-0.5 uppercase tracking-tight ${
+                  item.status === 'success' ? 'text-emerald-600' :
+                  item.status === 'already_present' ? 'text-amber-600' :
+                  'text-red-600'
+                }`}>{item.message}</p>
               </div>
             </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+          ))}
+        </AnimatePresence>
+      </div>
     </div>
   );
 }
-

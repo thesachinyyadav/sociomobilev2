@@ -49,6 +49,7 @@ export default function QRScanner({ eventId, onScanSuccess }: QRScannerProps) {
   const [history, setHistory] = useState<HistoryItem[]>([]);
   
   const cooldownMapRef = useRef<Map<string, number>>(new Map());
+  const attendeeCacheRef = useRef<Map<string, { name: string; status: string }>>(new Map());
 
   useEffect(() => {
     scannerRef.current = getScanner();
@@ -110,24 +111,65 @@ export default function QRScanner({ eventId, onScanSuccess }: QRScannerProps) {
   const processScan = async (scanResult: ScannerResult) => {
     if (!session?.access_token) return;
 
+    const startPerf = performance.now();
     const qrCodeData = scanResult.data;
     const now = Date.now();
     const lastScanTime = cooldownMapRef.current.get(qrCodeData);
 
-    // 4 second cooldown for the EXACT same QR code to prevent accidental rapid double-scans
-    if (lastScanTime && now - lastScanTime < 4000) {
+    // 3 second cooldown for the EXACT same QR code
+    if (lastScanTime && now - lastScanTime < 3000) {
       return; 
     }
-    
-    // Set immediate cooldown to block concurrent requests
     cooldownMapRef.current.set(qrCodeData, now);
 
-    // Optimistic toast while fetching
-    const loadingToastId = toast.loading("Verifying...", {
-      style: { borderRadius: "var(--radius)", fontSize: "13px", fontWeight: 600 }
-    });
+    // 1. Local Validation (Phase 5)
+    let optimisticName = "Attendee";
+    let isLocallyPresent = false;
 
-    console.log(`🔍 [AttendanceSyncDebug] Scanned QR Payload: ${qrCodeData}`);
+    const cached = attendeeCacheRef.current.get(qrCodeData);
+    if (cached) {
+       optimisticName = cached.name || optimisticName;
+       isLocallyPresent = cached.status === "already_present";
+    } else {
+       try {
+         const parsed = JSON.parse(qrCodeData);
+         if (parsed.name) optimisticName = parsed.name;
+       } catch {}
+    }
+
+    if (isLocallyPresent) {
+       void triggerHaptic("warning");
+       toast.success(`Already scanned: ${optimisticName}`, { icon: "⚠️" });
+       
+       const newWarningItem: HistoryItem = {
+         id: Math.random().toString(36).substr(2, 9),
+         qrData: qrCodeData,
+         name: optimisticName,
+         status: "already_present",
+         time: new Date(),
+         message: "Already marked present (Local Cache)"
+       };
+       setHistory(prev => [newWarningItem, ...prev].slice(0, 50)); 
+       return;
+    }
+
+    // Mark locally to prevent concurrent duplicate scans
+    attendeeCacheRef.current.set(qrCodeData, { name: optimisticName, status: "already_present" });
+
+    void triggerHaptic("success");
+    playSound("success");
+
+    const historyId = Math.random().toString(36).substr(2, 9);
+    const newSuccessItem: HistoryItem = {
+      id: historyId,
+      qrData: qrCodeData,
+      name: optimisticName,
+      status: "success",
+      time: new Date(),
+      message: "Syncing..."
+    };
+    
+    setHistory(prev => [newSuccessItem, ...prev].slice(0, 50)); 
     
     const requestBody = {
       qrCodeData,
@@ -140,62 +182,60 @@ export default function QRScanner({ eventId, onScanSuccess }: QRScannerProps) {
         timestamp: new Date().toISOString(),
       },
     };
-    console.log(`🔍 [AttendanceSyncDebug] API Request to /events/${eventId}/scan-qr:`, requestBody);
 
-    try {
-      const payload: any = await apiRequest(`/events/${encodeURIComponent(eventId)}/scan-qr`, {
-        method: "POST",
-        body: JSON.stringify(requestBody),
-        cache: "no-store",
-      });
-      
-      console.log(`🔍 [AttendanceSyncDebug] Backend Response SUCCESS:`, payload);
+    console.log(`🔍 [ScannerPerf] Optimistic Update took ${performance.now() - startPerf}ms`);
 
-      const participant = payload.participant;
-      const isAlreadyPresent = participant?.status === "already_present";
+    // 2. Background Sync (Phase 4 & 12)
+    void (async () => {
+      const syncStart = performance.now();
+      try {
+        const payload: any = await apiRequest(`/events/${encodeURIComponent(eventId)}/scan-qr`, {
+          method: "POST",
+          body: JSON.stringify(requestBody),
+          cache: "no-store",
+        });
 
-      if (isAlreadyPresent) {
-         void triggerHaptic("warning");
-         toast.success(`Already scanned: ${participant.name}`, { id: loadingToastId, icon: "⚠️" });
-      } else {
-         void triggerHaptic("success");
-         playSound("success");
-         toast.success(`Checked in: ${participant.name}`, { id: loadingToastId });
+        const participant = payload.participant;
+        const isAlreadyPresent = participant?.status === "already_present";
+        const finalName = participant?.name || optimisticName;
+
+        attendeeCacheRef.current.set(qrCodeData, {
+          name: finalName,
+          status: "already_present"
+        });
+
+        setHistory(prev => prev.map(item => item.id === historyId ? {
+          ...item,
+          name: finalName,
+          status: isAlreadyPresent ? "already_present" : "success",
+          message: isAlreadyPresent ? "Already marked present" : "Attendance marked"
+        } : item));
+
+        if (isAlreadyPresent) {
+           void triggerHaptic("warning");
+        }
+        toast.success(isAlreadyPresent ? `Already scanned: ${finalName}` : `Checked in: ${finalName}`, { icon: isAlreadyPresent ? "⚠️" : undefined });
+        
+        console.log(`🔍 [ScannerPerf] Background API Sync took ${performance.now() - syncStart}ms`);
+        onScanSuccess?.(payload);
+      } catch (err: any) {
+        attendeeCacheRef.current.delete(qrCodeData);
+        cooldownMapRef.current.set(qrCodeData, 0); 
+        
+        const errMsg = err.message || "Invalid QR or Network Error";
+        void triggerHaptic("error");
+        playSound("error");
+        toast.error(errMsg);
+        
+        setHistory(prev => prev.map(item => item.id === historyId ? {
+          ...item,
+          status: "error" as const,
+          message: errMsg
+        } : item));
+        
+        console.log(`🔍 [ScannerPerf] Background API Sync Failed in ${performance.now() - syncStart}ms`);
       }
-
-      const newSuccessItem: HistoryItem = {
-        id: Math.random().toString(36).substr(2, 9),
-        qrData: qrCodeData,
-        name: participant?.name || "Unknown Participant",
-        status: isAlreadyPresent ? "already_present" : "success",
-        time: new Date(),
-        message: isAlreadyPresent ? "Already marked present" : "Attendance marked"
-      };
-
-      setHistory(prev => [newSuccessItem, ...prev].slice(0, 10)); // Keep last 10 scans
-
-      onScanSuccess?.(payload);
-
-    } catch (err: any) {
-      void triggerHaptic("error");
-      playSound("error");
-      
-      const errMsg = err.message || "Invalid QR or Network Error";
-      toast.error(errMsg, { id: loadingToastId });
-      
-      const newErrorItem: HistoryItem = {
-        id: Math.random().toString(36).substr(2, 9),
-        qrData: qrCodeData,
-        status: "error",
-        time: new Date(),
-        message: errMsg
-      };
-
-      setHistory(prev => [newErrorItem, ...prev].slice(0, 10));
-
-      // Reset cooldown for error so they can try again quickly
-      cooldownMapRef.current.set(qrCodeData, 0); 
-    }
+    })();
   };
 
   const startScanner = async () => {

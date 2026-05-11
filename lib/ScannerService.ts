@@ -132,6 +132,11 @@ class CapacitorScanner implements IScanner {
   async start(_videoElement: HTMLVideoElement, onScan: (result: ScannerResult) => void): Promise<void> {
     const t0 = performance.now();
     try {
+      // For Android: ensures the library is available on device
+      if (Capacitor.getPlatform() === 'android') {
+        await BarcodeScanner.installGoogleBarcodeScanner();
+      }
+
       // Start scanning
       await BarcodeScanner.addListener('barcodesScanned', (event) => {
         if (this.isPaused || !event.barcodes.length) return;
@@ -148,7 +153,7 @@ class CapacitorScanner implements IScanner {
         lensFacing: LensFacing.Back,
       });
 
-      console.log(`🔍 [ScannerPerf] Native Scanner Startup Time: ${performance.now() - t0}ms`);
+      console.log(`🔍 [ScannerPerf] Native Scanner Startup: ${performance.now() - t0}ms`);
       document.documentElement.classList.add('barcode-scanner-active');
       document.body.classList.add('barcode-scanner-active');
     } catch (err) {

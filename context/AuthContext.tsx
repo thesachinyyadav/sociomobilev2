@@ -206,7 +206,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // 🔍 [AuthDebug] Trace all critical state changes
   useEffect(() => {
-    console.log(`🔍 [AuthDebug] contextState: isLoading=${isLoading}, isAuthReady=${isAuthReady}, user=${user?.email || "null"}, userData=${userData?.name || "null"}, isAuth=${isAuthenticated}`);
+    console.log(`🔍 [AuthRaceDebug] ${Date.now()} contextState: isLoading=${isLoading}, isAuthReady=${isAuthReady}, user=${user?.email || "null"}, userData=${userData?.name || "null"}, isAuth=${isAuthenticated}`);
   }, [isLoading, isAuthReady, user, userData, isAuthenticated]);
 
   useEffect(() => {
@@ -220,7 +220,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const isAuth = !!user;
     if (isAuth !== isAuthenticated) {
-      console.log(`🔍 [AuthDebug] Syncing isAuthenticated -> ${isAuth}`);
+      console.log(`🔍 [AuthRaceDebug] ${Date.now()} Syncing isAuthenticated -> ${isAuth}`);
       setIsAuthenticated(isAuth);
     }
   }, [user, isAuthenticated]);
@@ -476,17 +476,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   /* Note: Background 60-second role refresh was removed for mobile to ensure it only fetches once */
 
-  /* App Deep Link Listener */
+  /* Auth state listener */
   useEffect(() => {
-    if (typeof window === "undefined" || !Capacitor.isNativePlatform()) return;
+    let mounted = true;
+    const isProcessingDeepLink = { current: false };
 
-    const handleDeepLink = async (incomingUrl: string) => {
+    async function handleDeepLink(incomingUrl: string) {
       const now = Date.now();
       console.log(`🔍 [AuthRaceDebug] ${now} [DeepLink] Received: ${incomingUrl}`);
+      isProcessingDeepLink.current = true;
+      setIsLoading(true);
+
       try {
         const url = new URL(incomingUrl);
         const isSocioScheme = url.protocol === "socio:" || url.protocol === "socio";
-        if (!isSocioScheme) return;
+        if (!isSocioScheme) {
+          console.log(`🔍 [AuthRaceDebug] ${Date.now()} [DeepLink] Non-socio scheme. Ignoring.`);
+          isProcessingDeepLink.current = false;
+          if (mounted) setIsLoading(false);
+          return;
+        }
 
         const hashParams = new URLSearchParams(url.hash.substring(1));
         const token = hashParams.get("access_token") || url.searchParams.get("token") || url.searchParams.get("access_token");
@@ -496,6 +505,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         if (error) {
           console.error(`🔍 [AuthRaceDebug] ${Date.now()} [DeepLink] Error:`, error);
+          isProcessingDeepLink.current = false;
+          setIsLoading(false);
           return;
         }
 
@@ -510,18 +521,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
           if (sessionErr) {
             console.error(`🔍 [AuthRaceDebug] ${Date.now()} [DeepLink] setSession FAIL:`, sessionErr.message);
-          } else {
+          } else if (data.session) {
             console.log(`🔍 [AuthRaceDebug] ${Date.now()} [DeepLink] setSession SUCCESS for: ${data.user?.email}`);
-            if (data.session) {
-              setSession(data.session);
-              setUser(data.session.user);
-              setIsAuthenticated(true);
-              persistSessionToLS(data.session);
-              console.log(`🔍 [AuthRaceDebug] ${Date.now()} [DeepLink] Manual state update: Session/User set. Starting ensureUser...`);
-              await ensureUser(data.session.user);
-              console.log(`🔍 [AuthRaceDebug] ${Date.now()} [DeepLink] ensureUser COMPLETE. Setting isLoading(false)`);
-              setIsLoading(false);
-            }
+            setSession(data.session);
+            setUser(data.session.user);
+            setIsAuthenticated(true);
+            persistSessionToLS(data.session);
+            await ensureUser(data.session.user);
           }
         } else if (authCode) {
           console.log(`🔍 [AuthRaceDebug] ${Date.now()} [DeepLink] Code found. Starting exchange...`);
@@ -531,62 +537,49 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
           if (exchangeErr) {
             console.error(`🔍 [AuthRaceDebug] ${Date.now()} [DeepLink] Exchange FAIL:`, exchangeErr.message);
-          } else {
+          } else if (data.session) {
             console.log(`🔍 [AuthRaceDebug] ${Date.now()} [DeepLink] Exchange SUCCESS for: ${data.user?.email}`);
-            if (data.session) {
-              setSession(data.session);
-              setUser(data.session.user);
-              setIsAuthenticated(true);
-              persistSessionToLS(data.session);
-              console.log(`🔍 [AuthRaceDebug] ${Date.now()} [DeepLink] Manual state update: Session/User set. Starting ensureUser...`);
-              await ensureUser(data.session.user);
-              console.log(`🔍 [AuthRaceDebug] ${Date.now()} [DeepLink] ensureUser COMPLETE. Setting isLoading(false)`);
-              setIsLoading(false);
-            }
+            setSession(data.session);
+            setUser(data.session.user);
+            setIsAuthenticated(true);
+            persistSessionToLS(data.session);
+            await ensureUser(data.session.user);
           }
         }
       } catch (err: any) {
         console.error(`🔍 [AuthRaceDebug] ${Date.now()} [DeepLink] CRITICAL:`, err);
+      } finally {
+        isProcessingDeepLink.current = false;
+        if (mounted) setIsLoading(false);
       }
-    };
-
-    // Handle deep links while app is already running/in background.
-    const listener = CapacitorApp.addListener("appUrlOpen", async (event) => {
-      await handleDeepLink(event.url);
-    });
-
-    // Handle cold-start deep link when app was fully closed.
-    void CapacitorApp.getLaunchUrl()
-      .then(async (launchUrl) => {
-        const url = launchUrl?.url;
-        if (!url) return;
-        console.log("👉 [DeepLink] Launch URL detected:", url);
-        await handleDeepLink(url);
-      })
-      .catch((err) => {
-        console.warn("[DeepLink] getLaunchUrl failed:", err);
-      });
-
-
-    return () => {
-      listener.then(l => l.remove()).catch(() => {});
-    };
-  }, []);
-
-  /* Auth state listener */
-  useEffect(() => {
-    let mounted = true;
+    }
 
     async function bootstrap() {
       if (typeof window === "undefined") return;
 
-      console.log(`🔍 [AuthDebug] ${new Date().toISOString()} Bootstrap: Starting sequence...`);
+      console.log(`🔍 [AuthRaceDebug] ${Date.now()} Bootstrap: Starting sequence...`);
       try {
         setAuthTimings(prev => ({ ...prev, start: Date.now() }));
 
-        // 1. Try Supabase cookie-based session first
+        // 1. Check for Cold Start Deep Link (PRIORITY)
+        if (Capacitor.isNativePlatform()) {
+          const launchUrl = await CapacitorApp.getLaunchUrl();
+          if (launchUrl?.url) {
+            console.log(`🔍 [AuthRaceDebug] ${Date.now()} Bootstrap: Cold start deep link detected: ${launchUrl.url}`);
+            await handleDeepLink(launchUrl.url);
+            // If it was a valid auth deep link, handleDeepLink already set the session and hydrated.
+            // We can check if it succeeded.
+            const { data: { session: s } } = await supabase.auth.getSession();
+            if (s) {
+              console.log(`🔍 [AuthRaceDebug] ${Date.now()} Bootstrap: Deep link hydration successful.`);
+              return;
+            }
+          }
+        }
+
+        // 2. Try Supabase cookie-based session
         const { data: { session: s } } = await supabase.auth.getSession();
-        console.log(`🔍 [AuthDebug] Bootstrap getSession result: ${s ? "Session Found" : "No Session"}`);
+        console.log(`🔍 [AuthRaceDebug] ${Date.now()} Bootstrap: getSession result: ${s ? "Session Found" : "No Session"}`);
 
         if (s?.user?.email) {
           if (mounted) {
@@ -597,19 +590,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             scheduleTokenRefresh(s);
           }
           await ensureUser(s.user);
-          if (mounted) {
-            setIsLoading(false);
-            setIsHydrated(true);
-          }
           return;
         }
 
-        // 2. Cookie session missing — try localStorage backup
+        // 3. Try localStorage backup
         const lsSession = restoreSessionFromLS();
         const lsUser = restoreUserDataFromLS();
 
         if (lsSession?.refresh_token && lsSession.user) {
-          console.log("🔍 [AuthDebug] Bootstrap: Restoring from LS Backup.");
+          console.log(`🔍 [AuthRaceDebug] ${Date.now()} Bootstrap: Restoring from LS Backup.`);
           setAuthTimings(prev => ({ ...prev, sessionReady: Date.now() }));
           
           if (mounted) {
@@ -617,13 +606,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setUser(lsSession.user);
             setUserData(lsUser);
             setIsAuthenticated(true);
-            if (lsUser) {
-              console.log("🔍 [AuthDebug] Bootstrap: LS Profile exists, setting isAuthReady=true");
-              setIsAuthReady(true);
-            }
+            if (lsUser) setIsAuthReady(true);
           }
           
-          // Attempt a formal setSession to refresh the Supabase client state
           await supabase.auth.setSession({
             access_token: lsSession.access_token,
             refresh_token: lsSession.refresh_token,
@@ -631,9 +616,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
           await ensureUser(lsSession.user);
         } else {
-          // 3. No valid session anywhere
+          // No valid session
           if (mounted) {
-            console.log("🔍 [AuthDebug] Bootstrap: No valid session found, clearing data.");
             persistSessionToLS(null);
             persistUserDataToLS(null);
             setUserData(null);
@@ -643,7 +627,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.error("Auth bootstrap failed", err);
       } finally {
         if (mounted) {
-          console.log("🔍 [AuthDebug] Bootstrap: Completed.");
+          console.log(`🔍 [AuthRaceDebug] ${Date.now()} Bootstrap: Completed. Setting isLoading(false)`);
           setIsLoading(false);
           setIsHydrated(true);
         }
@@ -652,13 +636,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     bootstrap();
 
+    // Listener for links while app is running
+    let appUrlListener: any;
+    if (Capacitor.isNativePlatform()) {
+      appUrlListener = CapacitorApp.addListener("appUrlOpen", async (event) => {
+        await handleDeepLink(event.url);
+      });
+    }
+
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, s) => {
       if (!mounted) return;
       console.log(`🔍 [AuthRaceDebug] ${Date.now()} onAuthStateChange: Event=${event}, SessionPresent=${!!s}`);
 
-      // Basic session sync
       setSession(s);
       setUser(s?.user ?? null);
       persistSessionToLS(s);
@@ -666,16 +657,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (s?.user?.email) {
         if (event === "SIGNED_IN" || event === "INITIAL_SESSION") {
-           // During login/startup, ensure profile is ready before unlocking UI
            console.log(`🔍 [AuthRaceDebug] ${Date.now()} onAuthStateChange: ${event}. Hydrating profile...`);
            await ensureUser(s.user);
            if (mounted) {
              setIsLoading(false);
              setIsHydrated(true);
-             console.log(`🔍 [AuthRaceDebug] ${Date.now()} onAuthStateChange: Hydration complete. UI UNLOCKED.`);
+             console.log(`🔍 [AuthRaceDebug] ${Date.now()} onAuthStateChange: Hydration complete.`);
            }
         } else {
-           // For token refreshes etc, we don't need to block UI
            void ensureUser(s.user);
            if (mounted) {
              setIsLoading(false);
@@ -683,7 +672,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
            }
         }
       } else if (event === "SIGNED_OUT") {
-        console.log(`🔍 [AuthRaceDebug] ${Date.now()} onAuthStateChange: SIGNED_OUT. Clearing data.`);
         setUserData(null);
         setIsAuthReady(false);
         persistUserDataToLS(null);
@@ -697,6 +685,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => {
       mounted = false;
       subscription.unsubscribe();
+      if (appUrlListener) appUrlListener.then((l: any) => l.remove());
       if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
     };
   }, [ensureUser, scheduleTokenRefresh]);

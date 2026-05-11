@@ -10,11 +10,12 @@ if (!supabaseUrl || !supabaseAnonKey) {
 
 const isApp = typeof window !== "undefined" && (Capacitor.isNativePlatform() || Capacitor.getPlatform() !== 'web');
 
-console.log("🛠️ [SupabaseClient] Initialization:", {
+console.log(`🛠️ [AuthRaceDebug] ${Date.now()} [SupabaseClient] Initialization:`, {
   isNative: isApp,
   platform: typeof window !== "undefined" ? Capacitor.getPlatform() : "SSR",
   supabaseUrl: !!supabaseUrl,
-  flowType: isApp ? "implicit" : "pkce"
+  flowType: isApp ? "implicit" : "pkce",
+  detectSessionInUrl: !isApp
 });
 
 export const supabase = createClient(

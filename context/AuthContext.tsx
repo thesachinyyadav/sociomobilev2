@@ -561,24 +561,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         setAuthTimings(prev => ({ ...prev, start: Date.now() }));
 
-        // 1. Check for Cold Start Deep Link (PRIORITY)
-        if (Capacitor.isNativePlatform()) {
-          const launchUrl = await CapacitorApp.getLaunchUrl();
-          if (launchUrl?.url) {
-            console.log(`🔍 [AuthRaceDebug] ${Date.now()} Bootstrap: Cold start deep link detected: ${launchUrl.url}`);
-            await handleDeepLink(launchUrl.url);
-            // If it was a valid auth deep link, handleDeepLink already set the session and hydrated.
-            // We can check if it succeeded.
-            const { data: { session: s } } = await supabase.auth.getSession();
-            if (s) {
-              console.log(`🔍 [AuthRaceDebug] ${Date.now()} Bootstrap: Deep link hydration successful.`);
-              return;
-            }
+        // 1. Restore from LS Backup (OPTIMISTIC)
+        const lsSession = restoreSessionFromLS();
+        const lsUser = restoreUserDataFromLS();
+        
+        if (lsSession?.user) {
+          console.log(`🔍 [AuthRaceDebug] ${Date.now()} Bootstrap: Optimistic LS Restore.`);
+          setSession(lsSession);
+          setUser(lsSession.user);
+          setUserData(lsUser);
+          setIsAuthenticated(true);
+          setAuthTimings(prev => ({ ...prev, sessionReady: Date.now() }));
+          // If we have a user name, we can consider auth "ready" for basic UI
+          if (lsUser?.name) setIsAuthReady(true);
+          
+          // Unlock UI early if we have a session
+          setIsLoading(false);
+          setIsHydrated(true);
+        }
+
+        // 2. Parallel Session & Deep Link check
+        const [sessionResult, launchUrl] = await Promise.all([
+          supabase.auth.getSession(),
+          Capacitor.isNativePlatform() ? CapacitorApp.getLaunchUrl() : Promise.resolve(null)
+        ]);
+
+        // 3. Handle Deep Link Priority
+        if (launchUrl?.url) {
+          console.log(`🔍 [AuthRaceDebug] ${Date.now()} Bootstrap: Cold start deep link: ${launchUrl.url}`);
+          await handleDeepLink(launchUrl.url);
+          const { data: { session: s } } = await supabase.auth.getSession();
+          if (s) {
+            console.log(`🔍 [AuthRaceDebug] ${Date.now()} Bootstrap: Deep link hydration successful.`);
+            return;
           }
         }
 
-        // 2. Try Supabase cookie-based session
-        const { data: { session: s } } = await supabase.auth.getSession();
+        const s = sessionResult.data.session;
         console.log(`🔍 [AuthRaceDebug] ${Date.now()} Bootstrap: getSession result: ${s ? "Session Found" : "No Session"}`);
 
         if (s?.user?.email) {
@@ -588,46 +607,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setUser(s.user);
             persistSessionToLS(s);
             scheduleTokenRefresh(s);
+            setIsAuthenticated(true);
+            // Unlock UI if not already unlocked
+            setIsLoading(false);
+            setIsHydrated(true);
           }
-          await ensureUser(s.user);
+          // Profile hydration happens in background
+          ensureUser(s.user);
           return;
         }
 
-        // 3. Try localStorage backup
-        const lsSession = restoreSessionFromLS();
-        const lsUser = restoreUserDataFromLS();
-
-        if (lsSession?.refresh_token && lsSession.user) {
-          console.log(`🔍 [AuthRaceDebug] ${Date.now()} Bootstrap: Restoring from LS Backup.`);
-          setAuthTimings(prev => ({ ...prev, sessionReady: Date.now() }));
-          
-          if (mounted) {
-            setSession(lsSession);
-            setUser(lsSession.user);
-            setUserData(lsUser);
-            setIsAuthenticated(true);
-            if (lsUser) setIsAuthReady(true);
-          }
-          
-          await supabase.auth.setSession({
-            access_token: lsSession.access_token,
-            refresh_token: lsSession.refresh_token,
-          }).catch(() => console.warn("LS Session restoration refresh failed"));
-
-          await ensureUser(lsSession.user);
-        } else {
-          // No valid session
-          if (mounted) {
-            persistSessionToLS(null);
-            persistUserDataToLS(null);
-            setUserData(null);
-          }
+        // If no session found and not restored from LS
+        if (!lsSession && mounted) {
+          persistSessionToLS(null);
+          persistUserDataToLS(null);
+          setUserData(null);
+          setIsAuthenticated(false);
         }
       } catch (err) {
         console.error("Auth bootstrap failed", err);
       } finally {
         if (mounted) {
-          console.log(`🔍 [AuthRaceDebug] ${Date.now()} Bootstrap: Completed. Setting isLoading(false)`);
+          console.log(`🔍 [AuthRaceDebug] ${Date.now()} Bootstrap: Sequence finished.`);
           setIsLoading(false);
           setIsHydrated(true);
         }

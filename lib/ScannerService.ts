@@ -1,4 +1,4 @@
-import { BrowserQRCodeReader, IScannerControls } from '@zxing/browser';
+import QrScanner from 'qr-scanner';
 import { BarcodeScanner, BarcodeFormat, LensFacing } from '@capacitor-mlkit/barcode-scanning';
 import { Capacitor } from '@capacitor/core';
 
@@ -19,22 +19,17 @@ export interface IScanner {
 }
 
 /**
- * Web Implementation using ZXing
+ * Web Implementation using Nimiq QrScanner
+ * High performance, Worker-based scanning for PWA
  */
 class WebScanner implements IScanner {
-  private reader: BrowserQRCodeReader;
-  private controls: IScannerControls | null = null;
+  private scanner: QrScanner | null = null;
   private isPaused = false;
-
-  constructor() {
-    this.reader = new BrowserQRCodeReader(undefined, {
-      delayBetweenScanAttempts: 100,
-    });
-  }
 
   async checkPermission(): Promise<PermissionStatus> {
     if (typeof navigator === 'undefined' || !navigator.mediaDevices) return 'unsupported';
     try {
+      // Permissions API is not supported for 'camera' in all browsers (e.g. Firefox)
       const result = await navigator.permissions.query({ name: 'camera' as any });
       return result.state as PermissionStatus;
     } catch {
@@ -55,20 +50,27 @@ class WebScanner implements IScanner {
   async start(videoElement: HTMLVideoElement, onScan: (result: ScannerResult) => void): Promise<void> {
     const t0 = performance.now();
     try {
-      this.controls = await this.reader.decodeFromVideoDevice(
-        undefined, 
+      if (this.scanner) await this.stop();
+
+      this.scanner = new QrScanner(
         videoElement,
         (result) => {
           if (this.isPaused) return;
-          if (result) {
-            console.log(`🔍 [ScannerPerf] QR Detected on Web: ${performance.now() - t0}ms since start`);
-            onScan({
-              data: result.getText(),
-              format: result.getBarcodeFormat().toString(),
-            });
-          }
+          console.log(`🔍 [ScannerPerf] QR Detected on Web: ${performance.now() - t0}ms since start`);
+          onScan({
+            data: result.data,
+            format: 'QR_CODE', // qr-scanner is QR only
+          });
+        },
+        {
+          preferredCamera: 'environment',
+          highlightScanRegion: true,
+          highlightCodeOutline: true,
+          maxScansPerSecond: 10,
         }
       );
+
+      await this.scanner.start();
       console.log(`🔍 [ScannerPerf] Web Scanner Startup Time: ${performance.now() - t0}ms`);
     } catch (err) {
       console.error('[WebScanner] Start failed:', err);
@@ -77,9 +79,10 @@ class WebScanner implements IScanner {
   }
 
   async stop(): Promise<void> {
-    if (this.controls) {
-      this.controls.stop();
-      this.controls = null;
+    if (this.scanner) {
+      this.scanner.stop();
+      this.scanner.destroy();
+      this.scanner = null;
     }
   }
 

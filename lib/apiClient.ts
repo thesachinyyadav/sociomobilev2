@@ -200,6 +200,10 @@ async function fetchWithTimeout(
   }
 }
 
+// Memory Cache & Request Deduplication
+const cache = new Map<string, { data: any; expiry: number }>();
+const pendingRequests = new Map<string, Promise<any>>();
+
 export async function apiFetch<T = any>(
   endpoint: string,
   options: ApiFetchOptions = {}
@@ -213,107 +217,118 @@ export async function apiFetch<T = any>(
 
   const url = buildUrl(endpoint);
   const method = (requestInit.method || "GET").toUpperCase();
+  const cacheKey = `${method}:${url}`;
 
-  if (Capacitor.isNativePlatform() && !url.startsWith("https://")) {
-    throw new Error("API requests must use HTTPS on native platforms.");
+  // 1. Request Deduplication: If an identical request is already in progress, return its promise
+  if (method === "GET" && pendingRequests.has(cacheKey)) {
+    console.log(`🔍 [NetworkPerf] Deduplicating concurrent request: ${cacheKey}`);
+    return pendingRequests.get(cacheKey);
   }
 
-  let authRetried = false;
-  let networkRetried = false;
-  let token = requireAuth ? await getSupabaseAccessToken() : null;
-
-  for (;;) {
-    const headers = new Headers(requestInit.headers);
-    if (!headers.has("Accept")) headers.set("Accept", "application/json");
-    if (!headers.has("Content-Type") && shouldSetJsonContentType(requestInit.body)) {
-      headers.set("Content-Type", "application/json");
+  // 2. Memory Cache: Check if we have a fresh cached response (30s TTL)
+  if (method === "GET") {
+    const cached = cache.get(cacheKey);
+    if (cached && cached.expiry > Date.now()) {
+      console.log(`🔍 [NetworkPerf] Memory Cache HIT: ${cacheKey}`);
+      return cached.data as T;
     }
-    if (requireAuth && token && !headers.has("Authorization")) {
-      headers.set("Authorization", `Bearer ${token}`);
+  }
+
+  const performFetch = async (): Promise<T> => {
+    if (Capacitor.isNativePlatform() && !url.startsWith("https://")) {
+      throw new Error("API requests must use HTTPS on native platforms.");
     }
 
-    console.log("🔍 [NetworkDebug] Request", {
-      url,
-      method,
-      headers: headersToObject(headers),
-      tokenPresent: Boolean(headers.get("Authorization")),
-      platform: Capacitor.getPlatform(),
-      origin: typeof window !== "undefined" ? window.location.origin : "SSR",
-    });
+    let authRetried = false;
+    let networkRetried = false;
+    let token = requireAuth ? await getSupabaseAccessToken() : null;
 
-    try {
-      const startedAt = Date.now();
-      const response = await fetchWithTimeout(
-        url,
-        {
-          ...requestInit,
-          method,
-          headers,
-          mode: "cors",
-          credentials: requestInit.credentials ?? "omit",
-          referrerPolicy: requestInit.referrerPolicy ?? "no-referrer",
-        },
-        timeoutMs
-      );
-      const durationMs = Date.now() - startedAt;
+    for (;;) {
+      const headers = new Headers(requestInit.headers);
+      if (!headers.has("Accept")) headers.set("Accept", "application/json");
+      if (!headers.has("Content-Type") && shouldSetJsonContentType(requestInit.body)) {
+        headers.set("Content-Type", "application/json");
+      }
+      if (requireAuth && token && !headers.has("Authorization")) {
+        headers.set("Authorization", `Bearer ${token}`);
+      }
 
-      const rawBody = await response.text();
-      const parsedBody = parseBody(rawBody, response.headers.get("content-type"));
+      try {
+        const startedAt = Date.now();
+        const response = await fetchWithTimeout(
+          url,
+          {
+            ...requestInit,
+            method,
+            headers,
+            mode: "cors",
+            credentials: requestInit.credentials ?? "omit",
+            referrerPolicy: requestInit.referrerPolicy ?? "no-referrer",
+          },
+          timeoutMs
+        );
+        const durationMs = Date.now() - startedAt;
 
-      const isFromCache = response.headers?.get("x-cache") === "HIT" || response.headers?.get("cf-cache-status") === "HIT";
-      console.log(`🔍 [CacheVerify] ${method} ${endpoint} | Cache: ${isFromCache ? "HIT" : "MISS"} | Status: ${response.status} | Duration: ${durationMs}ms`);
+        const rawBody = await response.text();
+        const parsedBody = parseBody(rawBody, response.headers.get("content-type"));
 
-      console.log("🔍 [NetworkDebug] Response", {
-        url,
-        method,
-        status: response.status,
-        durationMs,
-        body: parsedBody,
-      });
+        const isFromCache = response.headers?.get("x-cache") === "HIT" || response.headers?.get("cf-cache-status") === "HIT";
+        console.log(`🔍 [CacheVerify] ${method} ${endpoint} | Cache: ${isFromCache ? "HIT" : "MISS"} | Status: ${response.status} | Duration: ${durationMs}ms`);
 
-      if (response.status === 401 && requireAuth && retryOnAuthFailure && !authRetried) {
-        const refreshed = await refreshSupabaseAccessToken();
-        if (refreshed) {
-          token = refreshed;
-          authRetried = true;
-          console.warn("🔍 [NetworkDebug] Retrying after token refresh", { url, method });
+        if (response.status === 401 && requireAuth && retryOnAuthFailure && !authRetried) {
+          const refreshed = await refreshSupabaseAccessToken();
+          if (refreshed) {
+            token = refreshed;
+            authRetried = true;
+            continue;
+          }
+        }
+
+        if (!response.ok) {
+          const message =
+            typeof parsedBody === "string"
+              ? parsedBody
+              : (parsedBody as any)?.error || `Request failed with status ${response.status}`;
+          throw new ApiError({
+            message,
+            status: response.status,
+            code: "API_ERROR",
+            url,
+            method,
+            responseBody: parsedBody,
+          });
+        }
+
+        // 3. Cache the successful GET response
+        if (method === "GET") {
+          cache.set(cacheKey, {
+            data: parsedBody,
+            expiry: Date.now() + 30000, // 30 seconds
+          });
+        }
+
+        return parsedBody as T;
+      } catch (error) {
+        if (isNetworkFailure(error) && !networkRetried) {
+          networkRetried = true;
           continue;
         }
+        throw error;
       }
+    }
+  };
 
-      if (!response.ok) {
-        const message =
-          typeof parsedBody === "string"
-            ? parsedBody
-            : (parsedBody as any)?.error || `Request failed with status ${response.status}`;
-        throw new ApiError({
-          message,
-          status: response.status,
-          code: "API_ERROR",
-          url,
-          method,
-          responseBody: parsedBody,
-        });
-      }
-
-      return parsedBody as T;
-    } catch (error) {
-      console.error("🔍 [NetworkDebug] FetchError", {
-        url,
-        method,
-        error: error instanceof Error ? error.message : String(error),
-      });
-
-      if (isNetworkFailure(error) && !networkRetried) {
-        networkRetried = true;
-        console.warn("🔍 [NetworkDebug] Retrying after network failure", { url, method });
-        continue;
-      }
-
-      if (error instanceof Error && error.name === "TimeoutError") throw error;
-      throw error;
+  if (method === "GET") {
+    const promise = performFetch();
+    pendingRequests.set(cacheKey, promise);
+    try {
+      return await promise;
+    } finally {
+      pendingRequests.delete(cacheKey);
     }
   }
+
+  return performFetch();
 }
 
 export async function apiRequest<T>(

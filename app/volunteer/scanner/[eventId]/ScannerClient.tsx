@@ -79,11 +79,19 @@ export default function ScannerClient() {
       return;
     }
 
+    // [DEDUPLICATION] If we already have the event in userData and it's active, skip the network check
+    const isAlreadyValidated = !!cachedEvent;
+    if (isAlreadyValidated) {
+      setEvent(cachedEvent);
+      setIsChecking(false);
+      // We still do a background refresh to be safe
+    }
+
     let cancelled = false;
     async function validateAccess() {
-      setIsChecking(true);
+      if (!isAlreadyValidated) setIsChecking(true);
       setError(null);
-      setEvent(cachedEvent);
+      
       try {
         const payload: any = await apiRequest(`/volunteer/events/${encodeURIComponent(eventId)}/access`, {
           cache: "no-store",
@@ -94,7 +102,8 @@ export default function ScannerClient() {
           setError(payload.error || DENIED_MESSAGE);
           return;
         }
-        setEvent(payload.event || cachedEvent);
+        const updatedEvent = payload.event || cachedEvent;
+        setEvent(updatedEvent);
       } catch (err: any) {
         if (!cancelled) {
           if (cachedEvent) setEvent(cachedEvent);
@@ -110,6 +119,32 @@ export default function ScannerClient() {
     void validateAccess();
     return () => { cancelled = true; };
   }, [cachedEvent, eventId, authLoading, session]);
+
+  // Load persistent history from sessionStorage
+  useEffect(() => {
+    try {
+      const saved = sessionStorage.getItem(`scanner_history_${eventId}`);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        const historyItems = parsed.map((item: any) => ({ ...item, time: new Date(item.time) }));
+        setHistory(historyItems);
+        
+        // Populate attendee cache from history to prevent double scans after reload
+        historyItems.forEach((item: HistoryItem) => {
+          if (item.status === "success" || item.status === "already_present") {
+            attendeeCacheRef.current.set(item.qrData, { name: item.name || "Attendee", status: "already_present" });
+          }
+        });
+      }
+    } catch {}
+  }, [eventId]);
+
+  // Save history to sessionStorage
+  useEffect(() => {
+    if (history.length > 0) {
+      sessionStorage.setItem(`scanner_history_${eventId}`, JSON.stringify(history));
+    }
+  }, [history, eventId]);
 
   // Scanner Lifecycle
   useEffect(() => {

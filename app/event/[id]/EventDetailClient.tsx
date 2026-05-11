@@ -454,7 +454,7 @@ export default function EventDetailClient({ eventId }: { eventId: string }) {
                 </a>
               )}
               {event.whatsapp_invite_link && (
-                <a href={event.whatsapp_invite_link} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 text-[13px] font-semibold text-green-700">
+                <a href={sanitizeUrl(event.whatsapp_invite_link)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 text-[13px] font-semibold text-green-700">
                   <div className="w-8 h-8 rounded-xl bg-green-50 flex items-center justify-center shrink-0">
                     <MessageCircle size={14} className="text-green-600" />
                   </div>
@@ -509,6 +509,11 @@ export default function EventDetailClient({ eventId }: { eventId: string }) {
             <p className="text-center text-[10px] font-bold text-[var(--color-text-muted)] uppercase tracking-wider mt-2">Registration is per team</p>
           )}
         </div>
+      </div>
+    </div>
+  );
+}
+div>
       </div>
     </div>
   );

@@ -6,6 +6,7 @@ import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabaseClient";
 import { ArrowLeftIcon, GlobeIcon, CheckCircleIcon, XIcon, ArrowRightIcon } from "@/components/icons";
 import toast from "react-hot-toast";
+import { sanitizeUrl } from "@/lib/sanitizeUrl";
 
 interface ClubRecord {
   club_id: string;

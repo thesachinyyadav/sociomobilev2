@@ -234,7 +234,7 @@ export default function RegisterClient({ eventId }: { eventId: string }) {
             </Link>
             {event.whatsapp_invite_link && (
               <a
-                href={event.whatsapp_invite_link}
+                href={sanitizeUrl(event.whatsapp_invite_link)}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="btn btn-ghost text-sm w-full text-green-600 border-green-300"
@@ -377,6 +377,11 @@ export default function RegisterClient({ eventId }: { eventId: string }) {
         >
           {alreadyRegistered ? "Registered" : "Confirm Registration"}
         </Button>
+      </form>
+    </div>
+  );
+}
+
       </form>
     </div>
   );

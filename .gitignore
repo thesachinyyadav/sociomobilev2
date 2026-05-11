@@ -24,3 +24,8 @@ next-env.d.ts
 
 # devcontext
 .devcontext/
+
+# security and reports
+SECURITY_REPORT.md
+full_lint.txt
+lint_errors.txt

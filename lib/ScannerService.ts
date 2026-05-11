@@ -146,8 +146,14 @@ class CapacitorScanner implements IScanner {
  * Factory to get the appropriate scanner for the current platform
  */
 export const getScanner = (): IScanner => {
-  if (Capacitor.isNativePlatform()) {
+  const isNative = Capacitor.isNativePlatform();
+  console.log(`🔍 [ScannerPlatformDebug] Detected platform isNative: ${isNative}`);
+  
+  if (isNative) {
+    console.log(`🔍 [ScannerPlatformDebug] Selected scanner engine: Capacitor ML Kit`);
     return new CapacitorScanner();
   }
+  
+  console.log(`🔍 [ScannerPlatformDebug] Selected scanner engine: Browser Web Fallback`);
   return new WebScanner();
 };

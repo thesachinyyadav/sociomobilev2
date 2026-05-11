@@ -49,28 +49,6 @@ export default function FestsPage() {
     }
   }, [userData?.campus]);
 
-  useEffect(() => {
-    (async () => {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 8000);
-
-      try {
-        const data = (await apiRequest(`/fests`, { signal: controller.signal })) as any;
-        const festArray = data.fests ?? data.data ?? data ?? [];
-        if (!Array.isArray(festArray) || festArray.length === 0) {
-          setFests([]);
-        } else {
-          setFests(festArray);
-        }
-      } catch (err) {
-        console.error("Error fetching fests:", err);
-      } finally {
-        clearTimeout(timeoutId);
-        setLoading(false);
-      }
-    })();
-  }, []);
-
   const filtered = useMemo(() => {
     // 1. Campus filter — hide fests not relevant to the user's campus
     let list = fests.filter((f) =>

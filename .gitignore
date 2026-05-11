@@ -29,5 +29,6 @@ next-env.d.ts
 SECURITY_REPORT.md
 QA_REPORT.md
 SCANNER_VERIFICATION_REPORT.md
+ARCHITECTURE_VALKEY.md
 full_lint.txt
 lint_errors.txt

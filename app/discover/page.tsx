@@ -1,5 +1,6 @@
 "use client";
 
+import useSWR from "swr";
 import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
@@ -17,6 +18,12 @@ import { formatDateShort, isDeadlinePassed } from "@/lib/dateUtils";
 import type { Fest } from "@/context/EventContext";
 import { useDebounce } from "@/lib/useDebounce";
 import { apiRequest } from "@/lib/apiClient";
+
+const fetcher = async (url: string) => {
+  const data = await apiRequest(url) as any;
+  const arr = data.fests ?? data.data ?? data ?? [];
+  return Array.isArray(arr) ? arr : [];
+};
 
 const ITEMS_PER_PAGE = 10;
 const QUICK_CATEGORY_LIMIT = 4;

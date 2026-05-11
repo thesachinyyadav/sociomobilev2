@@ -9,14 +9,16 @@ import LoadingScreen from "@/components/LoadingScreen";
 import { Button } from "@/components/Button";
 import {
   AlertTriangleIcon,
-  ArrowRightIcon,
   CalendarDaysIcon,
-  Clock3Icon,
   MapPinIcon,
   QrCodeIcon,
   ShieldCheckIcon,
+  ChevronRightIcon,
+  UsersIcon,
+  ZapIcon,
+  BellIcon,
 } from "@/components/icons";
-import { formatDateShort, formatTime } from "@/lib/dateUtils";
+import { formatDateShort } from "@/lib/dateUtils";
 import { getActiveVolunteerEvents } from "@/lib/volunteerAccess";
 import { apiRequest } from "@/lib/apiClient";
 
@@ -119,21 +121,23 @@ export default function VolunteerDashboardPage() {
   // Guard: volunteers must have a register number (Christ University members only)
   if (!isLoading && userData && !userData.register_number) {
     return (
-      <div className="pwa-page min-h-screen px-4 pb-[calc(var(--bottom-nav)+var(--safe-bottom)+96px)] pt-[calc(var(--nav-height)+var(--safe-top)+16px)]">
+      <div className="pwa-page min-h-screen px-4 pb-[calc(var(--bottom-nav)+var(--safe-bottom)+96px)] pt-[calc(var(--nav-height)+var(--safe-top)+16px)] bg-slate-50">
         <div className="mx-auto max-w-[420px]">
-          <section className="card p-6 text-center">
-            <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-amber-50 text-amber-600">
-              <ShieldCheckIcon size={22} />
+          <section className="card-op text-center py-10 shadow-xl border-none">
+            <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-50 text-amber-600 shadow-sm">
+              <ShieldCheckIcon size={32} />
             </div>
-            <h1 className="text-[17px] font-extrabold text-[var(--color-text)]">
-              Volunteer access requires a Christ University account
+            <h1 className="text-xl font-black text-slate-900 leading-tight">
+              Institutional Access Only
             </h1>
-            <p className="mx-auto mt-2 max-w-[280px] text-[13px] leading-5 text-[var(--color-text-muted)]">
-              Only registered Christ University students with a valid register number can be assigned as volunteers.
+            <p className="mx-auto mt-3 max-w-[300px] text-sm leading-6 text-slate-500 font-medium">
+              Only verified university members with a valid registration ID can access the volunteer dashboard.
             </p>
-            <Button variant="primary" className="mt-5" onClick={() => router.replace("/")}>
-              Back Home
-            </Button>
+            <div className="mt-8 px-6">
+               <Button variant="primary" fullWidth onClick={() => router.replace("/")}>
+                 Back to Marketplace
+               </Button>
+            </div>
           </section>
         </div>
       </div>
@@ -146,195 +150,183 @@ export default function VolunteerDashboardPage() {
   const showNoActive = isVolunteer && !hasActiveEvents && !isFetching && !error;
 
   return (
-    <div className="pwa-page min-h-screen px-4 pb-[calc(var(--bottom-nav)+var(--safe-bottom)+96px)] pt-[calc(var(--nav-height)+var(--safe-top)+16px)]">
-      <div className="mx-auto max-w-[420px] space-y-5">
-        {/* Header */}
-        <section className="rounded-[26px] bg-[var(--color-primary-dark)] px-5 py-6 text-white shadow-[0_12px_32px_rgba(1,31,123,0.18)]">
-          <div className="flex items-start gap-3">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white/12">
-              <QrCodeIcon size={24} />
+    <div className="pwa-page min-h-screen bg-slate-50 pb-[calc(var(--bottom-nav)+var(--safe-bottom)+40px)]">
+      
+      {/* Premium Operational Header */}
+      <header className="header-op">
+        <div className="h-10 w-10 rounded-full border-2 border-white shadow-sm overflow-hidden bg-slate-200 shrink-0">
+          {userData?.avatar_url ? (
+            <img src={userData.avatar_url} alt="avatar" className="h-full w-full object-cover" />
+          ) : (
+            <div className="h-full w-full flex items-center justify-center text-slate-400">
+               <UsersIcon size={20} />
             </div>
-            <div>
-              <h1 className="text-[22px] font-black tracking-[-0.02em]">Volunteer Dashboard</h1>
-              <p className="mt-1 text-[12px] leading-5 text-blue-100">
-                Assigned event scanners only. Access closes when the event ends.
-              </p>
-            </div>
-          </div>
+          )}
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Volunteer</p>
+          <h1 className="text-sm font-black text-slate-900 truncate mt-1">
+             {userData?.name || "Operations Lead"}
+          </h1>
+        </div>
+        <div className="flex items-center gap-2">
+           <button className="h-9 w-9 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-600 active:scale-90 transition-transform">
+              <BellIcon size={18} />
+           </button>
+           <div className="badge-op badge-op-success">
+              <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              Online
+           </div>
+        </div>
+      </header>
+
+      <div className="mx-auto max-w-[440px] px-4 pt-6 space-y-6">
+        
+        {/* Ops Stats Grid */}
+        <section className="grid grid-cols-2 gap-3">
+           <div className="card-op border-none shadow-sm bg-white p-4">
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Active Ops</p>
+              <div className="flex items-end justify-between mt-2">
+                 <span className="text-2xl font-black text-slate-900 leading-none">{events.length}</span>
+                 <ZapIcon size={18} className="text-blue-500 mb-0.5" />
+              </div>
+           </div>
+           <div className="card-op border-none shadow-sm bg-white p-4">
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Global Status</p>
+              <div className="flex items-end justify-between mt-2">
+                 <span className="text-sm font-black text-emerald-600 uppercase leading-none">Operational</span>
+                 <ShieldCheckIcon size={18} className="text-emerald-500 mb-0.5" />
+              </div>
+           </div>
         </section>
 
         {showDenied ? (
-          <section className="card p-5 text-center">
-            <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-red-50 text-red-600">
-              <AlertTriangleIcon size={22} />
-            </div>
-            <h2 className="text-[16px] font-extrabold text-[var(--color-text)]">Access denied</h2>
-            <p className="mx-auto mt-2 max-w-[280px] text-[13px] leading-5 text-[var(--color-text-muted)]">
-              {error || DENIED_MESSAGE}
+          <section className="card-op p-8 text-center bg-white border-none shadow-sm">
+            <AlertTriangleIcon size={40} className="mx-auto text-red-500 mb-4" />
+            <h2 className="text-lg font-black text-slate-900">Access Restricted</h2>
+            <p className="mt-2 text-sm font-medium text-slate-500 leading-relaxed">
+              {error || "Your account does not have active volunteer privileges."}
             </p>
-            <Button variant="primary" className="mt-4" onClick={() => router.replace("/")}>
-              Back Home
+            <Button variant="primary" className="mt-6" fullWidth onClick={() => router.replace("/")}>
+              Exit Operations
             </Button>
           </section>
         ) : showNoActive ? (
-          <section className="card p-6 text-center">
-            <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-blue-50 text-blue-600">
-              <CalendarDaysIcon size={24} />
+          <section className="card-op p-8 text-center bg-white border-none shadow-sm">
+            <div className="h-16 w-16 bg-blue-50 rounded-2xl flex items-center justify-center mx-auto mb-4 text-blue-500">
+               <CalendarDaysIcon size={32} />
             </div>
-            <h2 className="text-[16px] font-extrabold text-[var(--color-text)]">No active assignments</h2>
-            <p className="mx-auto mt-2 max-w-[280px] text-[13px] leading-5 text-[var(--color-text-muted)]">
-              You are registered as a volunteer, but you have no active event assignments at the moment.
+            <h2 className="text-lg font-black text-slate-900">Standby Mode</h2>
+            <p className="mt-2 text-sm font-medium text-slate-500 leading-relaxed">
+              No active event assignments detected for the current session.
             </p>
-            <div className="mt-6 flex flex-col gap-2">
-              <Button variant="primary" onClick={() => fetchVolunteerEvents()}>
-                Refresh Assignments
+            <div className="mt-8 flex flex-col gap-3">
+              <Button variant="primary" fullWidth onClick={() => fetchVolunteerEvents()}>
+                Synchronize Ops
               </Button>
-              <Button variant="ghost" onClick={() => router.replace("/")}>
-                Back Home
+              <Button variant="ghost" fullWidth onClick={() => router.replace("/")}>
+                Return to Dashboard
               </Button>
             </div>
           </section>
         ) : (
-          <section className="space-y-3">
+          <section className="space-y-4">
             <div className="flex items-center justify-between px-1">
-              <h2 className="text-[16px] font-extrabold text-[var(--color-text)]">Assigned Events</h2>
-              <span className="rounded-full bg-[var(--color-primary-light)] px-2.5 py-1 text-[11px] font-bold text-[var(--color-primary)]">
-                {events.length}
+              <h2 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                 Assigned Scanners
+              </h2>
+              <span className="h-1 w-1 rounded-full bg-slate-300 flex-1 mx-4" />
+              <span className="text-[10px] font-black text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md">
+                LIVE OPS
               </span>
             </div>
 
-            {/* Shake-to-scan widget */}
-            <section className="card p-4">
-              <div className="flex items-start justify-between gap-4">
-                <div className="min-w-0">
-                  <h3 className="text-[14px] font-extrabold text-[var(--color-text)]">Shake to Scan</h3>
-                  {shakeEnabled && activeScanEvent && activeShakeEvent ? (
-                    <p className="mt-1 text-[12px] font-semibold text-emerald-700">
-                      Shake to Scan Enabled for {activeShakeEvent.title}
-                    </p>
-                  ) : (
-                    <p className="mt-1 text-[12px] text-[var(--color-text-muted)]">
-                      Enable a single event for quick scanner access.
-                    </p>
-                  )}
-                </div>
-                {shakeEnabled && activeScanEvent ? (
-                  <Button variant="ghost" size="sm" onClick={() => {
-                    setShakeError(null);
-                    disableShake();
-                  }}>
-                    Disable
-                  </Button>
-                ) : null}
-              </div>
-              {motionSupported && motionPermission === "denied" && (
-                <p className="mt-2 text-[11px] font-semibold text-red-600">
-                  Motion access is blocked. Enable motion permissions in your browser settings.
-                </p>
-              )}
-              {shakeError && (
-                <p className="mt-2 text-[11px] font-semibold text-red-600">{shakeError}</p>
-              )}
-            </section>
-
             {/* Event cards */}
-            {events.map((event) => {
-              const expiringSoon = isExpiringSoon(event.volunteer_assignment?.expires_at);
-              const assignedBy = event.volunteer_assignment?.assigned_by;
-
-              return (
-                <div key={event.event_id} className="card p-4">
-                  <Link
-                    href={`/volunteer/scanner/${encodeURIComponent(event.event_id)}`}
-                    className="block active:scale-[0.99]"
-                  >
-                  <div className="flex items-start gap-3">
-                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[var(--color-primary-light)] text-[var(--color-primary)]">
-                      <QrCodeIcon size={20} />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-start justify-between gap-2">
-                        <h3 className="truncate text-[15px] font-extrabold text-[var(--color-text)]">
-                          {event.title}
-                        </h3>
-                        {/* Expiry badge — mirrors web platform amber warning */}
-                        {expiringSoon && (
-                          <span className="shrink-0 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-700">
-                            Expires soon
-                          </span>
-                        )}
-                      </div>
-
-                      <div className="mt-2 space-y-1 text-[12px] text-[var(--color-text-muted)]">
-                        <p className="flex items-center gap-1.5">
-                          <CalendarDaysIcon size={12} className="text-[var(--color-primary)]" />
-                          {formatDateShort(event.event_date)}
-                        </p>
-                        {event.event_time && (
-                          <p className="flex items-center gap-1.5">
-                            <Clock3Icon size={12} className="text-[var(--color-primary)]" />
-                            {formatTime(event.event_time)}
-                          </p>
-                        )}
-                        {event.venue && (
-                          <p className="flex items-center gap-1.5 truncate">
-                            <MapPinIcon size={12} className="text-[var(--color-primary)]" />
-                            {event.venue}
-                            {event.campus_hosted_at ? ` • ${event.campus_hosted_at}` : ""}
-                          </p>
-                        )}
-                      </div>
-
-                      {/* Assigned by — mirrors web platform footer */}
-                      {assignedBy && (
-                        <p className="mt-2 text-[11px] text-[var(--color-text-light)] truncate">
-                          Assigned by: {assignedBy}
-                        </p>
-                      )}
-                    </div>
-                    <ArrowRightIcon size={18} className="mt-1 shrink-0 text-[var(--color-text-light)]" />
-                  </div>
-
-                  </Link>
-
-                  {/* Shake-to-scan toggle row */}
-                  <div className="mt-4 flex items-center justify-between rounded-2xl border border-[var(--color-border)] bg-white/80 px-3 py-2">
-                    <div>
-                      <p className="text-[12px] font-semibold text-[var(--color-text)]">Shake to Scan</p>
-                      <p className="text-[11px] text-[var(--color-text-muted)]">
-                        {shakeEnabled && activeScanEvent === event.event_id
-                          ? "Enabled"
-                          : shakeEnabled && activeScanEvent
-                            ? "Switch to this event"
-                            : "Enable for this event"}
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      aria-label="Toggle Shake to Scan"
-                      title="Toggle Shake to Scan"
-                      onClick={() => {
-                        void handleToggleShake(event.event_id);
-                      }}
-                      className={`relative h-7 w-12 overflow-hidden rounded-full transition-colors ${
-                        shakeEnabled && activeScanEvent === event.event_id
-                          ? "bg-emerald-500"
-                          : "bg-slate-200"
-                      }`}
+            <div className="space-y-3">
+              {events.map((event) => {
+                const expiringSoon = isExpiringSoon(event.volunteer_assignment?.expires_at);
+                
+                return (
+                  <div key={event.event_id} className="card-op border-none shadow-sm bg-white overflow-hidden p-0 active:scale-95 transition-all">
+                    <Link
+                      href={`/volunteer/scanner/${encodeURIComponent(event.event_id)}`}
+                      className="block p-4"
                     >
-                      <span className="sr-only">Toggle Shake to Scan</span>
-                      <span
-                        className={`absolute left-0.5 top-0.5 h-6 w-6 rounded-full bg-white shadow transition-transform ${
-                          shakeEnabled && activeScanEvent === event.event_id ? "translate-x-5" : "translate-x-0"
-                        }`}
-                      />
-                    </button>
+                      <div className="flex items-start gap-4">
+                        <div className="h-14 w-14 rounded-2xl bg-slate-900 flex items-center justify-center shrink-0 shadow-lg shadow-slate-200">
+                           <QrCodeIcon size={24} className="text-white" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                           <div className="flex items-center justify-between gap-2">
+                              <h3 className="text-[15px] font-black text-slate-900 truncate tracking-tight">
+                                {event.title}
+                              </h3>
+                              {expiringSoon && (
+                                <div className="h-2 w-2 rounded-full bg-amber-500 animate-ping shrink-0" title="Expiring soon" />
+                              )}
+                           </div>
+                           
+                           <div className="mt-1 flex items-center gap-3 text-[11px] font-bold text-slate-400">
+                              <span className="flex items-center gap-1">
+                                 <CalendarDaysIcon size={12} className="text-blue-500" />
+                                 {formatDateShort(event.event_date)}
+                              </span>
+                              <span className="flex items-center gap-1 truncate">
+                                 <MapPinIcon size={12} className="text-blue-500" />
+                                 {event.venue || "Campus Venue"}
+                              </span>
+                           </div>
+
+                           <div className="mt-3 flex items-center gap-2">
+                              <div className="badge-op badge-op-info lowercase">
+                                 Check-in active
+                              </div>
+                              <div className="flex-1 h-px bg-slate-50" />
+                              <ChevronRightIcon size={16} className="text-slate-300" />
+                           </div>
+                        </div>
+                      </div>
+                    </Link>
+
+                    {/* Shake-to-scan toggle row */}
+                    <div className="bg-slate-50/50 px-4 py-3 flex items-center justify-between border-t border-slate-50">
+                      <div className="flex items-center gap-2">
+                        <ZapIcon size={14} className={shakeEnabled && activeScanEvent === event.event_id ? "text-emerald-500" : "text-slate-300"} />
+                        <span className="text-[11px] font-black text-slate-500 uppercase tracking-wider">
+                           Shake to Start
+                        </span>
+                      </div>
+                      
+                      <div 
+                        onClick={(e) => {
+                          e.preventDefault();
+                          void handleToggleShake(event.event_id);
+                        }}
+                        className={`toggle-op ${shakeEnabled && activeScanEvent === event.event_id ? 'toggle-op-active' : ''}`}
+                      >
+                         <div className="toggle-op-thumb" />
+                      </div>
+                    </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
+
+            {shakeError && (
+              <div className="card-op bg-red-50 border-red-100 p-3 flex gap-3 text-red-700 text-[11px] font-bold">
+                 <AlertTriangleIcon size={16} className="shrink-0" />
+                 <p>{shakeError}</p>
+              </div>
+            )}
           </section>
         )}
+
+        {/* Global Operational Footer */}
+        <footer className="text-center py-4">
+           <p className="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em]">
+              SOCIO Operations • Production v2.0
+           </p>
+        </footer>
       </div>
     </div>
   );

@@ -13,7 +13,10 @@ import {
   ShieldCheckIcon,
   CheckCircleIcon,
   XIcon,
-  CameraIcon
+  CameraIcon,
+  RefreshCcwIcon,
+  HistoryIcon,
+  SearchIcon,
 } from "@/components/icons";
 import { getActiveVolunteerEvents } from "@/lib/volunteerAccess";
 import { apiRequest } from "@/lib/apiClient";
@@ -59,6 +62,7 @@ export default function ScannerClient() {
   const [syncQueue, setSyncQueue] = useState<QueuedScan[]>([]);
   const [isSyncing, setIsSyncing] = useState(false);
   const [showSuccessGlow, setShowSuccessGlow] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
   // Refs
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -347,16 +351,31 @@ export default function ScannerClient() {
     document.body.classList.remove('scanner-mode-active');
   };
 
+  const filteredHistory = useMemo(() => {
+     if (!searchQuery) return history;
+     const q = searchQuery.toLowerCase();
+     return history.filter(item => 
+        item.name?.toLowerCase().includes(q) || 
+        item.message?.toLowerCase().includes(q)
+     );
+  }, [history, searchQuery]);
+
   if (authLoading || (isChecking && !event)) return <LoadingScreen />;
 
   if (!event || error) {
     return (
       <div className="pwa-page px-4 pt-[calc(var(--nav-height)+var(--safe-top)+16px)] bg-slate-50">
-        <div className="mx-auto max-w-[420px] card p-8 text-center space-y-4">
-          <AlertTriangleIcon size={48} className="mx-auto text-red-500" />
-          <h1 className="text-xl font-bold">Access Denied</h1>
-          <p className="text-sm text-[var(--color-text-muted)]">{error || DENIED_MESSAGE}</p>
-          <Button variant="primary" fullWidth onClick={() => router.replace("/volunteer")}>Back to Dashboard</Button>
+        <div className="mx-auto max-w-[420px] card-op text-center py-10 shadow-xl border-none">
+          <AlertTriangleIcon size={48} className="mx-auto text-red-500 mb-4" />
+          <h1 className="text-xl font-black text-slate-900">Access Restricted</h1>
+          <p className="mt-2 text-sm font-medium text-slate-500 max-w-[280px] mx-auto leading-relaxed">
+             {error || "Operational access denied for this event terminal."}
+          </p>
+          <div className="mt-8 px-6">
+             <Button variant="primary" fullWidth onClick={() => router.replace("/volunteer")}>
+                Exit Terminal
+             </Button>
+          </div>
         </div>
       </div>
     );
@@ -371,35 +390,35 @@ export default function ScannerClient() {
           <ArrowLeftIcon size={20} />
         </button>
         <div className="flex-1 min-w-0">
-          <h1 className="text-sm font-black text-white truncate leading-tight">{event.title}</h1>
+          <h1 className="text-sm font-black text-white truncate leading-tight tracking-tight">{event.title}</h1>
           <div className="flex items-center gap-2 mt-0.5">
             <div className={`status-indicator ${isScanning ? 'text-emerald-400' : 'text-slate-400'}`} style={{ color: 'currentColor' }} />
-            <span className="text-[10px] font-bold text-white/60 tracking-wider uppercase">
-              {isScanning ? 'Live Scanner' : 'Scanner Ready'}
+            <span className="text-[10px] font-black text-white/60 tracking-[0.1em] uppercase">
+              {isScanning ? 'Scanner Live' : 'Terminal Standby'}
             </span>
           </div>
         </div>
-        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500/20 border border-emerald-500/30 text-emerald-400">
-          <ShieldCheckIcon size={14} />
-          <span className="text-[10px] font-black uppercase tracking-tight">Verified</span>
+        <div className="flex items-center gap-2">
+           {syncQueue.length > 0 && (
+              <div className="h-8 px-2.5 rounded-full bg-amber-500/20 border border-amber-500/30 text-amber-400 flex items-center gap-1.5">
+                 <RefreshCcwIcon size={12} className="animate-spin" />
+                 <span className="text-[10px] font-black">{syncQueue.length}</span>
+              </div>
+           )}
+           <div className="flex items-center gap-1.5 h-8 px-3 rounded-full bg-white/10 border border-white/20 text-white/80">
+             <ShieldCheckIcon size={14} className="text-emerald-400" />
+             <span className="text-[10px] font-black uppercase tracking-tight">Lead</span>
+           </div>
         </div>
       </header>
 
-      {/* Sync Queue Indicator */}
-      {syncQueue.length > 0 && (
-        <div className="sync-queue-badge">
-          <div className="sync-spinner" />
-          <span>{syncQueue.length} PENDING SYNC</span>
-        </div>
-      )}
-
-      <div className="mx-auto max-w-[420px] px-4 space-y-6 pt-[calc(var(--nav-height)+var(--safe-top)+40px)]">
+      <div className="mx-auto max-w-[440px] px-4 space-y-6 pt-[calc(var(--nav-height)+var(--safe-top)+40px)] pb-20">
         
         {/* Immersive Viewport */}
-        <section className={`scanner-viewport-premium ${isScanning ? 'scanning-active' : ''}`}>
+        <section className={`scanner-viewport-premium ${isScanning ? 'scanning-active' : ''} border-none shadow-2xl shadow-slate-200`}>
           <video
             ref={videoRef}
-            className={`w-full h-full object-cover transition-opacity duration-500 ${isNative ? 'opacity-0' : 'opacity-100'}`}
+            className={`w-full h-full object-cover transition-opacity duration-700 ${isNative ? 'opacity-0' : 'opacity-100'}`}
             muted
             playsInline
           />
@@ -410,116 +429,140 @@ export default function ScannerClient() {
             {!isScanning && (
               <motion.div 
                 initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-slate-900/80 text-white px-8 text-center backdrop-blur-sm"
+                className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-slate-900/90 text-white px-8 text-center backdrop-blur-md"
               >
-                <div className="w-20 h-20 rounded-full bg-white/10 flex items-center justify-center mb-6 border border-white/20 shadow-2xl">
-                  <CameraIcon size={36} className="text-white" />
+                <div className="w-20 h-20 rounded-3xl bg-white/10 flex items-center justify-center mb-6 border border-white/10 shadow-2xl">
+                  <CameraIcon size={40} className="text-white" />
                 </div>
-                <h3 className="text-lg font-black tracking-tight">Initialize Camera</h3>
-                <p className="text-xs text-white/60 mt-2 leading-relaxed max-w-[200px]">
-                  Align ticket QR code within the illuminated guides
+                <h3 className="text-lg font-black tracking-tight">Event Terminal v2.0</h3>
+                <p className="text-xs text-white/50 mt-2 leading-relaxed max-w-[220px] font-medium">
+                  Continuous high-speed scanning mode. Align attendee QR in guides.
                 </p>
-                <button onClick={startScanner} className="mt-8 px-6 py-3 bg-emerald-500 hover:bg-emerald-400 text-white rounded-full font-bold text-sm shadow-xl transition-all active:scale-95">
+                <button onClick={startScanner} className="mt-8 px-8 py-3.5 bg-emerald-500 hover:bg-emerald-400 text-white rounded-2xl font-black text-sm shadow-xl transition-all active:scale-95 shadow-emerald-500/20">
                   Activate Scanner
                 </button>
               </motion.div>
             )}
           </AnimatePresence>
 
-          {/* New Premium Guides */}
+          {/* Premium Operational Guides */}
           {isScanning && (
             <>
               <div className="scanner-guide-corner guide-tl" />
               <div className="scanner-guide-corner guide-tr" />
               <div className="scanner-guide-corner guide-bl" />
               <div className="scanner-guide-corner guide-br" />
-              <div className="scanner-roi-box" />
+              <div className="scanner-roi-box border-emerald-500/20" />
               <div className="scanner-laser-premium" />
             </>
           )}
 
           {scannerError && (
-             <div className="absolute bottom-6 left-6 right-6 z-40 p-4 bg-red-500/90 backdrop-blur-md rounded-2xl border border-red-400/50 flex items-center gap-3 text-white">
+             <div className="absolute bottom-6 left-6 right-6 z-40 p-4 bg-red-500/90 backdrop-blur-xl rounded-2xl border border-red-400/50 flex items-center gap-3 text-white">
                 <AlertTriangleIcon size={20} className="shrink-0" />
-                <p className="text-xs font-bold leading-tight">{scannerError}</p>
+                <p className="text-xs font-black leading-tight uppercase tracking-wide">{scannerError}</p>
              </div>
           )}
         </section>
 
-        {/* Controls (Hidden when scanning for maximum immersion) */}
+        {/* Operational Stats & Search */}
         {!isScanning && (
-          <div className="grid grid-cols-2 gap-3 stagger">
-            <div className="card p-4 bg-white shadow-sm flex flex-col items-center justify-center text-center border-none">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Total Scans</span>
-              <span className="text-2xl font-black text-slate-900">{history.length}</span>
-            </div>
-            <div className="card p-4 bg-white shadow-sm flex flex-col items-center justify-center text-center border-none">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Sync Status</span>
-              <span className={`text-sm font-black uppercase ${syncQueue.length > 0 ? 'text-amber-500' : 'text-emerald-600'}`}>
-                {syncQueue.length > 0 ? 'Queued' : 'Synced'}
-              </span>
-            </div>
-          </div>
+          <section className="space-y-4">
+             <div className="grid grid-cols-2 gap-3">
+                <div className="card-op bg-white border-none shadow-sm p-4 text-center">
+                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Scanned Today</p>
+                   <span className="text-2xl font-black text-slate-900">{history.length}</span>
+                </div>
+                <div className="card-op bg-white border-none shadow-sm p-4 text-center">
+                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Queue Status</p>
+                   <span className={`text-sm font-black uppercase ${syncQueue.length > 0 ? 'text-amber-500' : 'text-emerald-600'}`}>
+                     {syncQueue.length > 0 ? 'Synchronizing' : 'Verified'}
+                   </span>
+                </div>
+             </div>
+
+             <div className="relative">
+                <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none text-slate-400">
+                   <SearchIcon size={16} />
+                </div>
+                <input 
+                  type="text"
+                  placeholder="Search local ledger..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full h-12 bg-white rounded-2xl pl-11 pr-4 text-sm font-bold text-slate-900 border-none shadow-sm focus:ring-2 focus:ring-blue-500 transition-all placeholder:text-slate-300"
+                />
+             </div>
+          </section>
         )}
 
         {isScanning && (
           <div className="flex justify-center">
-             <button onClick={stopScanner} className="px-8 py-3 bg-white/10 backdrop-blur-xl border border-white/20 text-white rounded-full font-black text-xs uppercase tracking-widest shadow-2xl active:scale-95 transition-all">
-               Deactivate
+             <button onClick={stopScanner} className="px-10 py-3 bg-white/10 backdrop-blur-2xl border border-white/20 text-white rounded-full font-black text-[10px] uppercase tracking-[0.2em] shadow-2xl active:scale-95 transition-all">
+               Deactivate Terminal
              </button>
           </div>
         )}
 
-        {/* Pro History Ledger */}
-        <section className={`space-y-4 pb-12 transition-all duration-500 ${isScanning ? 'opacity-20 blur-sm scale-95' : 'opacity-100'}`}>
+        {/* Attendance Ledger */}
+        <section className={`space-y-4 transition-all duration-700 ${isScanning ? 'opacity-20 blur-md scale-95 pointer-events-none' : 'opacity-100'}`}>
           <div className="flex items-center justify-between px-1">
-            <h2 className="text-xs font-black text-slate-400 uppercase tracking-widest">Attendance Ledger</h2>
+            <h2 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.15em] flex items-center gap-2">
+               <HistoryIcon size={14} className="text-slate-300" />
+               Realtime Ledger
+            </h2>
             <div className="h-px flex-1 mx-4 bg-slate-200" />
-            <span className="text-[10px] font-bold text-slate-400">{history.length} records</span>
+            <span className="text-[10px] font-black text-slate-400 tabular-nums">{filteredHistory.length} ENTRIES</span>
           </div>
 
-          <div className="scanner-ledger space-y-2 border-none">
-            {history.length === 0 ? (
-              <div className="py-12 text-center opacity-30">
-                <QrCodeIcon size={40} className="mx-auto mb-3" />
-                <p className="text-xs font-bold">Waiting for scans...</p>
+          <div className="scanner-ledger space-y-2 border-none bg-white p-3 rounded-[28px] shadow-sm">
+            {filteredHistory.length === 0 ? (
+              <div className="py-16 text-center opacity-20">
+                <QrCodeIcon size={48} className="mx-auto mb-4" />
+                <p className="text-xs font-black uppercase tracking-widest">No entries found</p>
               </div>
             ) : (
-              history.map((item) => (
-                <div key={item.id} className="ledger-item group border-none">
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-sm ${
-                    item.status === 'success' ? 'bg-emerald-100 text-emerald-600' :
-                    item.status === 'already_present' ? 'bg-amber-100 text-amber-600' : 'bg-red-100 text-red-600'
-                  }`}>
-                    {item.status === 'error' ? <XIcon size={18} /> : 
-                     item.status === 'already_present' ? <ShieldCheckIcon size={18} /> : <CheckCircleIcon size={18} />}
+              <div className="space-y-2">
+                {filteredHistory.map((item) => (
+                  <div key={item.id} className="ledger-item group border-none bg-slate-50/50 hover:bg-slate-50 active:scale-[0.98] transition-all p-3 rounded-2xl">
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-sm ${
+                      item.status === 'success' ? 'bg-emerald-100 text-emerald-600' :
+                      item.status === 'already_present' ? 'bg-amber-100 text-amber-600' : 'bg-red-100 text-red-600'
+                    }`}>
+                      {item.status === 'error' ? <XIcon size={18} /> : 
+                       item.status === 'already_present' ? <ShieldCheckIcon size={18} /> : <CheckCircleIcon size={18} />}
+                    </div>
+                    <div className="flex-1 min-w-0 ml-3">
+                      <p className="text-[13px] font-black text-slate-900 truncate group-active:text-slate-600 tracking-tight">{item.name}</p>
+                      <p className={`text-[10px] font-bold uppercase tracking-wide mt-0.5 ${
+                         item.status === 'success' ? 'text-emerald-500' :
+                         item.status === 'already_present' ? 'text-amber-500' :
+                         'text-red-500'
+                      }`}>{item.message}</p>
+                    </div>
+                    <div className="text-[10px] font-black text-slate-300 tabular-nums">
+                      {item.time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </div>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-black text-slate-900 truncate group-active:text-slate-600">{item.name}</p>
-                    <p className="text-[11px] font-bold text-slate-400 truncate mt-0.5">{item.message}</p>
-                  </div>
-                  <div className="text-[10px] font-black text-slate-400 tabular-nums">
-                    {item.time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                  </div>
-                </div>
-              ))
+                ))}
+              </div>
             )}
           </div>
         </section>
       </div>
 
-      {/* Advanced Notification Stack */}
-      <div className="notification-stack">
+      {/* Advanced Professional Toast Stack */}
+      <div className="toast-stack">
         <AnimatePresence mode="popLayout">
           {notifications.map((item) => (
             <motion.div 
               key={item.id}
-              initial={{ y: 20, opacity: 0, scale: 0.9 }} 
-              animate={{ y: 0, opacity: 1, scale: 1 }} 
-              exit={{ opacity: 0, scale: 0.8, x: 20 }}
-              className="notification-bubble"
+              initial={{ y: 20, opacity: 0, scale: 0.9, filter: 'blur(10px)' }} 
+              animate={{ y: 0, opacity: 1, scale: 1, filter: 'blur(0px)' }} 
+              exit={{ opacity: 0, scale: 0.8, x: 20, filter: 'blur(10px)' }}
+              className="toast-bubble"
             >
-              <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-lg ${
+              <div className={`toast-icon shadow-lg ${
                 item.status === 'success' ? 'bg-emerald-500 text-white' :
                 item.status === 'already_present' ? 'bg-amber-500 text-white' :
                 'bg-red-500 text-white'
@@ -528,12 +571,15 @@ export default function ScannerClient() {
                  item.status === 'already_present' ? <AlertTriangleIcon size={20} /> : <CheckCircleIcon size={20} />}
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-[13px] font-black leading-tight text-slate-900 truncate">{item.name}</p>
-                <p className={`text-[10px] font-bold mt-0.5 uppercase tracking-tight ${
-                  item.status === 'success' ? 'text-emerald-600' :
-                  item.status === 'already_present' ? 'text-amber-600' :
-                  'text-red-600'
+                <p className="text-[14px] font-black leading-none text-white truncate tracking-tight">{item.name}</p>
+                <p className={`text-[10px] font-black mt-1.5 uppercase tracking-[0.1em] ${
+                  item.status === 'success' ? 'text-emerald-400' :
+                  item.status === 'already_present' ? 'text-amber-400' :
+                  'text-red-400'
                 }`}>{item.message}</p>
+              </div>
+              <div className="text-[10px] font-bold text-white/30 tabular-nums">
+                 {item.time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
               </div>
             </motion.div>
           ))}

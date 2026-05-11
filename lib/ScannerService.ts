@@ -134,7 +134,7 @@ class CapacitorScanner implements IScanner {
     try {
       // For Android: ensures the library is available on device
       if (Capacitor.getPlatform() === 'android') {
-        await BarcodeScanner.installGoogleBarcodeScanner();
+        await BarcodeScanner.installGoogleBarcodeScannerModule();
       }
 
       // Start scanning

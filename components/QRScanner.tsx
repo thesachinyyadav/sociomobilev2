@@ -142,23 +142,28 @@ export default function QRScanner({ eventId, onScanSuccess }: QRScannerProps) {
     }
 
     try {
+      console.log('[QRScanner] Starting scanner. Platform Native:', Capacitor.isNativePlatform());
       setError(null);
       setResult(null);
       
       // Request permissions (handled by the service for native)
       if (!Capacitor.isNativePlatform()) {
+        console.log('[QRScanner] Requesting web camera permissions...');
         const stream = await navigator.mediaDevices.getUserMedia({ video: true });
         stream.getTracks().forEach((track) => track.stop());
       }
       setHasPermission(true);
 
+      console.log('[QRScanner] Calling scannerRef.current?.start()...');
       await scannerRef.current?.start(videoRef.current, (result) => {
+        console.log('[QRScanner] Code scanned:', result.data);
         void processScan(result);
       });
       
+      console.log('[QRScanner] Scanner started successfully.');
       setIsScanning(true);
     } catch (err: any) {
-      console.error("Scanner failed to start:", err);
+      console.error("[QRScanner] Scanner failed to start:", err);
       setHasPermission(false);
       setIsScanning(false);
       setError(err.message || "Camera access is required to scan QR codes.");

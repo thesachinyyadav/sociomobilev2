@@ -496,10 +496,12 @@ html, body {
 .barcode-scanner-active {
   background: transparent !important;
 }
-.barcode-scanner-active body {
+.barcode-scanner-active body,
+.barcode-scanner-active main,
+.barcode-scanner-active #__next,
+.barcode-scanner-active .pwa-page {
   background: transparent !important;
 }
-.barcode-scanner-active main,
 .barcode-scanner-active nav,
 .barcode-scanner-active header,
 .barcode-scanner-active .desktop-gate {
@@ -508,6 +510,7 @@ html, body {
 
 .transparent-for-native {
   background: transparent !important;
+  box-shadow: none !important;
 }
 
 .native-scanning video {

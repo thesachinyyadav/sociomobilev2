@@ -74,11 +74,28 @@ class CapacitorScanner implements IScanner {
 
   async start(_videoElement: HTMLVideoElement, onScan: (result: ScannerResult) => void): Promise<void> {
     try {
+      console.log('[CapacitorScanner] Checking camera permission...');
       // Check/Request permissions
-      const status = await BarcodeScanner.checkPermissions();
+      let status = await BarcodeScanner.checkPermissions();
+      
       if (status.camera !== 'granted') {
-        await BarcodeScanner.requestPermissions();
+        const hasPrompted = localStorage.getItem('camera_permission_prompted');
+        if (status.camera === 'denied' && hasPrompted) {
+          throw new Error('Camera permission denied. Please enable it in Settings.');
+        }
+
+        console.log('[CapacitorScanner] Requesting camera permission...');
+        localStorage.setItem('camera_permission_prompted', 'true');
+        status = await BarcodeScanner.requestPermissions();
+        
+        if (status.camera !== 'granted') {
+           localStorage.setItem('camera_permission_granted', 'false');
+           throw new Error('Camera permission is required to scan QR codes.');
+        }
       }
+      
+      localStorage.setItem('camera_permission_granted', 'true');
+      console.log('[CapacitorScanner] Permission granted. Starting scan...');
 
       // Start scanning
       await BarcodeScanner.addListener('barcodesScanned', (event) => {
@@ -95,8 +112,8 @@ class CapacitorScanner implements IScanner {
         lensFacing: LensFacing.Back,
       });
 
-      // Capacitor ML Kit typically overlays the camera on the webview
-      // We might need to hide elements or use a transparent background
+      console.log('[CapacitorScanner] Scan started successfully.');
+      document.documentElement.classList.add('barcode-scanner-active');
       document.body.classList.add('barcode-scanner-active');
     } catch (err) {
       console.error('[CapacitorScanner] Start failed:', err);
@@ -105,9 +122,15 @@ class CapacitorScanner implements IScanner {
   }
 
   async stop(): Promise<void> {
+    document.documentElement.classList.remove('barcode-scanner-active');
     document.body.classList.remove('barcode-scanner-active');
-    await BarcodeScanner.stopScan();
-    await BarcodeScanner.removeAllListeners();
+    try {
+      await BarcodeScanner.stopScan();
+      await BarcodeScanner.removeAllListeners();
+      console.log('[CapacitorScanner] Scan stopped successfully.');
+    } catch (err) {
+      console.error('[CapacitorScanner] Stop failed:', err);
+    }
   }
 
   pause(): void {

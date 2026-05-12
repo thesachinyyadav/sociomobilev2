@@ -83,6 +83,7 @@ Common variables:
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`: Supabase anon key
 - `NEXT_PUBLIC_API_URL`: SOCIO backend API base URL
 - `NEXT_PUBLIC_REMOTE_IMAGE_HOSTS`: Comma-separated allowlist for remote images
+- `NEXT_PUBLIC_APP_VERSION`: App semantic version used for native onboarding major-version replay logic
 
 If Supabase variables are missing, the app still builds, but authentication won’t work.
 

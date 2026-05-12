@@ -9,6 +9,7 @@ import TopBar from "@/components/TopBar";
 import BottomNav from "@/components/BottomNav";
 import InstallPrompt from "@/components/InstallPrompt";
 import PageTransition from "@/components/PageTransition";
+import NativeLaunchController from "@/components/native/NativeLaunchController";
 import dynamic from "next/dynamic";
 import { useAuth } from "@/context/AuthContext";
 import { isCampusDismissedRecently } from "@/components/CampusSelector";
@@ -119,6 +120,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <>
+      <NativeLaunchController />
       <OrientationGate />
       {!isNative && <DesktopGate />}
       {!hideTop && <TopBar />}

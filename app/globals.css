@@ -134,6 +134,160 @@ html, body {
 .animate-badge-pulse { animation: badge-pulse 1.5s ease-in-out infinite; will-change: transform; }
 .animate-scanner-laser { animation: scanner-laser 2.5s cubic-bezier(0.4, 0, 0.2, 1) infinite alternate; will-change: top, opacity; }
 
+/* ── Native first-launch onboarding (Android) ───────────────────────────── */
+@keyframes native-overlay-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes native-overlay-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+@keyframes native-sketch-draw {
+  to { stroke-dashoffset: 0; }
+}
+@keyframes native-breathe {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(1px) scale(1.006); }
+}
+@keyframes native-eye-blink {
+  0%, 46%, 50%, 100% { opacity: 0; }
+  47%, 49% { opacity: 1; }
+}
+@keyframes native-brand-in {
+  from { opacity: 0; transform: translateY(5px); filter: blur(4px); }
+  to { opacity: 1; transform: translateY(0); filter: blur(0); }
+}
+@keyframes native-micro-out {
+  0% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+.native-onboarding {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-primary-dark);
+  animation: native-overlay-in 260ms ease-out both;
+}
+.native-onboarding-closing {
+  animation: native-overlay-out 240ms ease-in both;
+}
+.native-onboarding-bg {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at 12% 15%, rgba(255,255,255,0.06), transparent 44%),
+    radial-gradient(ellipse at 84% 78%, rgba(61,117,255,0.16), transparent 40%),
+    linear-gradient(180deg, #02114a 0%, #000a31 100%);
+}
+.native-onboarding-stage {
+  position: relative;
+  width: min(86vw, 420px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+.native-sketch-wrap {
+  width: 100%;
+  border-radius: 20px;
+  padding: 18px 12px 10px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.11);
+  backdrop-filter: blur(8px);
+  animation: native-breathe 2.6s ease-in-out infinite;
+}
+.native-sketch-pulse {
+  box-shadow: 0 0 26px rgba(70, 141, 255, 0.22);
+}
+.native-rex-svg {
+  width: 100%;
+  height: auto;
+}
+.native-sketch-line {
+  fill: none;
+  stroke: rgba(244, 248, 255, 0.92);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 980;
+  stroke-dashoffset: 980;
+  animation: native-sketch-draw 1.35s cubic-bezier(.22,1,.36,1) forwards;
+}
+.native-sketch-delay { animation-delay: 220ms; }
+.native-sketch-delay-2 { animation-delay: 420ms; }
+.native-eye {
+  fill: rgba(240, 247, 255, 0.92);
+  opacity: 0.9;
+}
+.native-eye-blink {
+  stroke: rgba(240, 247, 255, 0.9);
+  stroke-width: 2;
+  stroke-linecap: round;
+  opacity: 0;
+  animation: native-eye-blink 3.8s ease-in-out infinite;
+}
+.native-brand {
+  text-align: center;
+  opacity: 0;
+}
+.native-brand-show {
+  animation: native-brand-in 350ms ease-out both;
+}
+.native-brand-logo {
+  font-size: 20px;
+  letter-spacing: 0.3em;
+  font-weight: 800;
+  color: #f7fbff;
+}
+.native-brand-sub {
+  margin-top: 5px;
+  font-size: 11px;
+  color: rgba(226, 236, 255, 0.7);
+}
+.native-progress-wrap {
+  width: 100%;
+}
+.native-progress-track {
+  width: 100%;
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.15);
+  overflow: hidden;
+}
+.native-progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #c8d9ff 0%, #7fb0ff 100%);
+  transition: width 260ms ease;
+}
+.native-progress-message {
+  margin-top: 10px;
+  font-size: 12px;
+  color: rgba(231, 238, 255, 0.84);
+  text-align: center;
+}
+.native-micro-splash {
+  position: fixed;
+  inset: 0;
+  z-index: 9998;
+  background: linear-gradient(180deg, #01103f 0%, #000a2f 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: native-micro-out 220ms ease-out forwards;
+}
+.native-micro-logo {
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.24em;
+  color: rgba(242, 248, 255, 0.94);
+}
+
 .text-glow {
   text-shadow: 0 0 6px rgba(255, 255, 255, 0.3);
 }

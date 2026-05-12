@@ -21,14 +21,19 @@ export default function GlobalError({
       window.location.reload();
     }
 
-    console.error("[SystemInterruptDebug] Uncaught Runtime Error:", {
+    console.error("[FatalScannerTrace] GLOBAL ERROR BOUNDARY CAUGHT ERROR:", {
       message: error.message,
       name: error.name,
       digest: error.digest,
       stack: error.stack,
-      url: window.location.href,
-      localStorage: { ...localStorage }, // Be careful with secrets, but useful for state debug
-      sessionStorage: { ...sessionStorage },
+      url: typeof window !== 'undefined' ? window.location.href : 'server',
+      navigator: typeof navigator !== 'undefined' ? {
+        onLine: navigator.onLine,
+        userAgent: navigator.userAgent
+      } : null,
+      serviceWorker: typeof navigator !== 'undefined' && 'serviceWorker' in navigator ? !!navigator.serviceWorker.controller : false,
+      localStorage: typeof localStorage !== 'undefined' ? { ...localStorage } : {},
+      sessionStorage: typeof sessionStorage !== 'undefined' ? { ...sessionStorage } : {},
     });
     console.error("Uncaught Runtime Error:", error);
 

@@ -151,7 +151,7 @@ export default function ScannerClient() {
         // Backend confirmed — use backend event data (most up-to-date)
         setEvent(res.event || cachedEvent);
       } catch (err: any) {
-        console.error(`[SystemInterruptDebug] Access validation failed:`, {
+        console.error(`[FatalScannerTrace] Access validation failed:`, {
           error: err,
           message: err.message,
           status: err.status,
@@ -261,6 +261,7 @@ export default function ScannerClient() {
             timeoutMs: 5000,
           });
         } catch (err: any) {
+          console.error(`[FatalScannerTrace] Background sync failure for item ${item.id}:`, err);
           const msg = (err.message || "").toLowerCase();
           const isPermanentFailure =
             msg.includes("not assigned") ||
@@ -283,11 +284,17 @@ export default function ScannerClient() {
 
   /* ── Scanner lifecycle ── */
   useEffect(() => {
-    scannerRef.current = getScanner();
-    void scannerRef.current.checkPermission().then(setPermission);
+    console.log(`[FatalScannerTrace] ScannerClient mounted`);
+    try {
+      scannerRef.current = getScanner();
+      void scannerRef.current.checkPermission().then(setPermission);
+    } catch (err) {
+      console.error(`[FatalScannerTrace] getScanner initialization failed on mount:`, err);
+    }
+    
     return () => {
-      void scannerRef.current?.stop();
-      document.body.classList.remove("barcode-scanner-active");
+      console.log(`[FatalScannerTrace] ScannerClient unmounting, running cleanup`);
+      void stopScanner();
       toastTimersRef.current.forEach(clearTimeout);
     };
   }, []);
@@ -376,6 +383,12 @@ export default function ScannerClient() {
         setScanCount(prev => prev + 1);
       }
     } catch (err: any) {
+      console.error(`[FatalScannerTrace] processScan failure:`, {
+        error: err,
+        message: err.message,
+        stack: err.stack,
+        status: err.status
+      });
       const msg = (err.message || "").toLowerCase();
       const isNetworkError =
         msg.includes("network") ||
@@ -414,35 +427,78 @@ export default function ScannerClient() {
   }, [session, event, userData, haptic, flashViewport, pushToast]);
 
   /* ── Camera controls ── */
+  const stopScanner = async () => {
+    console.log(`[FatalScannerTrace] Stopping scanner...`);
+    try {
+      if (scannerRef.current) {
+        await scannerRef.current.stop();
+      }
+      
+      // Hard cleanup of DOM and streams just in case
+      document.body.classList.remove("barcode-scanner-active");
+      if (videoRef.current) {
+        try {
+          const stream = videoRef.current.srcObject as MediaStream;
+          stream?.getTracks().forEach(t => t.stop());
+          videoRef.current.srcObject = null;
+        } catch (e) {
+          console.error(`[FatalScannerTrace] Error cleaning up video stream:`, e);
+        }
+      }
+    } catch (err) {
+      console.error(`[FatalScannerTrace] Error during scanner stop:`, err);
+    } finally {
+      setIsScanning(false);
+    }
+  };
+
   const startScanner = async () => {
-    if (!videoRef.current || !scannerRef.current) return;
+    if (!videoRef.current) {
+      console.error(`[FatalScannerTrace] Cannot start scanner: videoRef is null`);
+      return;
+    }
+    
     setCameraError(null);
     try {
-      console.log(`[SystemInterruptDebug] Attempting to start scanner...`);
+      console.log(`[FatalScannerTrace] Attempting to start scanner...`);
+      
+      // Ensure any previous scanner is stopped cleanly first
+      if (scannerRef.current && isScanning) {
+        console.log(`[FatalScannerTrace] Found existing active scanner, stopping it first...`);
+        await stopScanner();
+      }
+
+      if (!scannerRef.current) {
+        console.log(`[FatalScannerTrace] Initializing getScanner()...`);
+        scannerRef.current = getScanner();
+      }
+
       let perm = await scannerRef.current.checkPermission();
+      console.log(`[FatalScannerTrace] Current permission status: ${perm}`);
+      
       if (perm !== "granted") {
-        console.log(`[SystemInterruptDebug] Permission ${perm}, requesting...`);
+        console.log(`[FatalScannerTrace] Requesting permission...`);
         perm = await scannerRef.current.requestPermission();
         setPermission(perm);
         if (perm !== "granted") throw new Error("Camera permission required");
       }
+      
+      console.log(`[FatalScannerTrace] Starting scanner instance...`);
       await scannerRef.current.start(videoRef.current, r => void processScan(r));
       setIsScanning(true);
-      console.log(`[SystemInterruptDebug] Scanner started successfully`);
+      console.log(`[FatalScannerTrace] Scanner started successfully`);
     } catch (err: any) {
-      console.error(`[SystemInterruptDebug] Scanner start failure:`, {
+      console.error(`[FatalScannerTrace] Scanner start failure:`, {
         error: err,
         message: err.message,
         stack: err.stack,
       });
       setIsScanning(false);
       setCameraError(err.message || "Camera access required");
+      
+      // Clean up on failure to avoid zombie state
+      await stopScanner();
     }
-  };
-
-  const stopScanner = async () => {
-    await scannerRef.current?.stop();
-    setIsScanning(false);
   };
 
   /* ── Loading / Error guards ── */

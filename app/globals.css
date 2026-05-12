@@ -143,16 +143,16 @@ html, body {
   from { opacity: 1; }
   to { opacity: 0; }
 }
-@keyframes native-sketch-draw {
+@keyframes native-fossil-draw {
   to { stroke-dashoffset: 0; }
 }
-@keyframes native-breathe {
-  0%, 100% { transform: translateY(0) scale(1); }
-  50% { transform: translateY(1px) scale(1.006); }
+@keyframes native-radar-sweep {
+  0% { transform: scale(0.1); opacity: 0.6; }
+  100% { transform: scale(1.4); opacity: 0; }
 }
-@keyframes native-eye-blink {
-  0%, 46%, 50%, 100% { opacity: 0; }
-  47%, 49% { opacity: 1; }
+@keyframes native-crosshair-pulse {
+  0%, 100% { opacity: 0.2; }
+  50% { opacity: 0.6; }
 }
 @keyframes native-brand-in {
   from { opacity: 0; transform: translateY(5px); }
@@ -196,44 +196,47 @@ html, body {
   align-items: center;
   gap: 16px;
 }
-.native-sketch-wrap {
+.native-fossil-scan-wrap {
   width: 100%;
   border-radius: 20px;
   padding: 18px 12px 10px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.11);
-  animation: native-breathe 2.6s ease-in-out infinite;
+  background: rgba(0, 15, 60, 0.4);
+  border: 1px solid rgba(0, 200, 255, 0.15);
 }
-.native-sketch-pulse {
-  box-shadow: 0 0 26px rgba(70, 141, 255, 0.22);
+.native-fossil-pulse {
+  box-shadow: 0 0 26px rgba(0, 200, 255, 0.15);
 }
-.native-rex-svg {
+.native-fossil-svg {
   width: 100%;
   height: auto;
 }
-.native-sketch-line {
+.native-radar-ring {
   fill: none;
-  stroke: rgba(244, 248, 255, 0.92);
-  stroke-width: 2;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  stroke-dasharray: 980;
-  stroke-dashoffset: 980;
-  animation: native-sketch-draw 1.35s cubic-bezier(.22,1,.36,1) forwards;
+  stroke: rgba(0, 200, 255, 0.4);
+  stroke-width: 1;
+  transform-origin: 180px 110px;
+  animation: native-radar-sweep 2.5s infinite linear;
 }
-.native-sketch-delay { animation-delay: 220ms; }
-.native-sketch-delay-2 { animation-delay: 420ms; }
-.native-eye {
-  fill: rgba(240, 247, 255, 0.92);
-  opacity: 0.9;
+.native-radar-ring-1 { animation-delay: 0s; }
+.native-radar-ring-2 { animation-delay: 0.8s; }
+.native-radar-ring-3 { animation-delay: 1.6s; }
+.native-crosshair {
+  stroke: rgba(0, 200, 255, 0.3);
+  stroke-width: 1;
+  stroke-dasharray: 4 4;
+  animation: native-crosshair-pulse 2s infinite ease-in-out;
 }
-.native-eye-blink {
-  stroke: rgba(240, 247, 255, 0.9);
-  stroke-width: 2;
-  stroke-linecap: round;
-  opacity: 0;
-  animation: native-eye-blink 3.8s ease-in-out infinite;
+.native-fossil-path {
+  fill: none;
+  stroke: rgba(220, 240, 255, 0.95);
+  stroke-width: 2.5;
+  stroke-linecap: square;
+  stroke-linejoin: miter;
+  stroke-dasharray: 400;
+  stroke-dashoffset: 400;
+  animation: native-fossil-draw 1.2s cubic-bezier(.22,1,.36,1) forwards;
 }
+.native-fossil-delay { animation-delay: 300ms; }
 .native-brand {
   text-align: center;
   opacity: 0;

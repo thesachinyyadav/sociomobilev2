@@ -7,10 +7,8 @@ import { useEvents } from "@/context/EventContext";
 import {
   isAndroidNativeBuild,
   isReducedSensoryMode,
-  markIntroRoarPlayed,
   markNativeOnboardingCompleted,
   NATIVE_TRANSITION_EVENT_NAMES,
-  shouldPlayIntroRoar,
   shouldShowNativeOnboarding,
   stopRecoveryTransition,
   touchNativeLaunchStorage,
@@ -61,8 +59,8 @@ async function prepareScannerSubsystem() {
   }
 }
 
-async function triggerSubtleRoar() {
-  if (typeof window === "undefined" || !shouldPlayIntroRoar()) return;
+async function triggerSonarPulse() {
+  if (typeof window === "undefined") return;
   const AudioCtor = (window as any).AudioContext || (window as any).webkitAudioContext;
   if (!AudioCtor || isReducedSensoryMode()) return;
 
@@ -71,30 +69,51 @@ async function triggerSubtleRoar() {
     if (ctx.state === "suspended") {
       await ctx.resume().catch(() => {});
     }
-    const gain = ctx.createGain();
+
+    // Sonar Ping (Sine)
+    const pingGain = ctx.createGain();
+    const pingOsc = ctx.createOscillator();
+    pingOsc.type = "sine";
+    pingOsc.frequency.setValueAtTime(800, ctx.currentTime);
+    pingOsc.frequency.exponentialRampToValueAtTime(400, ctx.currentTime + 0.3);
+    
+    pingGain.gain.setValueAtTime(0.0001, ctx.currentTime);
+    pingGain.gain.linearRampToValueAtTime(0.05, ctx.currentTime + 0.05);
+    pingGain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.5);
+
+    pingOsc.connect(pingGain);
+    pingGain.connect(ctx.destination);
+    
+    // Low Frequency Scanner Hum (Triangle)
+    const humGain = ctx.createGain();
+    const humOsc = ctx.createOscillator();
     const filter = ctx.createBiquadFilter();
-    const osc = ctx.createOscillator();
-
+    
     filter.type = "lowpass";
-    filter.frequency.value = 500;
-    osc.type = "triangle";
-    osc.frequency.setValueAtTime(92, ctx.currentTime);
-    osc.frequency.exponentialRampToValueAtTime(63, ctx.currentTime + 0.52);
-    gain.gain.setValueAtTime(0.0001, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.012, ctx.currentTime + 0.08);
-    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.58);
+    filter.frequency.setValueAtTime(200, ctx.currentTime);
+    filter.frequency.linearRampToValueAtTime(50, ctx.currentTime + 0.4);
+    
+    humOsc.type = "triangle";
+    humOsc.frequency.setValueAtTime(50, ctx.currentTime);
+    humOsc.frequency.exponentialRampToValueAtTime(30, ctx.currentTime + 0.5);
+    
+    humGain.gain.setValueAtTime(0.0001, ctx.currentTime);
+    humGain.gain.exponentialRampToValueAtTime(0.03, ctx.currentTime + 0.1);
+    humGain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.6);
 
-    osc.connect(filter);
-    filter.connect(gain);
-    gain.connect(ctx.destination);
-    osc.start();
-    osc.stop(ctx.currentTime + 0.6);
+    humOsc.connect(filter);
+    filter.connect(humGain);
+    humGain.connect(ctx.destination);
+    
+    pingOsc.start();
+    humOsc.start();
+    pingOsc.stop(ctx.currentTime + 0.6);
+    humOsc.stop(ctx.currentTime + 0.6);
 
     await sleep(640);
     await ctx.close();
-    markIntroRoarPlayed();
   } catch (error) {
-    console.warn("[NativeTransition] Roar playback skipped:", error);
+    console.warn("[NativeTransition] Sonar pulse playback skipped:", error);
   }
 }
 
@@ -301,7 +320,7 @@ export default function NativeLaunchController() {
 
     (async () => {
       if (!reducedSensory) {
-        await Promise.all([triggerSubtleRoar(), triggerSubtleHaptic()]);
+        await Promise.all([triggerSonarPulse(), triggerSubtleHaptic()]);
       }
       if (cancelled) return;
 

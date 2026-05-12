@@ -3,7 +3,6 @@ import { Capacitor } from "@capacitor/core";
 const FIRST_LAUNCH_COMPLETED_KEY = "socio_native_first_launch_completed";
 const LAST_MAJOR_VERSION_KEY = "socio_native_last_onboarding_major";
 const LAST_TOUCH_KEY = "socio_native_launch_touch";
-const LAST_INTRO_ROAR_KEY = "socio_native_intro_roar_at";
 const TRANSITION_EVENTS = {
   auth: "socio:transition:auth",
   recoveryStart: "socio:transition:recovery:start",
@@ -76,17 +75,6 @@ export function isReducedSensoryMode(): boolean {
   } catch {
     return true;
   }
-}
-
-export function shouldPlayIntroRoar(): boolean {
-  if (!isAndroidNativeBuild() || !canUseStorage()) return false;
-  if (isReducedSensoryMode()) return false;
-  return !localStorage.getItem(LAST_INTRO_ROAR_KEY);
-}
-
-export function markIntroRoarPlayed(): void {
-  if (!isAndroidNativeBuild() || !canUseStorage()) return;
-  localStorage.setItem(LAST_INTRO_ROAR_KEY, new Date().toISOString());
 }
 
 function dispatchTransitionEvent(eventName: string, detail: Record<string, unknown>) {

@@ -6,7 +6,12 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "perf:audit:architecture": "node scripts/perf/architecture-audit.mjs",
+    "perf:audit:routes": "node scripts/perf/route-payload-report.mjs",
+    "perf:lighthouse": "node scripts/perf/run-lighthouse.mjs",
+    "perf:baseline": "npm run build && npm run perf:audit:architecture && npm run perf:audit:routes",
+    "perf:baseline:full": "npm run lint && npm run perf:baseline"
   },
   "dependencies": {
     "@capacitor-mlkit/barcode-scanning": "^8.0.1",

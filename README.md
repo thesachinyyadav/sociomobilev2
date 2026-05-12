@@ -100,6 +100,23 @@ Then open `http://localhost:3000`.
 - `npm run build`: Create a production build
 - `npm run start`: Start the production server (after build)
 - `npm run lint`: Run ESLint
+- `npm run perf:audit:architecture`: Generate architecture dependency/hydration-risk report
+- `npm run perf:audit:routes`: Generate route-by-route payload/chunk size report (after build)
+- `npm run perf:lighthouse`: Run mobile Lighthouse for `/` and `/discover` (expects running app)
+- `npm run perf:baseline`: Build + generate baseline architecture/payload reports
+- `npm run perf:baseline:full`: Lint + baseline build/report pipeline
+
+### Performance profiling workflow
+
+1. Build and static reports:
+   - `npm run perf:baseline`
+2. Start app in another terminal:
+   - `npm run dev` (or `npm run start`)
+3. Collect Lighthouse mobile runs:
+   - `npm run perf:lighthouse`
+   - Optional target override: `npm run perf:lighthouse -- --base-url=http://localhost:3000 --routes=/,/discover`
+
+Artifacts are written to `artifacts/perf/*` with timestamped folders.
 
 ## Project Structure (high level)
 

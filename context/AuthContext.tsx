@@ -748,24 +748,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     >
       {children}
 
-      {/* 🛠️ [DEBUG OVERLAY] - Temporary floating state indicator */}
-      {process.env.NODE_ENV === "development" && (
-        <div 
-          className="fixed bottom-24 right-4 z-[9999] p-2 bg-black/80 text-[10px] text-white rounded-lg pointer-events-none border border-white/20 font-mono"
-          style={{ maxWidth: "200px" }}
-        >
-          <div className="flex justify-between border-b border-white/10 pb-1 mb-1">
-            <span className="text-blue-400">AUTH DEBUG</span>
-            <span className={isAuthenticated ? "text-green-400" : "text-red-400"}>
-              {isAuthenticated ? "AUTH" : "GUEST"}
-            </span>
-          </div>
-          <div className="truncate">U: {user?.email || "none"}</div>
-          <div className="truncate">P: {userData?.name || "null"}</div>
-          <div className="truncate">L: {isLoading ? "loading..." : "idle"}</div>
-          <div className="truncate">T: {session?.access_token ? "OK" : "MISSING"}</div>
-        </div>
-      )}
 
       {showOutsiderWarning && outsiderVisitorId && userData && (
         <div className="modal-backdrop">

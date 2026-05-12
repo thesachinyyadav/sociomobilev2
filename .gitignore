@@ -32,3 +32,5 @@ SCANNER_VERIFICATION_REPORT.md
 ARCHITECTURE_VALKEY.md
 full_lint.txt
 lint_errors.txt
+artifacts/perf/
+scripts/perf/

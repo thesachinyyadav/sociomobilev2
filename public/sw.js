@@ -9,10 +9,9 @@
 const CACHE_STATIC = "socio-static-v5";   // Next.js chunks, fonts, CSS
 const CACHE_PAGES = "socio-pages-v5";     // HTML navigations
 const CACHE_IMAGES = "socio-images-v5";   // images
-const CACHE_API = "socio-api-v5";         // API data (stale-while-revalidate)
 const OFFLINE_URL = "/offline";
 
-const ALL_CACHES = [CACHE_STATIC, CACHE_PAGES, CACHE_IMAGES, CACHE_API];
+const ALL_CACHES = [CACHE_STATIC, CACHE_PAGES, CACHE_IMAGES];
 
 const CORE_ROUTES = [
   "/",
@@ -102,24 +101,6 @@ function isAPIRoute(url) {
   return url.includes("/api/pwa/") || (isBackend && parsed.pathname.startsWith("/api/"));
 }
 
-function isNoStoreAPIRoute(parsed) {
-  const { pathname, hostname, origin } = parsed;
-  const isBackend = 
-    origin === "https://socio2026v2server.vercel.app" ||
-    hostname.endsWith(".vercel.app") || 
-    hostname === "localhost" || 
-    hostname === "127.0.0.1";
-  return (
-    pathname.startsWith("/api/pwa/volunteer/") ||
-    pathname === "/api/pwa/users/me" ||
-    pathname.includes("/scan-qr") ||
-    (isBackend && (
-      pathname.startsWith("/api/volunteer/") ||
-      pathname === "/api/users/me"
-    ))
-  );
-}
-
 function isCoreRoutePath(pathname) {
   if (CORE_ROUTES.includes(pathname)) return true;
   if (pathname.startsWith("/event/")) return true;
@@ -158,27 +139,10 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  /* 2. API data — stale-while-revalidate */
-  if (isNoStoreAPIRoute(parsed)) {
-    event.respondWith(fetch(request).catch(() => new Response("{}", { status: 504 })));
-    return;
-  }
-
+  /* 2. API requests — network-only.
+     Backend Valkey is the authoritative read cache; SW only handles offline/static assets. */
   if (isAPIRoute(url)) {
-    event.respondWith(
-      caches.open(CACHE_API).then((cache) =>
-        cache.match(request).then((cached) => {
-          const networkFetch = fetch(request)
-            .then((res) => {
-              if (res.ok) cache.put(request, res.clone());
-              return res;
-            })
-            .catch(() => cached || new Response("{}", { status: 504 }));
-
-          return cached || networkFetch;
-        })
-      )
-    );
+    event.respondWith(fetch(request).catch(() => new Response("{}", { status: 504 })));
     return;
   }
 

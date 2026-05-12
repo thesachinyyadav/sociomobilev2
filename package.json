@@ -24,16 +24,19 @@
     "@capacitor/motion": "^8.0.0",
     "@capacitor/screen-orientation": "^8.0.1",
     "@capacitor/share": "^8.0.1",
+    "@modelcontextprotocol/sdk": "^1.29.0",
     "@supabase/ssr": "^0.5.2",
     "@supabase/supabase-js": "^2.57.4",
     "@zxing/browser": "^0.2.0",
     "@zxing/library": "^0.22.0",
     "dayjs": "^1.11.19",
     "framer-motion": "^12.38.0",
+    "hono": "^4.12.18",
     "jspdf": "^4.2.1",
     "lucide-react": "^0.562.0",
-    "next": "^15.1.6",
+    "next": "^16.2.6",
     "onesignal-cordova-plugin": "^5.3.7",
+    "postcss": "^8.5.14",
     "qr-scanner": "^1.4.2",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
@@ -49,5 +52,8 @@
     "eslint-config-next": "15.1.6",
     "tailwindcss": "^4.1.4",
     "typescript": "^5"
+  },
+  "overrides": {
+    "postcss": "^8.5.14"
   }
 }

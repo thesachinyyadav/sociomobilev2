@@ -11,6 +11,7 @@ import { SearchIcon, XIcon, SparklesIcon, HeartIcon, CalendarIcon, FlameIcon, Ar
 import { Button } from "@/components/Button";
 import { FilterChip } from "@/components/FilterChip";
 import { apiRequest } from "@/lib/apiClient";
+import { SWR_DEDUPING_MS } from "@/lib/cache/policy";
 import { SectionContainer } from "@/components/SectionContainer";
 import type { Fest } from "@/context/EventContext";
 import { matchesSelectedCampus } from "@/context/EventContext";
@@ -31,7 +32,7 @@ export default function FestsPage() {
   const [mounted, setMounted] = useState(false);
   const { data: fests = [], isLoading: loading } = useSWR('/fests', fetcher, {
     revalidateOnFocus: false,
-    dedupingInterval: 60000,
+    dedupingInterval: SWR_DEDUPING_MS.hotRead,
   });
 
   const [search, setSearch] = useState("");

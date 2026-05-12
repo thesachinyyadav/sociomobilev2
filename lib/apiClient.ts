@@ -1,4 +1,5 @@
 import { PWA_API_URL } from "@/lib/apiConfig";
+import { CLIENT_CACHE_TTL_MS } from "@/lib/cache/policy";
 import { Capacitor, CapacitorHttp } from "@capacitor/core";
 
 type ApiFetchOptions = RequestInit & {
@@ -299,11 +300,11 @@ export async function apiFetch<T = any>(
           });
         }
 
-        // 3. Cache the successful GET response
+        // 3. Cache the successful GET response (micro-latency only)
         if (method === "GET") {
           cache.set(cacheKey, {
             data: parsedBody,
-            expiry: Date.now() + 30000, // 30 seconds
+            expiry: Date.now() + CLIENT_CACHE_TTL_MS.apiMemory,
           });
         }
 

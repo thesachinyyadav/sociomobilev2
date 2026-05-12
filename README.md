@@ -176,6 +176,17 @@ At runtime, most client-side auth state is managed via `context/AuthContext.tsx`
 
 - Service worker: `public/sw.js`
 - Manifest: `public/manifest.json`
+- API traffic in SW is network-only; SW cache is reserved for offline/static asset acceleration.
+
+### Cache ownership model
+
+- Backend Valkey (authoritative read cache) is specified in:
+  - `lib/cache/backend-architecture.ts`
+  - `lib/cache/policy.ts`
+- Frontend layers remain lightweight:
+  - SWR for UI freshness
+  - `apiClient` in-memory cache for micro-latency
+  - Service worker for offline/static assets only
 
 ## App Logic (High Level)
 

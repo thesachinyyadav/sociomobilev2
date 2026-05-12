@@ -13,6 +13,7 @@ import {
 } from "@/components/icons";
 import { shareEvent } from "@/lib/share";
 import { apiRequest } from "@/lib/apiClient";
+import { SWR_DEDUPING_MS } from "@/lib/cache/policy";
 import LoadingScreen from "@/components/LoadingScreen";
 
 const fetcher = async (url: string) => {
@@ -39,7 +40,7 @@ export default function FestDetailClient({ festId }: { festId: string }) {
     fetcher,
     { 
       revalidateOnFocus: false, 
-      dedupingInterval: 60000,
+      dedupingInterval: SWR_DEDUPING_MS.hotRead,
       shouldRetryOnError: true,
       // Keep data if we have it in the API cache
       keepPreviousData: true,

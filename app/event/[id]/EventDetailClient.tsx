@@ -35,6 +35,7 @@ import {
 import { Button } from "@/components/Button";
 import { sanitizeUrl } from "@/lib/sanitizeUrl";
 import { shareEvent } from "@/lib/share";
+import { SWR_DEDUPING_MS } from "@/lib/cache/policy";
 
 function parseJsonField<T>(raw: any): T[] {
   if (!raw) return [];
@@ -111,7 +112,7 @@ export default function EventDetailClient({ eventId }: { eventId: string }) {
   const { data: fetchedEvent, error: fetchError, isLoading: fetchingEvent } = useSWR(
     !foundEvent && eventId && !ctxLoading ? `/events/${eventId}` : null,
     eventFetcher,
-    { revalidateOnFocus: false, dedupingInterval: 60000 }
+    { revalidateOnFocus: false, dedupingInterval: SWR_DEDUPING_MS.hotRead }
   );
 
   const event = foundEvent || fetchedEvent;
@@ -131,7 +132,7 @@ export default function EventDetailClient({ eventId }: { eventId: string }) {
   const { data: registeredIds = [], mutate: mutateRegisteredIds } = useSWR(
     shouldFetchReg ? `/registrations?${regParams.toString()}` : null,
     regFetcher,
-    { revalidateOnFocus: false, dedupingInterval: 30000 }
+    { revalidateOnFocus: false, dedupingInterval: SWR_DEDUPING_MS.registrationRead }
   );
 
   const handleRegister = async () => {

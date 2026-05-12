@@ -35,6 +35,7 @@ import { Button } from "@/components/Button";
 import type { FetchedEvent } from "@/context/EventContext";
 import { getActiveVolunteerEvents } from "@/lib/volunteerAccess";
 import { apiRequest } from "@/lib/apiClient";
+import { SWR_DEDUPING_MS } from "@/lib/cache/policy";
 
 const getStatus = (dateStr: string) => {
   if (!dateStr) return "Upcoming";
@@ -136,7 +137,7 @@ export default function ProfilePage() {
     regFetcher,
     {
       revalidateOnFocus: false,
-      dedupingInterval: 30000,
+      dedupingInterval: SWR_DEDUPING_MS.registrationRead,
     }
   );
 

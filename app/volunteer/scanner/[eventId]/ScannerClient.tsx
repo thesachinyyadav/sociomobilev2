@@ -501,6 +501,18 @@ export default function ScannerClient() {
     }
   };
 
+  /* ── Status config computation ── */
+  const statusConfig = useMemo(() => {
+    if (cameraError) return { text: cameraError, tone: "error" as const };
+    if (isVerifying) return { text: "Verifying attendee…", tone: "info" as const };
+    if (!isScanning) return { text: "Ready to scan", tone: "idle" as const };
+    if (viewportStatus === "success") return { text: "Attendance marked", tone: "success" as const };
+    if (viewportStatus === "duplicate") return { text: "Duplicate scan detected", tone: "warning" as const };
+    if (viewportStatus === "error") return { text: "Invalid QR detected", tone: "error" as const };
+    if (syncQueue.length > 0) return { text: `Offline sync pending (${syncQueue.length})`, tone: "warning" as const };
+    return { text: "Scanning active", tone: "active" as const };
+  }, [cameraError, isVerifying, isScanning, viewportStatus, syncQueue.length]);
+
   /* ── Loading / Error guards ── */
   if (authLoading || isChecking) return <LoadingScreen />;
 
@@ -527,17 +539,6 @@ export default function ScannerClient() {
   }
 
   /* ── Main render ── */
-  const statusConfig = useMemo(() => {
-    if (cameraError) return { text: cameraError, tone: "error" as const };
-    if (isVerifying) return { text: "Verifying attendee…", tone: "info" as const };
-    if (!isScanning) return { text: "Ready to scan", tone: "idle" as const };
-    if (viewportStatus === "success") return { text: "Attendance marked", tone: "success" as const };
-    if (viewportStatus === "duplicate") return { text: "Duplicate scan detected", tone: "warning" as const };
-    if (viewportStatus === "error") return { text: "Invalid QR detected", tone: "error" as const };
-    if (syncQueue.length > 0) return { text: `Offline sync pending (${syncQueue.length})`, tone: "warning" as const };
-    return { text: "Scanning active", tone: "active" as const };
-  }, [cameraError, isVerifying, isScanning, viewportStatus, syncQueue.length]);
-
   return (
     <div className={`scan-page${isNative && isScanning ? " scan-native-active" : ""}`}>
 

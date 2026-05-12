@@ -338,7 +338,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      let resolveLock: (() => void) | null = null;
+      let resolveLock = () => {};
       hydrationPromiseRef.current = new Promise<void>((resolve) => {
         resolveLock = resolve;
       });
@@ -433,7 +433,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } finally {
         endEnsureUserSpan({ status: "completed" });
         hydrationPromiseRef.current = null;
-        resolveLock?.();
+        resolveLock();
       }
     },
     [fetchUserData, maybeShowOutsiderWelcome]

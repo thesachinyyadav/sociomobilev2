@@ -49,7 +49,7 @@ async function getMlKitLib() {
  * NOT used in native APK builds.
  */
 class WebScanner implements IScanner {
-  private scanner: (Awaited<ReturnType<typeof getQrScannerLib>>['default']) | null = null;
+  private scanner: InstanceType<Awaited<ReturnType<typeof getQrScannerLib>>['default']> | null = null;
   private isPaused = false;
 
   async checkPermission(): Promise<PermissionStatus> {

@@ -17,6 +17,7 @@ import type { Session, User } from "@supabase/supabase-js";
 import { signInWithGoogleWeb } from "@/lib/auth/webAuth";
 import { signInWithGoogleNative } from "@/lib/auth/nativeAuth";
 import { apiRequest } from "@/lib/apiClient";
+import { emitAuthTransition } from "@/lib/nativeLaunchState";
 
 /* ── Local-storage helpers for PWA session persistence ── */
 const LS_SESSION_KEY = "socio_pwa_session";
@@ -634,6 +635,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } = supabase.auth.onAuthStateChange(async (event, s) => {
       if (!mounted) return;
       console.log(`🔍 [AuthRaceDebug] ${Date.now()} onAuthStateChange: Event=${event}, SessionPresent=${!!s}`);
+      emitAuthTransition(event, event === "SIGNED_OUT" ? "Switching profiles…" : event === "SIGNED_IN" ? "Restoring profile…" : "Refreshing session…");
 
       setSession(s);
       setUser(s?.user ?? null);
@@ -714,6 +716,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signOut = useCallback(async () => {
+    emitAuthTransition("SIGN_OUT_REQUESTED", "Switching profiles…");
     await supabase.auth.signOut();
     setSession(null);
     setUser(null);

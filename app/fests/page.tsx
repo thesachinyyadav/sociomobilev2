@@ -22,18 +22,38 @@ import { shareEvent } from "@/lib/share";
 
 const fetcher = async (url: string) => {
   const data = await apiRequest(url) as any;
-  const festArray = data.fests ?? data.data ?? data ?? [];
+  const festArray = data?.fests ?? data?.data ?? data ?? [];
   return Array.isArray(festArray) ? festArray : [];
 };
 
 const ITEMS_PER_PAGE = 8;
 
 export default function FestsPage() {
-  const [mounted, setMounted] = useState(false);
-  const { data: fests = [], isLoading: loading } = useSWR('/fests', fetcher, {
+  const { userData } = useAuth();
+  const [selectedCampus, setSelectedCampus] = useState(
+    userData?.campus || "Central Campus (Main)"
+  );
+
+  const { data, error, isLoading, isValidating } = useSWR('/fests', fetcher, {
     revalidateOnFocus: false,
     dedupingInterval: SWR_DEDUPING_MS.hotRead,
+    keepPreviousData: true,
   });
+
+  const lastValidFests = useRef<any[]>([]);
+
+  useEffect(() => {
+    // Preserve the last valid data strictly to prevent empty flashes or corruption on aborted fetches
+    if (data && Array.isArray(data) && !error) {
+      lastValidFests.current = data;
+    }
+  }, [data, error]);
+
+  // Use the active data if valid, otherwise fallback to our strictly held last known good state
+  const fests = (data && !error) ? data : (lastValidFests.current.length > 0 ? lastValidFests.current : []);
+
+  // Ensure we don't show "No fests found" prematurely while transitioning or fetching for the first time
+  const isInitialLoading = isLoading || (!data && isValidating && lastValidFests.current.length === 0);
 
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebounce(search, 250);
@@ -42,12 +62,9 @@ export default function FestsPage() {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
-  const { userData } = useAuth();
-  const [selectedCampus, setSelectedCampus] = useState("Central Campus (Main)");
-
+  // Keep campus in sync if userData loads after mount
   useEffect(() => {
-    setMounted(true);
-    if (userData?.campus) {
+    if (userData?.campus && selectedCampus === "Central Campus (Main)") {
       setSelectedCampus(userData.campus);
     }
   }, [userData?.campus]);
@@ -57,8 +74,6 @@ export default function FestsPage() {
   }, [isSearchOpen]);
 
   const filtered = useMemo(() => {
-    if (!mounted) return [];
-    
     // 1. Campus filter
     let list = fests.filter((f) =>
       matchesSelectedCampus(
@@ -97,7 +112,6 @@ export default function FestsPage() {
         return d >= today && d <= nextWeek;
       });
     } else if (activeCategory === "Free") {
-      // Assuming fests without explicit fee or marked free
       list = list.filter(f => !(f as any).registration_fee || (f as any).registration_fee === 0);
     } else if (activeCategory === "Popular") {
       list = [...list].sort((a, b) => {
@@ -227,7 +241,7 @@ export default function FestsPage() {
       </div>
 
 
-      {loading ? (
+      {isInitialLoading ? (
         <div className="px-5 space-y-6">
           <Skeleton className="h-[400px] w-full rounded-[1.25rem]" />
           <Skeleton className="h-[220px] w-full rounded-[1.25rem]" count={2} />

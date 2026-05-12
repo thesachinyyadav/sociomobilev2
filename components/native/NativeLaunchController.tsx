@@ -1,12 +1,24 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { usePathname } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { useEvents } from "@/context/EventContext";
-import { markNativeOnboardingCompleted, shouldShowNativeOnboarding, touchNativeLaunchStorage, isAndroidNativeBuild } from "@/lib/nativeLaunchState";
-import { NativeMicroSplash, NativeOnboardingOverlay } from "@/components/native/NativeOnboardingOverlay";
+import {
+  isAndroidNativeBuild,
+  isReducedSensoryMode,
+  markIntroRoarPlayed,
+  markNativeOnboardingCompleted,
+  NATIVE_TRANSITION_EVENT_NAMES,
+  shouldPlayIntroRoar,
+  shouldShowNativeOnboarding,
+  stopRecoveryTransition,
+  touchNativeLaunchStorage,
+  type RecoveryReason,
+} from "@/lib/nativeLaunchState";
+import { NativeMicroSplash, NativeOnboardingOverlay, type NativeTransitionVariant } from "@/components/native/NativeOnboardingOverlay";
 
-type LaunchMode = "pending" | "none" | "micro" | "full";
+type TransitionMode = "pending" | "none" | "micro-splash" | "full-intro" | "account-transition" | "micro-recovery";
 
 interface StartupSteps {
   authReady: boolean;
@@ -14,6 +26,26 @@ interface StartupSteps {
   eventsReady: boolean;
   storageReady: boolean;
 }
+
+interface AuthTransitionDetail {
+  event?: string;
+  message?: string;
+}
+
+interface RecoveryTransitionDetail {
+  reason?: RecoveryReason;
+  message?: string;
+}
+
+const RECOVERY_THRESHOLD_MS = 700;
+const ACCOUNT_TRANSITION_MS_NATIVE = 580;
+const ACCOUNT_TRANSITION_MS_WEB = 460;
+const RECOVERY_MIN_VISIBLE_MS = 340;
+const RECOVERY_COOLDOWN_MS = 2500;
+const ACCOUNT_COOLDOWN_MS = 1400;
+const FULL_INTRO_MAX_MS = 8000;
+const SPLASH_MS_NATIVE = 160;
+const SPLASH_MS_WEB = 90;
 
 function sleep(ms: number) {
   return new Promise<void>((resolve) => setTimeout(resolve, ms));
@@ -25,14 +57,14 @@ async function prepareScannerSubsystem() {
     const mod = await import("@capacitor-mlkit/barcode-scanning");
     await mod.BarcodeScanner.checkPermissions();
   } catch (error) {
-    console.warn("[NativeLaunch] Scanner warmup skipped:", error);
+    console.warn("[NativeTransition] Scanner warmup skipped:", error);
   }
 }
 
 async function triggerSubtleRoar() {
-  if (typeof window === "undefined") return;
+  if (typeof window === "undefined" || !shouldPlayIntroRoar()) return;
   const AudioCtor = (window as any).AudioContext || (window as any).webkitAudioContext;
-  if (!AudioCtor) return;
+  if (!AudioCtor || isReducedSensoryMode()) return;
 
   try {
     const ctx = new AudioCtor();
@@ -45,43 +77,49 @@ async function triggerSubtleRoar() {
 
     filter.type = "lowpass";
     filter.frequency.value = 500;
-
     osc.type = "triangle";
-    osc.frequency.setValueAtTime(95, ctx.currentTime);
-    osc.frequency.exponentialRampToValueAtTime(63, ctx.currentTime + 0.55);
-
+    osc.frequency.setValueAtTime(92, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(63, ctx.currentTime + 0.52);
     gain.gain.setValueAtTime(0.0001, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.015, ctx.currentTime + 0.08);
-    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.62);
+    gain.gain.exponentialRampToValueAtTime(0.012, ctx.currentTime + 0.08);
+    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.58);
 
     osc.connect(filter);
     filter.connect(gain);
     gain.connect(ctx.destination);
-
     osc.start();
-    osc.stop(ctx.currentTime + 0.64);
+    osc.stop(ctx.currentTime + 0.6);
 
-    await sleep(700);
+    await sleep(640);
     await ctx.close();
+    markIntroRoarPlayed();
   } catch (error) {
-    console.warn("[NativeLaunch] Roar playback skipped:", error);
+    console.warn("[NativeTransition] Roar playback skipped:", error);
   }
 }
 
 async function triggerSubtleHaptic() {
-  if (!isAndroidNativeBuild()) return;
+  if (!isAndroidNativeBuild() || isReducedSensoryMode()) return;
   try {
     const { Haptics, ImpactStyle } = await import("@capacitor/haptics");
     await Haptics.impact({ style: ImpactStyle.Light });
   } catch (error) {
-    console.warn("[NativeLaunch] Haptic skipped:", error);
+    console.warn("[NativeTransition] Haptic skipped:", error);
   }
 }
 
+function messageForAuthEvent(event?: string) {
+  if (event === "SIGNED_OUT") return "Switching profiles…";
+  if (event === "SIGNED_IN") return "Restoring profile…";
+  return "Refreshing session…";
+}
+
 export default function NativeLaunchController() {
-  const { isLoading: authLoading } = useAuth();
+  const pathname = usePathname();
+  const { session, isLoading: authLoading } = useAuth();
   const { isLoading: eventsLoading, allEvents } = useEvents();
-  const [mode, setMode] = useState<LaunchMode>("pending");
+  const [mode, setMode] = useState<TransitionMode>("pending");
+  const [message, setMessage] = useState("Restoring your campus…");
   const [closing, setClosing] = useState(false);
   const [showBrand, setShowBrand] = useState(false);
   const [accentPulse, setAccentPulse] = useState(false);
@@ -92,28 +130,102 @@ export default function NativeLaunchController() {
     storageReady: false,
   });
 
+  const isNativeAndroid = isAndroidNativeBuild();
+  const isScannerRoute = pathname.startsWith("/volunteer/scanner/");
+  const reducedSensory = isReducedSensoryMode();
+  const activeRecoveryReasonsRef = useRef(new Set<RecoveryReason>());
+  const recoveryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const recoveryVisibleSinceRef = useRef<number>(0);
+  const pendingAuthTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingEventsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastRecoveryShownRef = useRef<number>(0);
+  const lastAccountShownRef = useRef<number>(0);
   const finalizedRef = useRef(false);
-  const roarPlayedRef = useRef(false);
+  const firstStableAuthRef = useRef(false);
+  const prevSessionIdRef = useRef<string | null>(null);
+
+  const progress = useMemo(() => {
+    const done = Number(steps.authReady) + Number(steps.scannerReady) + Number(steps.eventsReady) + Number(steps.storageReady);
+    return (done / 4) * 100;
+  }, [steps]);
+
+  const variant: NativeTransitionVariant = useMemo(() => {
+    if (mode === "full-intro") return "full-intro";
+    if (mode === "account-transition") return "account-transition";
+    return "micro-recovery";
+  }, [mode]);
+
+  const clearTransitionFlags = () => {
+    setClosing(false);
+    setShowBrand(false);
+    setAccentPulse(false);
+  };
+
+  const closeActiveTransition = (next: TransitionMode = "none") => {
+    setClosing(true);
+    setTimeout(() => {
+      clearTransitionFlags();
+      setMode(next);
+    }, 160);
+  };
+
+  const maybeShowMicroRecovery = (nextMessage: string, reason: RecoveryReason) => {
+    const now = Date.now();
+    if (mode === "full-intro" || mode === "account-transition") return;
+    if (now - lastRecoveryShownRef.current < RECOVERY_COOLDOWN_MS) return;
+
+    activeRecoveryReasonsRef.current.add(reason);
+    lastRecoveryShownRef.current = now;
+    recoveryVisibleSinceRef.current = now;
+    setMessage(nextMessage);
+    setMode("micro-recovery");
+  };
+
+  const stopMicroRecoveryReason = (reason: RecoveryReason) => {
+    activeRecoveryReasonsRef.current.delete(reason);
+    if (activeRecoveryReasonsRef.current.size > 0) return;
+    if (mode !== "micro-recovery") return;
+
+    const elapsed = Date.now() - recoveryVisibleSinceRef.current;
+    const remaining = Math.max(0, RECOVERY_MIN_VISIBLE_MS - elapsed);
+    if (recoveryTimerRef.current) clearTimeout(recoveryTimerRef.current);
+    recoveryTimerRef.current = setTimeout(() => closeActiveTransition("none"), remaining);
+  };
+
+  const triggerAccountTransition = (nextMessage: string) => {
+    const now = Date.now();
+    if (mode === "full-intro") return;
+    if (now - lastAccountShownRef.current < ACCOUNT_COOLDOWN_MS) return;
+    lastAccountShownRef.current = now;
+
+    setMessage(nextMessage);
+    setAccentPulse(true);
+    setMode("account-transition");
+
+    const duration = isNativeAndroid ? ACCOUNT_TRANSITION_MS_NATIVE : ACCOUNT_TRANSITION_MS_WEB;
+    setTimeout(() => closeActiveTransition("none"), duration);
+  };
 
   useEffect(() => {
-    if (!isAndroidNativeBuild()) {
-      setMode("none");
-      return;
-    }
-
     if (shouldShowNativeOnboarding()) {
-      setMode("full");
+      setMode("full-intro");
       return;
     }
 
-    setMode("micro");
-    const microTimer = setTimeout(() => setMode("none"), 220);
-    return () => clearTimeout(microTimer);
-  }, []);
+    setMode("micro-splash");
+    const splashTimer = setTimeout(() => setMode("none"), isNativeAndroid ? SPLASH_MS_NATIVE : SPLASH_MS_WEB);
+    return () => clearTimeout(splashTimer);
+  }, [isNativeAndroid]);
 
   useEffect(() => {
-    if (mode !== "full") return;
+    if (mode !== "full-intro") return;
     let cancelled = false;
+
+    const fallbackTimer = setTimeout(() => {
+      if (cancelled) return;
+      markNativeOnboardingCompleted();
+      closeActiveTransition("none");
+    }, FULL_INTRO_MAX_MS);
 
     (async () => {
       try {
@@ -137,38 +249,45 @@ export default function NativeLaunchController() {
 
     return () => {
       cancelled = true;
+      clearTimeout(fallbackTimer);
     };
   }, [mode]);
 
   useEffect(() => {
-    if (mode !== "full") return;
-    if (!authLoading) {
-      setSteps((prev) => ({ ...prev, authReady: true }));
-    }
+    if (mode !== "full-intro") return;
+    if (!authLoading) setSteps((prev) => ({ ...prev, authReady: true }));
   }, [mode, authLoading]);
 
   useEffect(() => {
-    if (mode !== "full") return;
+    if (mode !== "full-intro") return;
     if (!eventsLoading || allEvents.length > 0) {
       setSteps((prev) => ({ ...prev, eventsReady: true }));
     }
   }, [mode, eventsLoading, allEvents.length]);
 
-  const progress = useMemo(() => {
-    const done = Number(steps.authReady) + Number(steps.scannerReady) + Number(steps.eventsReady) + Number(steps.storageReady);
-    return (done / 4) * 100;
-  }, [steps]);
-
-  const message = useMemo(() => {
-    if (!steps.authReady) return "Restoring your campus…";
-    if (!steps.scannerReady) return "Preparing scanner…";
-    if (!steps.eventsReady) return "Loading events…";
-    if (!steps.storageReady) return "Optimizing offline storage…";
-    return "Almost ready…";
-  }, [steps]);
+  useEffect(() => {
+    if (mode !== "full-intro") return;
+    if (!steps.authReady) {
+      setMessage("Restoring your campus…");
+      return;
+    }
+    if (!steps.scannerReady) {
+      setMessage("Preparing scanner…");
+      return;
+    }
+    if (!steps.eventsReady) {
+      setMessage("Loading events…");
+      return;
+    }
+    if (!steps.storageReady) {
+      setMessage("Optimizing offline storage…");
+      return;
+    }
+    setMessage("Finalizing setup…");
+  }, [mode, steps]);
 
   useEffect(() => {
-    if (mode !== "full") return;
+    if (mode !== "full-intro") return;
     if (finalizedRef.current) return;
     if (!(steps.authReady && steps.scannerReady && steps.eventsReady && steps.storageReady)) return;
 
@@ -176,40 +295,140 @@ export default function NativeLaunchController() {
     let cancelled = false;
 
     (async () => {
-      if (!roarPlayedRef.current) {
-        roarPlayedRef.current = true;
+      if (!reducedSensory) {
         await Promise.all([triggerSubtleRoar(), triggerSubtleHaptic()]);
       }
-
       if (cancelled) return;
+
+      setMessage("Almost ready…");
       setAccentPulse(true);
       setShowBrand(true);
-      await sleep(420);
-      if (cancelled) return;
-
-      setClosing(true);
-      await sleep(280);
+      await sleep(380);
       if (cancelled) return;
 
       markNativeOnboardingCompleted();
-      setMode("none");
+      closeActiveTransition("none");
     })();
 
     return () => {
       cancelled = true;
     };
-  }, [mode, steps]);
+  }, [mode, reducedSensory, steps]);
+
+  useEffect(() => {
+    if (mode === "full-intro") return;
+    const currentSessionId = session?.user?.id ?? null;
+
+    if (!firstStableAuthRef.current) {
+      if (!authLoading) {
+        firstStableAuthRef.current = true;
+        prevSessionIdRef.current = currentSessionId;
+      }
+      return;
+    }
+
+    if (prevSessionIdRef.current !== currentSessionId) {
+      triggerAccountTransition("Switching profiles…");
+      prevSessionIdRef.current = currentSessionId;
+    }
+  }, [authLoading, mode, session?.user?.id]);
+
+  useEffect(() => {
+    if (mode === "full-intro") return;
+    const onAuthTransition = (ev: Event) => {
+      const detail = (ev as CustomEvent<AuthTransitionDetail>).detail || {};
+      const authEvent = detail.event;
+      triggerAccountTransition(detail.message || messageForAuthEvent(authEvent));
+    };
+
+    const onRecoveryStart = (ev: Event) => {
+      const detail = (ev as CustomEvent<RecoveryTransitionDetail>).detail || {};
+      const reason = detail.reason || "route-recovery";
+      maybeShowMicroRecovery(detail.message || "Restoring SOCIO…", reason);
+    };
+
+    const onRecoveryStop = (ev: Event) => {
+      const detail = (ev as CustomEvent<RecoveryTransitionDetail>).detail || {};
+      stopMicroRecoveryReason(detail.reason || "route-recovery");
+    };
+
+    window.addEventListener(NATIVE_TRANSITION_EVENT_NAMES.auth, onAuthTransition as EventListener);
+    window.addEventListener(NATIVE_TRANSITION_EVENT_NAMES.recoveryStart, onRecoveryStart as EventListener);
+    window.addEventListener(NATIVE_TRANSITION_EVENT_NAMES.recoveryStop, onRecoveryStop as EventListener);
+
+    return () => {
+      window.removeEventListener(NATIVE_TRANSITION_EVENT_NAMES.auth, onAuthTransition as EventListener);
+      window.removeEventListener(NATIVE_TRANSITION_EVENT_NAMES.recoveryStart, onRecoveryStart as EventListener);
+      window.removeEventListener(NATIVE_TRANSITION_EVENT_NAMES.recoveryStop, onRecoveryStop as EventListener);
+    };
+  }, [mode]);
+
+  useEffect(() => {
+    if (mode === "full-intro") return;
+    if (pendingAuthTimerRef.current) clearTimeout(pendingAuthTimerRef.current);
+
+    if (authLoading) {
+      pendingAuthTimerRef.current = setTimeout(
+        () => maybeShowMicroRecovery("Restoring your session…", "auth"),
+        RECOVERY_THRESHOLD_MS
+      );
+      return;
+    }
+
+    stopMicroRecoveryReason("auth");
+    stopRecoveryTransition("auth");
+  }, [authLoading, mode]);
+
+  useEffect(() => {
+    if (mode === "full-intro" || isScannerRoute) return;
+    if (pendingEventsTimerRef.current) clearTimeout(pendingEventsTimerRef.current);
+
+    if (eventsLoading) {
+      pendingEventsTimerRef.current = setTimeout(
+        () => maybeShowMicroRecovery("Syncing events…", "events"),
+        RECOVERY_THRESHOLD_MS
+      );
+      return;
+    }
+
+    stopMicroRecoveryReason("events");
+    stopRecoveryTransition("events");
+  }, [eventsLoading, isScannerRoute, mode]);
+
+  useEffect(() => {
+    const handleOffline = () => maybeShowMicroRecovery("Waiting for connection…", "network-reconnect");
+    const handleOnline = () => stopMicroRecoveryReason("network-reconnect");
+
+    window.addEventListener("offline", handleOffline);
+    window.addEventListener("online", handleOnline);
+
+    return () => {
+      window.removeEventListener("offline", handleOffline);
+      window.removeEventListener("online", handleOnline);
+    };
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (recoveryTimerRef.current) clearTimeout(recoveryTimerRef.current);
+      if (pendingAuthTimerRef.current) clearTimeout(pendingAuthTimerRef.current);
+      if (pendingEventsTimerRef.current) clearTimeout(pendingEventsTimerRef.current);
+    };
+  }, []);
 
   if (mode === "none" || mode === "pending") return null;
-  if (mode === "micro") return <NativeMicroSplash />;
+  if (mode === "micro-splash") return <NativeMicroSplash isNative={isNativeAndroid} />;
 
   return (
     <NativeOnboardingOverlay
+      variant={variant}
       message={message}
       progress={progress}
       showBrand={showBrand}
       closing={closing}
       accentPulse={accentPulse}
+      isNative={isNativeAndroid}
+      scannerSafe={isScannerRoute}
     />
   );
 }

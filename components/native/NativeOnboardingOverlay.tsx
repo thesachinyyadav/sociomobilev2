@@ -2,26 +2,46 @@
 
 import React from "react";
 
+export type NativeTransitionVariant = "full-intro" | "account-transition" | "micro-recovery";
+
 interface NativeOnboardingOverlayProps {
+  variant: NativeTransitionVariant;
   message: string;
   progress: number;
   showBrand: boolean;
   closing: boolean;
   accentPulse: boolean;
+  isNative: boolean;
+  scannerSafe?: boolean;
 }
 
 export function NativeOnboardingOverlay({
+  variant,
   message,
   progress,
   showBrand,
   closing,
   accentPulse,
+  isNative,
+  scannerSafe = false,
 }: NativeOnboardingOverlayProps) {
-  return (
-    <div className={`native-onboarding${closing ? " native-onboarding-closing" : ""}`} role="status" aria-live="polite">
-      <div className="native-onboarding-bg" />
+  const compact = variant === "micro-recovery";
+  const variantClass =
+    variant === "full-intro"
+      ? "native-transition-full"
+      : variant === "account-transition"
+        ? "native-transition-account"
+        : "native-transition-recovery";
 
-      <div className="native-onboarding-stage">
+  return (
+    <div
+      className={`native-transition ${variantClass}${isNative ? " native-transition-device-native" : " native-transition-device-web"}${closing ? " native-transition-closing" : ""}${compact ? " native-transition-compact" : ""}${scannerSafe ? " native-transition-scanner-safe" : ""}`}
+      role="status"
+      aria-live="polite"
+    >
+      {!compact && <div className="native-transition-bg" />}
+
+      <div className="native-transition-stage">
         <div className={`native-sketch-wrap${accentPulse ? " native-sketch-pulse" : ""}`}>
           <svg viewBox="0 0 360 220" className="native-rex-svg" aria-hidden="true">
             <path
@@ -41,26 +61,67 @@ export function NativeOnboardingOverlay({
           </svg>
         </div>
 
-        <div className={`native-brand${showBrand ? " native-brand-show" : ""}`}>
-          <div className="native-brand-logo">SOCIO</div>
-          <div className="native-brand-sub">Campus Events, intentionally crafted.</div>
-        </div>
+        {variant !== "micro-recovery" && (
+          <div className={`native-brand${showBrand ? " native-brand-show" : ""}`}>
+            <div className="native-brand-logo">SOCIO</div>
+            <div className="native-brand-sub">Campus Events, intentionally crafted.</div>
+          </div>
+        )}
 
         <div className="native-progress-wrap">
-          <div className="native-progress-track">
-            <div className="native-progress-fill" style={{ width: `${Math.max(6, Math.min(100, progress))}%` }} />
-          </div>
+          {variant === "full-intro" && (
+            <div className="native-progress-track">
+              <div className="native-progress-fill" style={{ width: `${Math.max(6, Math.min(100, progress))}%` }} />
+            </div>
+          )}
+          {variant === "account-transition" && (
+            <div className="native-transition-pulse-track" aria-hidden="true">
+              <span className="native-transition-pulse-dot" />
+              <span className="native-transition-pulse-dot native-transition-pulse-dot-delay" />
+              <span className="native-transition-pulse-dot native-transition-pulse-dot-delay-2" />
+            </div>
+          )}
+          {variant === "micro-recovery" && (
+            <div className="native-recovery-badge" aria-hidden="true">
+              <span className="native-recovery-dot" />
+              <span>SOCIO</span>
+            </div>
+          )}
           <p className="native-progress-message">{message}</p>
+          {variant === "account-transition" && (
+            <p className="native-transition-sub">Applying secure profile context…</p>
+          )}
+          {variant === "micro-recovery" && (
+            <p className="native-transition-sub">Non-blocking recovery active</p>
+          )}
+          {variant === "full-intro" && showBrand && (
+            <div className="native-progress-track native-progress-track-soft">
+              <div className="native-progress-fill" style={{ width: "100%" }} />
+            </div>
+          )}
+          {variant === "micro-recovery" && (
+            <div className="native-progress-track native-progress-track-micro">
+              <div className="native-progress-fill" style={{ width: "100%" }} />
+            </div>
+          )}
         </div>
       </div>
     </div>
   );
 }
 
-export function NativeMicroSplash() {
+export function NativeMicroSplash({ isNative }: { isNative: boolean }) {
   return (
-    <div className="native-micro-splash" aria-hidden="true">
-      <div className="native-micro-logo">SOCIO</div>
+    <div className={`native-micro-splash${isNative ? " native-transition-device-native" : " native-transition-device-web"}`} aria-hidden="true">
+      <div className="native-micro-logo-wrap">
+        <svg viewBox="0 0 60 40" className="native-micro-rex" aria-hidden="true">
+          <path
+            className="native-micro-rex-line"
+            d="M5 28 C6 20,12 14,20 12 C25 6,31 4,38 6 C44 8,49 13,52 19 C56 20,58 23,58 27 C56 31,52 34,46 34 C41 35,38 34,35 32 C30 36,24 37,20 35 C16 34,13 31,11 28 Z"
+          />
+        </svg>
+        <div className="native-micro-logo">SOCIO</div>
+      </div>
     </div>
   );
 }

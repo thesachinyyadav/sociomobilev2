@@ -20,6 +20,7 @@ import {
 } from "@/lib/ScannerService";
 import { Capacitor } from "@capacitor/core";
 import { Haptics, NotificationType } from "@capacitor/haptics";
+import { startRecoveryTransition, stopRecoveryTransition } from "@/lib/nativeLaunchState";
 
 const DENIED_MESSAGE = "You do not have permission to access this feature";
 
@@ -211,12 +212,18 @@ export default function ScannerClient() {
       },
     };
 
+    const recoveryTimer = setTimeout(() => {
+      startRecoveryTransition("Verifying attendee…", "scanner-verify");
+    }, 700);
+
     try {
       setIsVerifying(true);
       const res: any = await apiRequest(
         `/events/${encodeURIComponent(event.event_id)}/scan-qr`,
         { method: "POST", body: JSON.stringify(payload), cache: "no-store", timeoutMs: 4000 }
       );
+      clearTimeout(recoveryTimer);
+      stopRecoveryTransition("scanner-verify");
 
       const participant = res.participant;
       const finalName   = participant?.name || "Attendee";
@@ -236,6 +243,8 @@ export default function ScannerClient() {
         setScanCount(prev => prev + 1);
       }
     } catch (err: any) {
+      clearTimeout(recoveryTimer);
+      stopRecoveryTransition("scanner-verify");
       console.error(`[FatalScannerTrace] processScan failure:`, err);
       const msg = (err.message || "").toLowerCase();
       const isNetworkError = msg.includes("network") || msg.includes("fetch") || err.name === "TimeoutError";
@@ -256,6 +265,8 @@ export default function ScannerClient() {
         pushToast({ type: "error", name: "Invalid QR", message: err.message || "QR not recognized" });
       }
     } finally {
+      clearTimeout(recoveryTimer);
+      stopRecoveryTransition("scanner-verify");
       setIsVerifying(false);
     }
   }, [session, event, userData, haptic, flashViewport, pushToast]);
@@ -540,7 +551,7 @@ export default function ScannerClient() {
         </button>
 
         <div className="scan-header-title">
-          <span className="scan-event-name">{event.title}</span>
+          <span className="scan-event-name">Operational scanner</span>
           {isScanning && (
             <span className="scan-live-pill">
               <span className="scan-live-dot" />
@@ -557,91 +568,135 @@ export default function ScannerClient() {
         <span className="scan-status-text">{statusConfig.text}</span>
       </div>
 
-      {/* ── Camera Viewport ── */}
-      <section
-        id="scan-viewport"
-        className={`scan-viewport scan-viewport-${viewportStatus}`}
-        aria-label="Camera scanner"
-      >
-        <video
-          ref={videoRef}
-          className={`scan-video${isNative ? " scan-video-native" : ""}`}
-          muted
-          playsInline
-          autoPlay
-        />
+      <div className="scan-main-column px-4 pt-4 pb-6 max-w-[480px] mx-auto space-y-4">
+        {/* ── Camera Viewport ── */}
+        <section
+          id="scan-viewport"
+          className={`scan-viewport scan-viewport-${viewportStatus}`}
+          aria-label="Camera scanner"
+        >
+          <div className="scan-viewport-camera">
+            <video
+              ref={videoRef}
+              className={`scan-video${isNative ? " scan-video-native" : ""}`}
+              muted
+              playsInline
+              autoPlay
+            />
 
-        {/* Corner brackets + sweep line */}
-        {isScanning && (
-          <div className="scan-frame" aria-hidden="true">
-            <div className="scan-corner scan-corner-tl" />
-            <div className="scan-corner scan-corner-tr" />
-            <div className="scan-corner scan-corner-bl" />
-            <div className="scan-corner scan-corner-br" />
-            <div className="scan-line" />
-          </div>
-        )}
+            <div className="scan-viewport-glow" aria-hidden="true" />
 
-        {/* Idle state */}
-        {!isScanning && (
-          <div className="scan-idle-overlay">
-            <CameraIcon size={36} className="scan-idle-icon" />
-            <p className="scan-idle-label">Ready to scan</p>
-            {cameraError && <p className="scan-camera-error">{cameraError}</p>}
-            <button
-              id="start-scanning-btn"
-              className="scan-start-btn"
-              onClick={() => void startScanner()}
-            >
-              Start scanning
-            </button>
-          </div>
-        )}
-
-        {/* In-viewport stop control */}
-        {isScanning && (
-          <button
-            className="scan-stop-btn"
-            aria-label="Stop scanning"
-            onClick={() => void stopScanner()}
-          >
-            Stop
-          </button>
-        )}
-      </section>
-
-      {/* ── Recent Scans ── */}
-      <section className="scan-history-section" aria-label="Recent scans">
-        <p className="scan-history-label">
-          Recent scans
-          {syncQueue.length > 0 && (
-            <span className="scan-sync-badge">● {syncQueue.length} pending sync</span>
-          )}
-        </p>
-
-        <div className="scan-history-list" id="scan-history-list">
-          {history.length === 0 ? (
-            <div className="scan-history-empty">
-              <QrCodeIcon size={22} />
-              <span>No scans yet</span>
-            </div>
-          ) : (
-            history.slice(0, 20).map(row => (
-              <div key={row.id} className={`scan-row scan-row-${row.status}`}>
-                <span className="scan-row-icon">{ROW_ICON[row.status]}</span>
-                <span className="scan-row-name">{row.name}</span>
-                <span className="scan-row-time">
-                  {row.time.toLocaleTimeString([], {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                    second: "2-digit",
-                  })}
-                </span>
+            {/* Corner brackets + sweep line */}
+            {isScanning && (
+              <div className="scan-frame" aria-hidden="true">
+                <div className="scan-corner scan-corner-tl" />
+                <div className="scan-corner scan-corner-tr" />
+                <div className="scan-corner scan-corner-bl" />
+                <div className="scan-corner scan-corner-br" />
+                <div className="scan-line" />
               </div>
-            ))
-          )}
-        </div>
-      </section>
+            )}
+
+            {/* Idle state */}
+            {!isScanning && (
+              <div className="scan-idle-overlay">
+                <CameraIcon size={36} className="scan-idle-icon" />
+                <p className="scan-idle-label">Ready to scan</p>
+                {cameraError && <p className="scan-camera-error">{cameraError}</p>}
+                <button
+                  id="start-scanning-btn"
+                  className="scan-start-btn"
+                  onClick={() => void startScanner()}
+                >
+                  Start scanning
+                </button>
+              </div>
+            )}
+          </div>
+
+          <div className="scan-terminal-panel">
+            <div className="scan-terminal-copy">
+              <span className="scan-terminal-kicker">Live operational scan</span>
+              <p className="scan-terminal-title">Keep the QR code centered in the frame</p>
+              <p className="scan-terminal-meta">{statusConfig.text}</p>
+            </div>
+
+            <div className="scan-terminal-actions">
+              <span className={`scan-terminal-badge${isScanning ? " scan-terminal-badge-active" : ""}`}>
+                {isScanning ? "Camera live" : "Camera idle"}
+              </span>
+              {isScanning && (
+                <button
+                  className="scan-stop-btn scan-stop-btn-inline"
+                  aria-label="Stop scanning"
+                  onClick={() => void stopScanner()}
+                >
+                  Stop scanning
+                </button>
+              )}
+            </div>
+          </div>
+        </section>
+
+        {/* ── Event Info ── */}
+        <section className="scan-event-card" aria-label="Event information">
+          <div className="scan-event-card-top">
+            <div>
+              <p className="scan-event-card-kicker">Current event</p>
+              <h2 className="scan-event-card-title">{event.title}</h2>
+            </div>
+            <span className="scan-event-status">
+              {event.volunteer_assignment ? "Assigned" : "Volunteer"}
+            </span>
+          </div>
+
+          <div className="scan-event-card-grid">
+            <div className="scan-event-card-item">
+              <span className="scan-event-card-label">Date</span>
+              <span className="scan-event-card-value">{formatDateShort(event.event_date)}</span>
+            </div>
+            <div className="scan-event-card-item">
+              <span className="scan-event-card-label">Venue</span>
+              <span className="scan-event-card-value scan-event-card-value-ellipsis">
+                {event.venue || event.campus_hosted_at || "Venue not set"}
+              </span>
+            </div>
+          </div>
+        </section>
+
+        {/* ── Recent Scans ── */}
+        <section className="scan-history-section" aria-label="Recent scans">
+          <p className="scan-history-label">
+            Recent scans
+            {syncQueue.length > 0 && (
+              <span className="scan-sync-badge">● {syncQueue.length} pending sync</span>
+            )}
+          </p>
+
+          <div className="scan-history-list" id="scan-history-list">
+            {history.length === 0 ? (
+              <div className="scan-history-empty">
+                <QrCodeIcon size={22} />
+                <span>No scans yet</span>
+              </div>
+            ) : (
+              history.slice(0, 20).map(row => (
+                <div key={row.id} className={`scan-row scan-row-${row.status}`}>
+                  <span className="scan-row-icon">{ROW_ICON[row.status]}</span>
+                  <span className="scan-row-name">{row.name}</span>
+                  <span className="scan-row-time">
+                    {row.time.toLocaleTimeString([], {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                      second: "2-digit",
+                    })}
+                  </span>
+                </div>
+              ))
+            )}
+          </div>
+        </section>
+      </div>
     </div>
   );
 }

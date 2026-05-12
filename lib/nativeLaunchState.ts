@@ -3,6 +3,21 @@ import { Capacitor } from "@capacitor/core";
 const FIRST_LAUNCH_COMPLETED_KEY = "socio_native_first_launch_completed";
 const LAST_MAJOR_VERSION_KEY = "socio_native_last_onboarding_major";
 const LAST_TOUCH_KEY = "socio_native_launch_touch";
+const LAST_INTRO_ROAR_KEY = "socio_native_intro_roar_at";
+const TRANSITION_EVENTS = {
+  auth: "socio:transition:auth",
+  recoveryStart: "socio:transition:recovery:start",
+  recoveryStop: "socio:transition:recovery:stop",
+} as const;
+
+export type RecoveryReason =
+  | "auth"
+  | "events"
+  | "scanner-verify"
+  | "network-reconnect"
+  | "session-refresh"
+  | "cache-restore"
+  | "route-recovery";
 
 function canUseStorage(): boolean {
   return typeof window !== "undefined" && typeof window.localStorage !== "undefined";
@@ -50,3 +65,45 @@ export function touchNativeLaunchStorage(): void {
   localStorage.getItem("socio_pwa_user_data");
   localStorage.setItem(LAST_TOUCH_KEY, new Date().toISOString());
 }
+
+export function isReducedSensoryMode(): boolean {
+  if (typeof window === "undefined") return true;
+  try {
+    const reducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
+    const saveData = (navigator as any)?.connection?.saveData === true;
+    const reducedAudio = localStorage.getItem("socio_reduced_audio") === "1";
+    return Boolean(reducedMotion || saveData || reducedAudio);
+  } catch {
+    return true;
+  }
+}
+
+export function shouldPlayIntroRoar(): boolean {
+  if (!isAndroidNativeBuild() || !canUseStorage()) return false;
+  if (isReducedSensoryMode()) return false;
+  return !localStorage.getItem(LAST_INTRO_ROAR_KEY);
+}
+
+export function markIntroRoarPlayed(): void {
+  if (!isAndroidNativeBuild() || !canUseStorage()) return;
+  localStorage.setItem(LAST_INTRO_ROAR_KEY, new Date().toISOString());
+}
+
+function dispatchTransitionEvent(eventName: string, detail: Record<string, unknown>) {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new CustomEvent(eventName, { detail }));
+}
+
+export function emitAuthTransition(event: string, message: string) {
+  dispatchTransitionEvent(TRANSITION_EVENTS.auth, { event, message, at: Date.now() });
+}
+
+export function startRecoveryTransition(message: string, reason: RecoveryReason) {
+  dispatchTransitionEvent(TRANSITION_EVENTS.recoveryStart, { message, reason, at: Date.now() });
+}
+
+export function stopRecoveryTransition(reason: RecoveryReason) {
+  dispatchTransitionEvent(TRANSITION_EVENTS.recoveryStop, { reason, at: Date.now() });
+}
+
+export const NATIVE_TRANSITION_EVENT_NAMES = TRANSITION_EVENTS;

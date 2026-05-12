@@ -32,13 +32,7 @@ function getEventImage(event: FetchedEvent) {
 }
 
 function getQuickActions(notificationCount: number, volunteerCount: number, isCaterer: boolean) {
-  const actions: { href: string; label: string; icon: any; tone: string; badge?: number }[] = [
-    {
-      href: "/discover",
-      label: "Discover",
-      icon: CompassIcon,
-      tone: "bg-[var(--color-primary-light)] text-[var(--color-primary)]",
-    },
+  const baseActions: { href: string; label: string; icon: any; tone: string; badge?: number }[] = [
     {
       href: "/profile",
       label: "Registrations",
@@ -59,26 +53,32 @@ function getQuickActions(notificationCount: number, volunteerCount: number, isCa
     },
   ];
 
+  let primaryAction;
   if (volunteerCount > 0) {
-    actions.splice(2, 0, {
+    primaryAction = {
       href: "/volunteer",
       label: "Volunteer\nScanner",
       icon: QrCodeIcon,
       tone: "bg-[#e7f8ec] text-[#15803d]",
       badge: volunteerCount,
-    });
-  }
-
-  if (isCaterer) {
-    actions.splice(2, 0, {
+    };
+  } else if (isCaterer) {
+    primaryAction = {
       href: "/catering",
       label: "Catering\nOrders",
       icon: UtensilsIcon,
       tone: "bg-[#fff0e6] text-[#c2410c]",
-    });
+    };
+  } else {
+    primaryAction = {
+      href: "/discover",
+      label: "Discover",
+      icon: CompassIcon,
+      tone: "bg-[var(--color-primary-light)] text-[var(--color-primary)]",
+    };
   }
 
-  return actions;
+  return [primaryAction, ...baseActions];
 }
 
 function UpcomingEventItem({ event }: { event: FetchedEvent }) {

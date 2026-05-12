@@ -1,5 +1,5 @@
 import { PWA_API_URL } from "@/lib/apiConfig";
-import { CLIENT_CACHE_TTL_MS } from "@/lib/cache/policy";
+import { CLIENT_CACHE_TTL_MS, shouldBypassClientMemoryCache } from "@/lib/cache/policy";
 import { Capacitor, CapacitorHttp } from "@capacitor/core";
 
 type ApiFetchOptions = RequestInit & {
@@ -204,6 +204,36 @@ async function fetchWithTimeout(
 // Memory Cache & Request Deduplication
 const cache = new Map<string, { data: any; expiry: number }>();
 const pendingRequests = new Map<string, Promise<any>>();
+const cacheAudit = {
+  memoryHits: 0,
+  memoryMisses: 0,
+  memoryWrites: 0,
+  memoryBypasses: 0,
+  staleEvictions: 0,
+  pendingDedupeHits: 0,
+};
+
+function isCacheAuditEnabled(): boolean {
+  if (typeof window === "undefined") return process.env.NODE_ENV !== "production";
+  try {
+    return process.env.NODE_ENV !== "production" || localStorage.getItem("socio_cache_audit") === "1";
+  } catch {
+    return process.env.NODE_ENV !== "production";
+  }
+}
+
+function logCacheAudit(event: string, details: Record<string, unknown>) {
+  if (!isCacheAuditEnabled()) return;
+  console.log(`[CacheAudit] ${event}`, details);
+}
+
+export function getApiClientCacheAuditSnapshot() {
+  return {
+    ...cacheAudit,
+    memoryEntries: cache.size,
+    pendingRequests: pendingRequests.size,
+  };
+}
 
 export async function apiFetch<T = any>(
   endpoint: string,
@@ -219,19 +249,35 @@ export async function apiFetch<T = any>(
   const url = buildUrl(endpoint);
   const method = (requestInit.method || "GET").toUpperCase();
   const cacheKey = `${method}:${url}`;
+  const bypassClientMemoryCache = shouldBypassClientMemoryCache(endpoint, method, requestInit.cache);
+
+  if (bypassClientMemoryCache && method === "GET") {
+    cacheAudit.memoryBypasses += 1;
+    logCacheAudit("memory-bypass", { endpoint, cacheKey, requestCacheMode: requestInit.cache ?? "default" });
+  }
 
   // 1. Request Deduplication: If an identical request is already in progress, return its promise
   if (method === "GET" && pendingRequests.has(cacheKey)) {
-    console.log(`🔍 [NetworkPerf] Deduplicating concurrent request: ${cacheKey}`);
+    cacheAudit.pendingDedupeHits += 1;
+    logCacheAudit("pending-dedupe-hit", { cacheKey });
     return pendingRequests.get(cacheKey);
   }
 
-  // 2. Memory Cache: Check if we have a fresh cached response (30s TTL)
-  if (method === "GET") {
+  // 2. Memory Cache: check only if policy allows this endpoint.
+  if (method === "GET" && !bypassClientMemoryCache) {
     const cached = cache.get(cacheKey);
-    if (cached && cached.expiry > Date.now()) {
-      console.log(`🔍 [NetworkPerf] Memory Cache HIT: ${cacheKey}`);
+    if (!cached) {
+      cacheAudit.memoryMisses += 1;
+      logCacheAudit("memory-miss", { cacheKey, reason: "empty" });
+    } else if (cached.expiry > Date.now()) {
+      cacheAudit.memoryHits += 1;
+      logCacheAudit("memory-hit", { cacheKey });
       return cached.data as T;
+    } else {
+      cache.delete(cacheKey);
+      cacheAudit.staleEvictions += 1;
+      cacheAudit.memoryMisses += 1;
+      logCacheAudit("memory-stale-evict", { cacheKey });
     }
   }
 
@@ -273,8 +319,14 @@ export async function apiFetch<T = any>(
         const rawBody = await response.text();
         const parsedBody = parseBody(rawBody, response.headers.get("content-type"));
 
-        const isFromCache = response.headers?.get("x-cache") === "HIT" || response.headers?.get("cf-cache-status") === "HIT";
-        console.log(`🔍 [CacheVerify] ${method} ${endpoint} | Cache: ${isFromCache ? "HIT" : "MISS"} | Status: ${response.status} | Duration: ${durationMs}ms`);
+        const isFromEdgeCache = response.headers?.get("x-cache") === "HIT" || response.headers?.get("cf-cache-status") === "HIT";
+        logCacheAudit("network-response", {
+          method,
+          endpoint,
+          edgeCache: isFromEdgeCache ? "HIT" : "MISS",
+          status: response.status,
+          durationMs,
+        });
 
         if (response.status === 401 && requireAuth && retryOnAuthFailure && !authRetried) {
           const refreshed = await refreshSupabaseAccessToken();
@@ -300,12 +352,14 @@ export async function apiFetch<T = any>(
           });
         }
 
-        // 3. Cache the successful GET response (micro-latency only)
-        if (method === "GET") {
+        // 3. Cache the successful GET response (micro-latency only, policy-gated)
+        if (method === "GET" && !bypassClientMemoryCache) {
           cache.set(cacheKey, {
             data: parsedBody,
             expiry: Date.now() + CLIENT_CACHE_TTL_MS.apiMemory,
           });
+          cacheAudit.memoryWrites += 1;
+          logCacheAudit("memory-write", { cacheKey, ttlMs: CLIENT_CACHE_TTL_MS.apiMemory });
         }
 
         return parsedBody as T;

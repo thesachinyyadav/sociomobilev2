@@ -1,9 +1,9 @@
 /* ──────────────────────────────────────────────────────────
    SOCIO PWA — Service Worker v4
    • Cache-first for immutable Next.js bundles (/_next/static/)
-   • Stale-while-revalidate for API data
-   • Cache-first for core navigations, network-first fallback for others
-   • Cache-first for images / fonts / CSS
+   • Network-only for API traffic (backend Valkey is authoritative)
+   • Cache-first for core static assets/images/fonts/CSS
+   • Network-first for navigations and next data routes
    ────────────────────────────────────────────────────────── */
 
 const CACHE_STATIC = "socio-static-v5";   // Next.js chunks, fonts, CSS
@@ -33,6 +33,27 @@ const STATIC_SHELL_ASSETS = [
 ];
 
 const PRECACHE_URLS = [...new Set([...CORE_ROUTES, ...STATIC_SHELL_ASSETS])];
+const SENSITIVE_API_PATTERNS = ["/scan-qr", "/volunteer/", "/users/me", "/auth/", "/roles/", "/permissions/"];
+
+const CACHE_AUDIT = {
+  enabled: false,
+  counters: {
+    staticHit: 0,
+    staticMiss: 0,
+    imageHit: 0,
+    imageMiss: 0,
+    pageHit: 0,
+    pageMiss: 0,
+    apiNetworkOnly: 0,
+    apiSensitiveBypass: 0,
+    navigationFallback: 0,
+  },
+};
+
+function logCacheAudit(event, details = {}) {
+  if (!CACHE_AUDIT.enabled) return;
+  console.log(`[CacheAudit] ${event}`, details);
+}
 
 /* ── Install — pre-cache shell ── */
 self.addEventListener("install", (event) => {
@@ -119,21 +140,25 @@ self.addEventListener("fetch", (event) => {
   if (request.url.includes("/auth/callback")) return;
 
   const url = request.url;
-  const parsed = new URL(url);
 
   /* 1. Next.js immutable static bundles — cache-first (they're fingerprinted) */
   if (isNextStatic(url)) {
     event.respondWith(
       caches.match(request).then(
-        (cached) =>
-          cached ||
-          fetch(request).then((res) => {
+        (cached) => {
+          if (cached) {
+            CACHE_AUDIT.counters.staticHit += 1;
+            return cached;
+          }
+          CACHE_AUDIT.counters.staticMiss += 1;
+          return fetch(request).then((res) => {
             if (res.ok) {
               const clone = res.clone();
               caches.open(CACHE_STATIC).then((c) => c.put(request, clone));
             }
             return res;
-          })
+          });
+        }
       )
     );
     return;
@@ -142,6 +167,12 @@ self.addEventListener("fetch", (event) => {
   /* 2. API requests — network-only.
      Backend Valkey is the authoritative read cache; SW only handles offline/static assets. */
   if (isAPIRoute(url)) {
+    CACHE_AUDIT.counters.apiNetworkOnly += 1;
+    const lowercaseUrl = url.toLowerCase();
+    if (SENSITIVE_API_PATTERNS.some((pattern) => lowercaseUrl.includes(pattern))) {
+      CACHE_AUDIT.counters.apiSensitiveBypass += 1;
+      logCacheAudit("sw-sensitive-api-bypass", { url });
+    }
     event.respondWith(fetch(request).catch(() => new Response("{}", { status: 504 })));
     return;
   }
@@ -185,15 +216,20 @@ self.addEventListener("fetch", (event) => {
   if (isImage(request)) {
     event.respondWith(
       caches.match(request).then(
-        (cached) =>
-          cached ||
-          fetch(request).then((res) => {
+        (cached) => {
+          if (cached) {
+            CACHE_AUDIT.counters.imageHit += 1;
+            return cached;
+          }
+          CACHE_AUDIT.counters.imageMiss += 1;
+          return fetch(request).then((res) => {
             if (res.ok) {
               const clone = res.clone();
               caches.open(CACHE_IMAGES).then((c) => c.put(request, clone));
             }
             return res;
-          })
+          });
+        }
       )
     );
     return;
@@ -231,6 +267,22 @@ self.addEventListener("message", (event) => {
         Promise.allSettled(PRECACHE_URLS.map((url) => cache.add(url)))
       )
     );
+    return;
+  }
+
+  if (event?.data === "CACHE_AUDIT_ENABLE") {
+    CACHE_AUDIT.enabled = true;
+    logCacheAudit("sw-cache-audit-enabled", { counters: CACHE_AUDIT.counters });
+    return;
+  }
+
+  if (event?.data === "CACHE_AUDIT_DISABLE") {
+    CACHE_AUDIT.enabled = false;
+    return;
+  }
+
+  if (event?.data === "CACHE_AUDIT_DUMP") {
+    logCacheAudit("sw-cache-audit-dump", { counters: CACHE_AUDIT.counters });
   }
 });
 

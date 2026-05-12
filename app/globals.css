@@ -788,7 +788,12 @@ html, body {
    Uses SOCIO design system tokens throughout for brand consistency.
    ──────────────────────────────────────────────────────────────────────── */
 
-/* Native Capacitor transparent body */
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   NATIVE-ONLY: Capacitor APK transparent body during camera scan
+   This class is applied by CapacitorScanner.start() via ML Kit native overlay.
+   On web/PWA this class is NEVER applied — these rules are therefore inert
+   in browser and PWA contexts.
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 .barcode-scanner-active,
 .barcode-scanner-active body,
 .barcode-scanner-active main,
@@ -832,6 +837,11 @@ html, body {
     linear-gradient(180deg, #010f3a 0%, #000c2e 48%, #f4f7ff 48.3%, #f8faff 100%);
   overflow: hidden;
 }
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   NATIVE-ONLY: Applied to .scan-page when isNative && isScanning.
+   Removes the gradient background so the native ML Kit camera overlay
+   shows through. On web/PWA this class is never applied.
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 .scan-native-active { background: transparent; }
 
 .scan-main-column {
@@ -939,7 +949,7 @@ html, body {
   width: 100%;
   display: flex;
   flex-direction: column;
-  /* Reduced: was 61dvh, now 50dvh — compact operational feel */
+  /* Compact operational size — camera-first, not screen-dominant */
   min-height: clamp(280px, 50dvh, 420px);
   background:
     radial-gradient(circle at 50% 0%, rgba(53, 109, 255, 0.14), transparent 40%),
@@ -950,6 +960,14 @@ html, body {
   flex-shrink: 0;
   border-radius: 20px;
   box-shadow: 0 10px 28px rgba(1, 14, 58, 0.22);
+  /*
+   * contain: layout style — isolates this subtree from the rest of the page.
+   * Prevents scanner state changes (border-color, box-shadow) from triggering
+   * full-page repaints on web/PWA. Safe: does not affect overflow or paint
+   * compositing (we use transform/opacity for animations, not layout props).
+   * Has zero effect in Capacitor native mode where the video is transparent.
+   */
+  contain: layout style;
 }
 .scan-viewport-success   { border-color: rgba(16, 185, 129, 0.5); box-shadow: 0 10px 28px rgba(1, 14, 58, 0.22), 0 0 0 1px rgba(16, 185, 129, 0.14) inset; }
 .scan-viewport-duplicate { border-color: rgba(245, 158, 11, 0.5); }
@@ -981,6 +999,13 @@ html, body {
   object-fit: cover;
   display: block;
 }
+/*
+ * NATIVE-ONLY: On Capacitor APK, the native ML Kit camera renders behind
+ * the WebView. The <video> element is hidden so only the native overlay
+ * is visible. On web/PWA the video is fully visible (opacity: 1 by default).
+ * Ensuring this class is ONLY applied with the scan-video-native class
+ * (set in JSX when isNative is true) guarantees no web regression.
+ */
 .scan-video-native { opacity: 0; }
 
 /* ── QR Corner Brackets ── */

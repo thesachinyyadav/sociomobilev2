@@ -18,9 +18,18 @@ export interface IScanner {
 }
 
 /**
- * Web Implementation using Nimiq QrScanner
- * High performance, Worker-based scanning for PWA
+ * PLATFORM REGISTRY
+ * ─────────────────────────────────────────────────────────────
+ * WebScanner      → Web browser / PWA standalone mode
+ *                   Uses qr-scanner (Nimiq) — worker-based, lightweight
+ * CapacitorScanner → Android APK (Capacitor native)
+ *                   Uses @capacitor-mlkit/barcode-scanning — ML Kit
+ *
+ * Factory (getScanner) selects automatically via Capacitor.isNativePlatform().
+ * NEVER instantiate CapacitorScanner directly on web — it will fail.
  */
+
+/** Lazy-loaded to avoid loading native modules on web */
 let qrScannerLibPromise: Promise<typeof import('qr-scanner')> | null = null;
 let mlkitLibPromise: Promise<typeof import('@capacitor-mlkit/barcode-scanning')> | null = null;
 
@@ -34,6 +43,11 @@ async function getMlKitLib() {
   return mlkitLibPromise;
 }
 
+/**
+ * WEB/PWA Scanner — uses Nimiq qr-scanner (worker-based, no native bridge).
+ * Safe for: browser, PWA standalone, desktop.
+ * NOT used in native APK builds.
+ */
 class WebScanner implements IScanner {
   private scanner: (Awaited<ReturnType<typeof getQrScannerLib>>['default']) | null = null;
   private isPaused = false;
@@ -77,7 +91,9 @@ class WebScanner implements IScanner {
           preferredCamera: 'environment',
           highlightScanRegion: true,
           highlightCodeOutline: true,
-          maxScansPerSecond: 25,
+          // 15 fps is sufficient for QR scanning and conserves battery/CPU on mobile browsers.
+          // Native APK path uses ML Kit event listener (no polling) — unaffected by this value.
+          maxScansPerSecond: 15,
           calculateScanRegion: (v) => {
             const smallestDimension = Math.min(v.videoWidth, v.videoHeight);
             const scanRegionSize = Math.round(smallestDimension * 0.7);
@@ -113,7 +129,9 @@ class WebScanner implements IScanner {
 }
 
 /**
- * Native Implementation using Capacitor ML Kit
+ * NATIVE APK Scanner — uses Capacitor ML Kit barcode scanning.
+ * Safe for: Android APK (Capacitor native platform only).
+ * NOT used in web/PWA builds — will throw if called outside native context.
  */
 class CapacitorScanner implements IScanner {
   private isPaused = false;

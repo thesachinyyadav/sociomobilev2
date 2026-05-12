@@ -123,10 +123,13 @@ export default function ScannerClient() {
       mountedRef.current = false;
       if (viewportTimerRef.current) clearTimeout(viewportTimerRef.current);
       toastTimersRef.current.forEach(clearTimeout);
-      stopRecoveryTransition("scanner-verify");
-      logMemorySnapshot("scanner-unmount");
+      // Recovery transitions and memory snapshots are native-only signals
+      if (isNative) {
+        stopRecoveryTransition("scanner-verify");
+        logMemorySnapshot("scanner-unmount");
+      }
     };
-  }, []);
+  }, [isNative]);
 
   /* ── UX & Toast system ── */
   const pushToast = useCallback((t: Omit<ScanToast, "id" | "timestamp">) => {
@@ -172,25 +175,29 @@ export default function ScannerClient() {
       if (scannerRef.current) {
         await scannerRef.current.stop();
       }
-      
-      // Hard cleanup of DOM and streams just in case
-      document.body.classList.remove("barcode-scanner-active");
-      if (videoRef.current) {
+      // barcode-scanner-active is a native-only class (CapacitorScanner sets it);
+      // removing it on web is a safe no-op but we isolate it for clarity
+      if (isNative) {
+        document.body.classList.remove("barcode-scanner-active");
+        document.documentElement.classList.remove("barcode-scanner-active");
+      }
+      // Web: always clean up video stream to release camera resource
+      if (!isNative && videoRef.current) {
         try {
           const stream = videoRef.current.srcObject as MediaStream;
           stream?.getTracks().forEach(t => t.stop());
           videoRef.current.srcObject = null;
         } catch (e) {
-          console.error(`[FatalScannerTrace] Error cleaning up video stream:`, e);
+          console.error(`[ScannerCleanup] Error releasing video stream:`, e);
         }
       }
     } catch (err) {
-      console.error(`[FatalScannerTrace] Error during scanner stop:`, err);
+      console.error(`[ScannerCleanup] Scanner stop error:`, err);
     } finally {
       setIsScanning(false);
       end({ status: "completed" });
     }
-  }, []);
+  }, [isNative]);
 
   /* ── Core scan processor (backend-authoritative) ── */
   const processScan = useCallback(async (result: ScannerResult) => {
@@ -221,9 +228,10 @@ export default function ScannerClient() {
       },
     };
 
-    const recoveryTimer = setTimeout(() => {
-      startRecoveryTransition("Verifying attendee…", "scanner-verify");
-    }, 700);
+    // Recovery transition is a native-only overlay signal — never dispatch on web/PWA
+    const recoveryTimer = isNative
+      ? setTimeout(() => startRecoveryTransition("Verifying attendee…", "scanner-verify"), 700)
+      : null;
 
     try {
       setIsVerifying(true);
@@ -233,8 +241,8 @@ export default function ScannerClient() {
           { method: "POST", body: JSON.stringify(payload), cache: "no-store", timeoutMs: 4000 }
         ), { eventId: event.event_id }
       );
-      clearTimeout(recoveryTimer);
-      stopRecoveryTransition("scanner-verify");
+      if (recoveryTimer) clearTimeout(recoveryTimer);
+      if (isNative) stopRecoveryTransition("scanner-verify");
 
       const participant = res.participant;
       const finalName   = participant?.name || "Attendee";
@@ -254,9 +262,9 @@ export default function ScannerClient() {
         setScanCount(prev => prev + 1);
       }
     } catch (err: any) {
-      clearTimeout(recoveryTimer);
-      stopRecoveryTransition("scanner-verify");
-      console.error(`[FatalScannerTrace] processScan failure:`, err);
+      if (recoveryTimer) clearTimeout(recoveryTimer);
+      if (isNative) stopRecoveryTransition("scanner-verify");
+      console.error(`[ScannerError] processScan failure:`, err);
       const msg = (err.message || "").toLowerCase();
       const isNetworkError = msg.includes("network") || msg.includes("fetch") || err.name === "TimeoutError";
       const isUnauthorized = err.status === 403 || err.status === 429;
@@ -276,11 +284,10 @@ export default function ScannerClient() {
         pushToast({ type: "error", name: "Invalid QR", message: err.message || "QR not recognized" });
       }
     } finally {
-      clearTimeout(recoveryTimer);
-      stopRecoveryTransition("scanner-verify");
+      if (isNative) stopRecoveryTransition("scanner-verify");
       setIsVerifying(false);
     }
-  }, [session, event, userData, haptic, flashViewport, pushToast]);
+  }, [session, event, userData, isNative, haptic, flashViewport, pushToast]);
 
   const startScanner = useCallback(async () => {
     if (!videoRef.current) return;
@@ -298,40 +305,45 @@ export default function ScannerClient() {
         await scannerRef.current.start(videoRef.current!, r => void processScan(r));
       }, { isNative });
       setIsScanning(true);
-      logMemorySnapshot("scanner-started");
+      // Memory snapshot is dev/native diagnostic only — no-op in production web
+      if (isNative) logMemorySnapshot("scanner-started");
     } catch (err: any) {
       setIsScanning(false);
-      console.error(`[FatalScannerTrace] Scanner start error:`, err);
-      
+      console.error(`[ScannerError] Scanner start error:`, err);
+
       const rawMsg = (err.message || "").toLowerCase();
       let safeMsg = "Camera access required";
-      
+
       if (rawMsg.includes("permission") || rawMsg.includes("denied")) {
         safeMsg = "Camera permission denied. Please enable it in settings.";
       } else if (rawMsg.includes("not supported") || rawMsg.includes("unsupported")) {
         safeMsg = "Scanner not supported on this device.";
       } else if (rawMsg.includes("installed") || rawMsg.includes("module")) {
-        safeMsg = "Initializing scanner..."; // Usually harmless transient state
+        safeMsg = "Initializing scanner…";
       } else if (rawMsg.trim() !== "") {
-        safeMsg = "Failed to initialize scanner. Please try again.";
+        safeMsg = "Failed to start scanner. Please try again.";
       }
 
       setCameraError(safeMsg);
       await stopScanner();
     }
-  }, [isScanning, processScan, stopScanner]);
+  }, [isNative, isScanning, processScan, stopScanner]);
 
   useEffect(() => {
     let appStateHandle: { remove: () => Promise<void> } | null = null;
+
+    // visibilitychange fires on both web and native — stop scanner when hidden
     const onVisibilityChange = () => {
       if (document.visibilityState === "hidden" && isScanning) {
         void stopScanner();
-        logCapacitorPerfAudit("scanner.lifecycle.visibility-hidden-stop");
+        // Perf audit logging is native/dev diagnostic only
+        if (isNative) logCapacitorPerfAudit("scanner.lifecycle.visibility-hidden-stop");
       }
     };
 
     document.addEventListener("visibilitychange", onVisibilityChange);
 
+    // App background detection is native-only (Capacitor App API)
     if (isNative) {
       void (async () => {
         try {
@@ -383,7 +395,6 @@ export default function ScannerClient() {
     async function validate() {
       const endValidateSpan = startPerfSpan("scanner.access-validate", { eventId });
       try {
-        console.log(`[SystemInterruptDebug] Validating access for event: ${eventId}`);
         const res: any = await apiRequest(
           `/volunteer/events/${encodeURIComponent(eventId)}/access`,
           { cache: "no-store" }
@@ -399,13 +410,7 @@ export default function ScannerClient() {
         // Backend confirmed — use backend event data (most up-to-date)
         setEvent(res.event || cachedEvent);
       } catch (err: any) {
-        console.error(`[FatalScannerTrace] Access validation failed:`, {
-          error: err,
-          message: err.message,
-          status: err.status,
-          eventId,
-          session: !!session?.access_token,
-        });
+        console.error(`[Scanner] Access validation failed:`, err?.message || err);
         if (cancelled) return;
         const msg = (err.message || "").toLowerCase();
         
@@ -502,7 +507,7 @@ export default function ScannerClient() {
             }), { eventId }
           );
         } catch (err: any) {
-          console.error(`[FatalScannerTrace] Background sync failure for item ${item.id}:`, err);
+          console.error(`[Scanner] Background sync failed for item ${item.id}:`, err?.message || err);
           const msg = (err.message || "").toLowerCase();
           const isPermanentFailure =
             msg.includes("not assigned") ||
@@ -527,18 +532,16 @@ export default function ScannerClient() {
   useEffect(() => {
     if (isChecking || !event || accessError) return;
 
-    console.log(`[FatalScannerTrace] Scanner authorized and mounted`);
     try {
       scannerRef.current = getScanner();
       void scannerRef.current.checkPermission().then((perm) => {
         if (mountedRef.current) setPermission(perm);
       });
     } catch (err) {
-      console.error(`[FatalScannerTrace] getScanner initialization failed on mount:`, err);
+      console.error(`[Scanner] Initialization failed on mount:`, err);
     }
-    
+
     return () => {
-      console.log(`[FatalScannerTrace] Scanner unmounting, running cleanup`);
       void stopScanner();
       toastTimersRef.current.forEach(clearTimeout);
     };

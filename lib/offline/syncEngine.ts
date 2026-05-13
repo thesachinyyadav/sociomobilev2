@@ -1,5 +1,6 @@
 import { db } from './db';
 import { apiRequest } from '../apiClient';
+import { buildTrustedTimeProvenance, type TrustedTimeProvenance } from '../offlineTime';
 
 class SyncEngine {
   private syncing = false;
@@ -37,11 +38,15 @@ class SyncEngine {
 
       for (const item of pendingItems) {
         try {
+          // Trusted-time provenance travels with the scan so the server can
+          // perform authoritative reconciliation (Phase 7). Old records that
+          // pre-date this field simply omit it.
           const payload = {
             operationId: item.operationId,
             qrCodeData: item.qrCodeData,
             volunteerId: item.volunteerId,
             scannerInfo: item.scannerInfo,
+            trustedTime: item.trustedTime,
           };
 
           await apiRequest(
@@ -94,16 +99,29 @@ class SyncEngine {
     }
   }
 
-  async queueScan(eventId: string, qrCodeData: string, volunteerId: string | undefined, scannerInfo: any) {
+  async queueScan(
+    eventId: string,
+    qrCodeData: string,
+    volunteerId: string | undefined,
+    scannerInfo: any,
+    trustedTime?: TrustedTimeProvenance,
+  ) {
+    // Capture provenance now if the caller didn't supply one. We do this in
+    // the engine so any call site that forgets still produces an auditable
+    // record (server can downgrade trust if integrity != "trusted").
+    const provenance = trustedTime ?? buildTrustedTimeProvenance();
     const operationId = `op_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
-    
+
     await db.syncQueue.add({
       operationId,
       eventId,
       qrCodeData,
       volunteerId,
       scannerInfo,
-      timestamp: Date.now(),
+      // Persist BOTH the untrusted device clock and the trusted estimate so
+      // server-side replay ordering can choose its source of truth.
+      timestamp: provenance.deviceTimeMs,
+      trustedTime: provenance,
       retryCount: 0,
       status: 'pending'
     });
@@ -112,7 +130,7 @@ class SyncEngine {
     if (navigator.onLine) {
       setTimeout(() => this.sync(), 1000);
     }
-    
+
     return operationId;
   }
 }

@@ -1,4 +1,5 @@
 import Dexie, { Table } from 'dexie';
+import type { TrustedTimeProvenance } from '@/lib/offlineTime';
 
 export interface OfflineEvent {
   id: string;
@@ -21,10 +22,17 @@ export interface SyncQueueItem {
   qrCodeData: string;
   volunteerId: string | undefined;
   scannerInfo: any;
+  /** Device wall-clock at the moment the scan was queued. Untrusted on its own. */
   timestamp: number;
   retryCount: number;
   status: 'pending' | 'failed' | 'synced';
   errorDetails?: string;
+  /**
+   * Trusted-time provenance captured at the moment of the scan. Optional for
+   * back-compat with records persisted before Phase 6 — server reconciler
+   * should treat missing provenance as "device time only, lowest trust".
+   */
+  trustedTime?: TrustedTimeProvenance;
 }
 
 export interface AuthCache {

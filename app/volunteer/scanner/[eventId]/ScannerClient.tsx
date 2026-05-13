@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth, type VolunteerEvent } from "@/context/AuthContext";
+import { useNetwork } from "@/context/NetworkContext";
 import { BlueprintFossilLoader } from "@/components/loading";
 import {
   AlertTriangleIcon,
@@ -34,6 +35,28 @@ import {
 } from "@/lib/offlineTime";
 
 const DENIED_MESSAGE = "You do not have permission to access this feature";
+
+/** Hard cap on long-session memory growth for in-flight scan caches. */
+const COOLDOWN_TTL_MS = 5 * 60_000;
+const ATTENDEE_CACHE_MAX = 500;
+
+/**
+ * Cheap client-side QR shape check. Catches obvious garbage (empty,
+ * wildly oversized, non-printable) before we burn a queue slot or a
+ * network round-trip. The server remains authoritative on semantics.
+ */
+function isPlausibleScanPayload(raw: string): boolean {
+  if (typeof raw !== "string") return false;
+  const trimmed = raw.trim();
+  if (trimmed.length < 6 || trimmed.length > 2048) return false;
+  // Reject ASCII control bytes (0x00-0x1F except tab/LF/CR) and DEL (0x7F).
+  for (let j = 0; j < trimmed.length; j++) {
+    const c = trimmed.charCodeAt(j);
+    if (c === 9 || c === 10 || c === 13) continue;
+    if (c < 32 || c === 127) return false;
+  }
+  return true;
+}
 
 type ScanStatus = "success" | "duplicate" | "error" | "unauthorized" | "offline";
 
@@ -89,6 +112,7 @@ export default function ScannerClient() {
   const router  = useRouter();
   const eventId = String(params?.eventId || "");
   const { session, userData, isLoading: authLoading } = useAuth();
+  const { status: networkStatus } = useNetwork();
 
   /* ── Access state ── */
   const [isChecking,   setIsChecking]   = useState(true);
@@ -122,6 +146,13 @@ export default function ScannerClient() {
   const toastTimersRef    = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
   const viewportTimerRef  = useRef<ReturnType<typeof setTimeout> | null>(null);
   const mountedRef        = useRef(true);
+  // Stable handler the scanner subscribes to. We mutate this ref's callback when
+  // dependencies change so the scanner itself never needs to remount.
+  const processScanRef    = useRef<(result: ScannerResult) => void>(() => {});
+  // Live snapshot of the NetworkContext status so processScan can read it without
+  // becoming a new function every time the network state changes.
+  const networkStatusRef  = useRef(networkStatus);
+  networkStatusRef.current = networkStatus;
 
   const isNative = useMemo(() => Capacitor.isNativePlatform(), []);
 
@@ -238,6 +269,16 @@ export default function ScannerClient() {
 
     const qrData = result.data;
 
+    // Cheap local rejection of obvious garbage — saves a queue slot or a
+    // POST round-trip before any further work. Server stays authoritative
+    // on semantics; we only filter shape.
+    if (!isPlausibleScanPayload(qrData)) {
+      void haptic("error");
+      flashViewport("error");
+      pushToast({ type: "error", name: "Invalid QR", message: "QR not recognized" });
+      return;
+    }
+
     // Time-integrity gate (Phases 3, 4, 5, 9). The integrity report drives
     // the trusted "now" we use for cooldown, expiry, and event-window checks.
     // We pre-compute it once per scan so the cooldown and the validator see
@@ -249,6 +290,16 @@ export default function ScannerClient() {
     const last = cooldownMapRef.current.get(qrData);
     if (last && now - last < 2500) return;
     cooldownMapRef.current.set(qrData, now);
+
+    // Opportunistically prune entries older than COOLDOWN_TTL_MS so long shifts
+    // don't grow the Map unbounded. Runs O(n) only when the map crosses a soft
+    // threshold so the scan path stays hot.
+    if (cooldownMapRef.current.size > 200) {
+      const cutoff = now - COOLDOWN_TTL_MS;
+      for (const [key, ts] of cooldownMapRef.current) {
+        if (ts < cutoff) cooldownMapRef.current.delete(key);
+      }
+    }
 
     if (!decision.allow) {
       void haptic("error");
@@ -298,9 +349,16 @@ export default function ScannerClient() {
 
     try {
       setIsVerifying(true);
-      
+
       let res: any;
-      if (!navigator.onLine) {
+      // Route offline AND unstable network through the queue. Raw navigator.onLine
+      // can flap during cell-tower handoff; NetworkContext already debounces with a
+      // 3s latency heartbeat, so we trust it as the single source of truth.
+      const liveStatus = networkStatusRef.current;
+      const treatAsOffline =
+        !navigator.onLine || liveStatus === "offline" || liveStatus === "reconnecting";
+
+      if (treatAsOffline) {
         // Offline: immediately queue with full trusted-time provenance.
         const operationId = await syncEngine.queueScan(
           event.event_id,
@@ -326,21 +384,30 @@ export default function ScannerClient() {
       if (recoveryTimer) clearTimeout(recoveryTimer);
       if (isNative) stopRecoveryTransition("scanner-verify");
 
-      if (navigator.onLine) {
+      if (!treatAsOffline) {
         const participant = res.participant;
         const finalName   = participant?.name || "Attendee";
+        const rememberAttendee = () => {
+          // Bound the in-memory attendee cache. JS Map preserves insertion order
+          // so we evict the oldest entry when we cross the cap.
+          if (attendeeCacheRef.current.size >= ATTENDEE_CACHE_MAX) {
+            const oldest = attendeeCacheRef.current.keys().next().value;
+            if (oldest !== undefined) attendeeCacheRef.current.delete(oldest);
+          }
+          attendeeCacheRef.current.set(qrData, { name: finalName, status: "already_present" });
+        };
 
         if (participant?.status === "already_present") {
           void haptic("warning");
           flashViewport("duplicate");
-          attendeeCacheRef.current.set(qrData, { name: finalName, status: "already_present" });
+          rememberAttendee();
           await db.attendees.put({ qrData, eventId: event.event_id, name: finalName, status: "already_present", synced: true, updatedAt: Date.now() });
           pushToast({ type: "duplicate", name: finalName, message: "Already checked in" });
           setHistory(prev => [{ id: `r_${Date.now()}`, name: finalName, status: "duplicate" as ScanStatus, time: new Date() }, ...prev].slice(0, 50));
         } else {
           void haptic("success");
           flashViewport("success");
-          attendeeCacheRef.current.set(qrData, { name: finalName, status: "already_present" });
+          rememberAttendee();
           await db.attendees.put({ qrData, eventId: event.event_id, name: finalName, status: "already_present", synced: true, updatedAt: Date.now() });
           pushToast({ type: "success", name: finalName, message: "Attendance marked" });
           setHistory(prev => [{ id: `r_${Date.now()}`, name: finalName, status: "success" as ScanStatus, time: new Date() }, ...prev].slice(0, 50));
@@ -375,6 +442,12 @@ export default function ScannerClient() {
     }
   }, [session, event, userData, isNative, haptic, flashViewport, pushToast]);
 
+  // Keep the ref aligned with the latest closure so the scanner can call a stable
+  // identity. This decouples scanner lifecycle from React closures.
+  useEffect(() => {
+    processScanRef.current = (r) => void processScan(r);
+  }, [processScan]);
+
   const startScanner = useCallback(async () => {
     if (!videoRef.current) return;
     setCameraError(null);
@@ -388,7 +461,9 @@ export default function ScannerClient() {
           setPermission(perm);
           if (perm !== "granted") throw new Error("Camera permission required");
         }
-        await scannerRef.current.start(videoRef.current!, r => void processScan(r));
+        // Stable ref-based dispatch — the scanner never sees a new function,
+        // so library-internal teardown/setup is never triggered by React renders.
+        await scannerRef.current.start(videoRef.current!, (r) => processScanRef.current(r));
       }, { isNative });
       setIsScanning(true);
       // Memory snapshot is dev/native diagnostic only — no-op in production web
@@ -413,7 +488,7 @@ export default function ScannerClient() {
       setCameraError(safeMsg);
       await stopScanner();
     }
-  }, [isNative, isScanning, processScan, stopScanner]);
+  }, [isNative, isScanning, stopScanner]);
 
   useEffect(() => {
     let appStateHandle: { remove: () => Promise<void> } | null = null;
@@ -592,17 +667,26 @@ export default function ScannerClient() {
 
   /* ── Camera controls ── */
 
-  /* ── Status config computation ── */
-  const statusConfig = useMemo(() => {
+  /* ── Status config computation ──
+   * Split into two memos so Dexie's syncQueue.length churn never invalidates
+   * the primary scan-state memo (which is read on the hot scan path). Only the
+   * downstream consumer recomputes when the sync count shifts. */
+  const scanStatus = useMemo(() => {
     if (cameraError) return { text: cameraError, tone: "error" as const };
     if (isVerifying) return { text: "Verifying attendee…", tone: "info" as const };
     if (!isScanning) return { text: "Ready to scan", tone: "idle" as const };
     if (viewportStatus === "success") return { text: "Attendance marked", tone: "success" as const };
     if (viewportStatus === "duplicate") return { text: "Duplicate scan detected", tone: "warning" as const };
     if (viewportStatus === "error") return { text: "Invalid QR detected", tone: "error" as const };
-    if (syncQueue.length > 0) return { text: `Offline sync pending (${syncQueue.length})`, tone: "warning" as const };
     return { text: "Scanning active", tone: "active" as const };
-  }, [cameraError, isVerifying, isScanning, viewportStatus, syncQueue.length]);
+  }, [cameraError, isVerifying, isScanning, viewportStatus]);
+
+  const statusConfig = useMemo(() => {
+    if (scanStatus.tone === "active" && syncQueue.length > 0) {
+      return { text: `Offline sync pending (${syncQueue.length})`, tone: "warning" as const };
+    }
+    return scanStatus;
+  }, [scanStatus, syncQueue.length]);
 
   /* ── Loading / Error guards ── */
   if (authLoading || isChecking) {

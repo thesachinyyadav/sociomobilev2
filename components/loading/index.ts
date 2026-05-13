@@ -4,6 +4,8 @@ export { BlueprintFossilLoader } from "./BlueprintFossilLoader";
 export type { BlueprintFossilLoaderProps, BlueprintFossilVariant } from "./BlueprintFossilLoader";
 export { FossilGlyph } from "./FossilGlyph";
 export type { FossilGlyphMode } from "./FossilGlyph";
+export { SocioLoaderGlyph } from "./SocioLoaderGlyph";
+export type { SocioLoaderGlyphMode } from "./SocioLoaderGlyph";
 export { MicroLoader } from "./MicroLoader";
 export { useDelayedShow } from "./useDelayedShow";
 export { useReducedMotion } from "./useReducedMotion";

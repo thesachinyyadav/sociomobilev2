@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { isAndroidNativeBuild } from "@/lib/nativeLaunchState";
-import { FossilGlyph } from "./FossilGlyph";
+import { SocioLoaderGlyph, type SocioLoaderGlyphMode } from "./SocioLoaderGlyph";
 import { TITLES, stageMessage, type OperationKey } from "./loadingStages";
 import { useReducedMotion } from "./useReducedMotion";
 
@@ -111,7 +111,10 @@ export function BlueprintFossilLoader({
           <span>{headerLabel}</span>
         </div>
         <div className="op-card-body">
-          <FossilGlyph mode={done ? "done" : "active"} scannerSafe={scannerSafe} />
+          <SocioLoaderGlyph
+            mode={(done ? "done" : isRecovery ? "offline" : "active") as SocioLoaderGlyphMode}
+            scannerSafe={scannerSafe}
+          />
 
           <div className="op-progress-row">
             <div className="op-progress-track">

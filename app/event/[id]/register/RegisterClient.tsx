@@ -257,14 +257,8 @@ export default function RegisterClient({ eventId }: { eventId: string }) {
     ) : null;
 
   return (
-    <div className="pb-[calc(var(--bottom-nav)+var(--safe-bottom)+32px)]">
+    <div className="pb-[calc(var(--bottom-nav)+var(--safe-bottom)+32px)] pt-[var(--nav-height)]">
       <div className="bg-[var(--color-primary-dark)] text-white p-4 pb-5">
-        <button
-          onClick={() => router.back()}
-          className="flex items-center gap-1 text-sm text-[var(--color-accent)] mb-3"
-        >
-          <ArrowLeftIcon size={16} /> Back
-        </button>
         <h1 className="text-lg font-bold">{event.title}</h1>
         <p className="text-xs opacity-70 mt-0.5">
           {isTeam ? `Team registration · ${maxSize} members` : "Individual registration"}

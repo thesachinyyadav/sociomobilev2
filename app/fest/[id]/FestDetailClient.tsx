@@ -76,15 +76,6 @@ export default function FestDetailClient({ festId }: { festId: string }) {
 
   return (
     <div className="pwa-page pb-24 pt-[calc(var(--nav-height)+var(--safe-top)+16px)] animate-fade-in">
-      <div className="px-4 mb-4">
-        <button
-          onClick={() => router.back()}
-          className="flex items-center gap-1 text-sm font-semibold text-[var(--color-primary)]"
-        >
-          <ArrowLeft size={16} /> Back
-        </button>
-      </div>
-
       <div className="relative aspect-[16/9] mx-4 rounded-2xl overflow-hidden shadow-lg border border-white/20">
         <Image
           src={fest.banner_url || fest.fest_image_url || "https://placehold.co/800x450/011F7B/ffffff?text=Fest"}

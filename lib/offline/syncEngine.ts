@@ -5,21 +5,35 @@ import { buildTrustedTimeProvenance, type TrustedTimeProvenance } from '../offli
 class SyncEngine {
   private syncing = false;
   private syncInterval: any;
+  private started = false;
+  private boundOnlineHandler: (() => void) | null = null;
 
   start() {
     if (typeof window === 'undefined') return;
-    
-    window.addEventListener('online', () => this.sync());
-    
+    // Idempotent: a second start() call from a remount must not stack listeners
+    // or fire parallel syncs on the 'online' event.
+    if (this.started) return;
+    this.started = true;
+
+    this.boundOnlineHandler = () => { void this.sync(); };
+    window.addEventListener('online', this.boundOnlineHandler);
+
     // Background interval just in case
     this.syncInterval = setInterval(() => {
-      if (navigator.onLine) this.sync();
+      if (navigator.onLine) void this.sync();
     }, 30000); // every 30s
   }
 
   stop() {
-    if (this.syncInterval) clearInterval(this.syncInterval);
-    window.removeEventListener('online', () => this.sync());
+    if (this.syncInterval) {
+      clearInterval(this.syncInterval);
+      this.syncInterval = undefined;
+    }
+    if (this.boundOnlineHandler) {
+      window.removeEventListener('online', this.boundOnlineHandler);
+      this.boundOnlineHandler = null;
+    }
+    this.started = false;
   }
 
   async sync() {

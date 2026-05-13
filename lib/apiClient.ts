@@ -205,6 +205,11 @@ async function fetchWithTimeout(
 // Memory Cache & Request Deduplication
 const cache = new Map<string, { data: any; expiry: number }>();
 const pendingRequests = new Map<string, Promise<any>>();
+// Narrow POST dedup window for hot, idempotent endpoints (e.g. /scan-qr).
+// Two scanner detections of the same QR within milliseconds, or a double-tap,
+// will collapse into a single network round-trip without breaking the
+// server-authoritative duplicate-attendance check.
+const pendingPosts = new Map<string, Promise<any>>();
 const cacheAudit = {
   memoryHits: 0,
   memoryMisses: 0,
@@ -212,7 +217,22 @@ const cacheAudit = {
   memoryBypasses: 0,
   staleEvictions: 0,
   pendingDedupeHits: 0,
+  postDedupeHits: 0,
 };
+
+const POST_DEDUP_ENDPOINTS = ["/scan-qr"];
+
+function shouldDedupePost(endpoint: string): boolean {
+  return POST_DEDUP_ENDPOINTS.some((needle) => endpoint.includes(needle));
+}
+
+function fingerprintPostBody(body: BodyInit | null | undefined): string {
+  if (body == null) return "";
+  if (typeof body === "string") return body.length > 512 ? body.slice(0, 512) : body;
+  // Other BodyInit variants (FormData, Blob, ArrayBuffer) are not used on the
+  // dedup endpoints — fall back to a coarse type tag.
+  return `[${(body as any).constructor?.name || "body"}]`;
+}
 
 function isCacheAuditEnabled(): boolean {
   if (typeof window === "undefined") return process.env.NODE_ENV !== "production";
@@ -391,6 +411,23 @@ export async function apiFetch<T = any>(
       return await promise;
     } finally {
       pendingRequests.delete(cacheKey);
+    }
+  }
+
+  if (method === "POST" && shouldDedupePost(endpoint)) {
+    const postKey = `POST:${url}|${fingerprintPostBody(requestInit.body)}`;
+    const inflight = pendingPosts.get(postKey);
+    if (inflight) {
+      cacheAudit.postDedupeHits += 1;
+      logCacheAudit("post-dedupe-hit", { postKey });
+      return inflight;
+    }
+    const promise = performFetch();
+    pendingPosts.set(postKey, promise);
+    try {
+      return await promise;
+    } finally {
+      pendingPosts.delete(postKey);
     }
   }
 

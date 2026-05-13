@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth, type VolunteerEvent } from "@/context/AuthContext";
 import { useNetwork } from "@/context/NetworkContext";
-import { BlueprintFossilLoader } from "@/components/loading";
+import { BlueprintFossilLoader, useLoading } from "@/components/loading";
 import {
   AlertTriangleIcon,
   ArrowLeftIcon,
@@ -199,7 +199,24 @@ export default function ScannerClient() {
   const [cameraError,  setCameraError]  = useState<string | null>(null);
 
   /* ── UX state ── */
+  const { show: showGlobalLoader } = useLoading();
+  const [mounted, setMounted] = useState(false);
   const [history,      setHistory]      = useState<HistoryRow[]>([]);
+  
+  useEffect(() => { setMounted(true); }, []);
+
+  // Global loader effect
+  useEffect(() => {
+    if (isChecking && mounted) {
+      const handle = showGlobalLoader({
+        id: "scanner-prepare",
+        kind: "panel",
+        operation: "scanner.prepare",
+        blocking: true,
+      });
+      return () => handle.done();
+    }
+  }, [isChecking, mounted, showGlobalLoader]);
   const [selectedRow,  setSelectedRow]  = useState<HistoryRow | null>(null);
   const [toasts,       setToasts]       = useState<ScanToast[]>([]);
   const [scanCount,    setScanCount]    = useState(0);
@@ -762,7 +779,7 @@ export default function ScannerClient() {
 
   /* ── Loading / Error guards ── */
   if (authLoading || isChecking) {
-    return <BlueprintFossilLoader variant="panel" operation="scanner.prepare" blocking={true} />;
+    return <div className="pwa-page-center bg-[var(--color-bg)]" />;
   }
 
   if (!event || accessError) {

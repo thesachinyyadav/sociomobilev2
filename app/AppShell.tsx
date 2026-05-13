@@ -10,6 +10,7 @@ import BottomNav from "@/components/BottomNav";
 import InstallPrompt from "@/components/InstallPrompt";
 import PageTransition from "@/components/PageTransition";
 import NativeLaunchController from "@/components/native/NativeLaunchController";
+import NetworkBanner from "@/components/NetworkBanner";
 import dynamic from "next/dynamic";
 import { useAuth } from "@/context/AuthContext";
 import { isCampusDismissedRecently } from "@/components/CampusSelector";
@@ -156,6 +157,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <>
       <NativeLaunchController />
+      <NetworkBanner />
       <OrientationGate />
       {!isNative && <DesktopGate />}
       {!hideTop && <TopBar />}

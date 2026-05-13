@@ -177,6 +177,9 @@ html, body {
   z-index: 50;
   pointer-events: none;
   animation: op-fade-in 180ms ease-out both;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 .op-root-blocking { pointer-events: auto; }
 .op-root-passive  { pointer-events: none; }
@@ -207,10 +210,7 @@ html, body {
 }
 
 .op-card {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
+  position: relative;
   width: min(86vw, 360px);
   background: #ffffff;
   border-radius: 16px;
@@ -220,10 +220,12 @@ html, body {
   will-change: transform, opacity;
 }
 .op-root-passive .op-card { pointer-events: none; }
+.op-root-scanner-safe {
+  align-items: flex-end;
+  padding-bottom: calc(var(--bottom-nav, 60px) + 24px);
+}
 .op-root-scanner-safe .op-card {
   top: auto;
-  bottom: calc(var(--bottom-nav, 60px) + 24px);
-  transform: translate(-50%, 0);
 }
 .op-card-recovery { width: min(80vw, 320px); }
 .op-card-compact  { width: min(82vw, 300px); }
@@ -391,6 +393,9 @@ html, body {
   z-index: 50;
   pointer-events: none;
   animation: op-fade-in 180ms ease-out both;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 .op-recovery-root.op-root-exiting { animation: op-fade-out 220ms ease-in both; }
 
@@ -416,7 +421,7 @@ html, body {
   animation: none !important;
   transition: none !important;
 }
-.op-root-reduced .op-card { transform: translate(-50%, -50%); }
+
 .op-root-reduced .bp-bone { stroke-dashoffset: 0; }
 .op-root-reduced .bp-sweep-group { display: none; }
 

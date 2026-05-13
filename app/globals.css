@@ -452,16 +452,16 @@ html, body {
 
 /* ── Page wrapper ── */
 .pwa-page {
-  min-height: 100dvh;
-  padding-bottom: calc(var(--bottom-nav) + var(--safe-bottom) + 16px);
+  min-height: 100%;
+  padding-bottom: 24px;
 }
 .pwa-page-center {
-  min-height: 100dvh;
+  min-height: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding-bottom: 0; /* No bottom nav padding for true center */
+  padding: 40px 0;
 }
 
 /* ── Glass ── */

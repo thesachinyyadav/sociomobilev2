@@ -128,42 +128,50 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     updatePromptStatus("shown");
   }, [promptStatus, updatePromptStatus]);
 
-  // 1. OneSignal & Web Push Initialization (Passive)
+  // 1. OneSignal Initialization (Web & Native)
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    if (Capacitor.isNativePlatform()) {
-      async function initOneSignal() {
-        try {
-          const OS = (await import("onesignal-cordova-plugin")).default;
-          setOneSignal(OS);
-          const appId = process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID;
-          if (appId && appId !== "placeholder_onesignal_id_here") {
-            OS.initialize(appId);
-            OS.Notifications.addEventListener("click", (event: any) => {
-              const route = event.notification.additionalData?.route;
-              if (route) router.push(route);
-            });
-            OS.Notifications.addEventListener("foregroundWillDisplay", (event: any) => {
-              event.preventDefault();
-              const n = event.notification;
-              toast.success(`${n.title}: ${n.body}`, {
-                duration: 5000,
-                position: "top-center",
-              });
-            });
-          }
-        } catch (e) {
-          console.error("OS init error", e);
+    async function initOneSignal() {
+      try {
+        const appId = process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID;
+        if (!appId || appId === "placeholder_onesignal_id_here") return;
+
+        let OS: any;
+
+        if (Capacitor.isNativePlatform()) {
+          OS = (await import("onesignal-cordova-plugin")).default;
+          OS.initialize(appId);
+          OS.Notifications.addEventListener("click", (event: any) => {
+            const route = event.notification.additionalData?.route;
+            if (route) router.push(route);
+          });
+          OS.Notifications.addEventListener("foregroundWillDisplay", (event: any) => {
+            event.preventDefault();
+            const n = event.notification;
+            toast.success(`${n.title}: ${n.body}`, { duration: 5000, position: "top-center" });
+          });
+        } else {
+          OS = (await import("react-onesignal")).default;
+          await OS.init({
+            appId: appId,
+            allowLocalhostAsSecureOrigin: true,
+            notifyButton: { enable: false }
+          });
         }
+        
+        setOneSignal(OS);
+      } catch (e) {
+        console.error("OneSignal init error", e);
       }
-      // initOneSignal(); // Disabled — google-services.json missing, causing crash
     }
+    
+    initOneSignal();
   }, [router]);
 
-  // Sync User Tags (Native only)
+  // Sync User Tags (Web & Native)
   useEffect(() => {
-    if (Capacitor.isNativePlatform() && oneSignal && userData?.email) {
+    if (oneSignal && userData?.email) {
       try {
         const externalId = userData.email.toLowerCase();
         oneSignal.login(externalId);
@@ -172,76 +180,41 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
           campus: userData.campus || "none",
           email: externalId
         });
+      } catch (e) {
+        console.warn("OneSignal identity sync failed", e);
+      }
+    } else if (oneSignal && !userData?.email) {
+      try {
+        oneSignal.logout();
       } catch {}
     }
   }, [userData, oneSignal]);
 
   const enablePushNotifications = useCallback(async () => {
-    if (typeof window === "undefined") return;
-
-    // 1. Capacitor Native
-    if (Capacitor.isNativePlatform()) {
-      if (!oneSignal) return;
-      try {
-        const granted = await oneSignal.Notifications.requestPermission(true);
-        const newStatus = granted ? "granted" : "denied";
-        setPushStatus(newStatus);
-        localStorage.setItem(LS_PUSH_STATUS_KEY, newStatus);
-        updatePromptStatus(granted ? "accepted" : "denied");
-        if (granted) toast.success("Notifications enabled!");
-      } catch (e) {
-        console.error("Native push error", e);
-      }
-      return;
-    }
-
-    // 2. Web Push (PWA)
-    if (!("Notification" in window) || !("serviceWorker" in navigator)) {
-      console.warn("Web Push not supported");
-      return;
-    }
+    if (typeof window === "undefined" || !oneSignal) return;
 
     try {
-      const permission = await Notification.requestPermission();
-      if (permission === "granted") {
-        const registration = await navigator.serviceWorker.ready;
-        const vapidKey = process.env.NEXT_PUBLIC_VAPID_KEY;
+      let granted = false;
+      
+      if (Capacitor.isNativePlatform()) {
+        granted = await oneSignal.Notifications.requestPermission(true);
+      } else {
+        await oneSignal.Notifications.requestPermission();
+        granted = oneSignal.Notifications.permission === true || Notification.permission === "granted";
+      }
 
-        if (!vapidKey) {
-          console.error("Missing VAPID key");
-          return;
-        }
-
-        const subscription = await registration.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: urlBase64ToUint8Array(vapidKey),
-        });
-
-        // Send to backend
-        if (userData?.email) {
-          await apiRequest<any>(`/notifications/push/subscribe`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              email: userData.email,
-              subscription,
-            }),
-          });
-        }
-
-        setPushStatus("granted");
-        localStorage.setItem(LS_PUSH_STATUS_KEY, "granted");
-        updatePromptStatus("accepted");
+      const newStatus = granted ? "granted" : "denied";
+      setPushStatus(newStatus);
+      localStorage.setItem(LS_PUSH_STATUS_KEY, newStatus);
+      updatePromptStatus(granted ? "accepted" : "denied");
+      
+      if (granted) {
         toast.success("Notifications enabled!");
-      } else if (permission === "denied") {
-        setPushStatus("denied");
-        localStorage.setItem(LS_PUSH_STATUS_KEY, "denied");
-        updatePromptStatus("denied");
       }
     } catch (e) {
-      console.error("Web push error", e);
+      console.error("Push enable error", e);
     }
-  }, [oneSignal, userData?.email, updatePromptStatus]);
+  }, [oneSignal, updatePromptStatus]);
 
   /* ── Fetch notifications ──────────────────────────────────────────────
    * IMPORTANT: `unreadCount` and `page` are intentionally NOT in the dep

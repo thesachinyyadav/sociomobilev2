@@ -79,9 +79,9 @@ export default function SmartNotificationPrompt() {
         </div>
 
         <div className="space-y-1">
-          <h3 className="text-lg font-bold text-gray-900 dark:text-white">Stay updated</h3>
+          <h3 className="text-lg font-bold text-gray-900 dark:text-white">Stay updated with event alerts and registrations?</h3>
           <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">
-            Get notified about events, deadlines, and announcements
+            Get notified instantly when important updates happen.
           </p>
         </div>
 

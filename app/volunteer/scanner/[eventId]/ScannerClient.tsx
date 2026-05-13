@@ -139,7 +139,8 @@ function ScannerParticipantSheet({
             </span>
           </div>
 
-          <div className="participant-sheet-field">
+          {/* Event spans full width to avoid truncation on long names */}
+          <div className="participant-sheet-field" style={{ gridColumn: "1 / -1" }}>
             <span className="participant-sheet-label">Event</span>
             <span className="participant-sheet-value">{eventTitle}</span>
           </div>
@@ -150,6 +151,15 @@ function ScannerParticipantSheet({
               {row.time.toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" })}
             </span>
           </div>
+
+          {row.qrData && row.qrData !== "No Registration ID" && (
+            <div className="participant-sheet-field" style={{ gridColumn: "1 / -1" }}>
+              <span className="participant-sheet-label">Registration ID</span>
+              <span className="participant-sheet-value" style={{ fontSize: "12px", wordBreak: "break-all", color: "var(--color-text-muted)" }}>
+                {row.qrData}
+              </span>
+            </div>
+          )}
         </div>
       </div>
     </div>

@@ -155,13 +155,13 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <>
+    <div className="flex flex-col min-h-dvh overflow-hidden">
       <NativeLaunchController />
       <NetworkBanner />
       <OrientationGate />
       {!isNative && <DesktopGate />}
       {!hideTop && <TopBar />}
-      <main className="flex-1 overflow-y-auto overflow-x-hidden min-h-dvh flex flex-col">
+      <main className="flex-1 overflow-y-auto overflow-x-hidden relative">
         <PageTransition>{children}</PageTransition>
       </main>
       {!hideBottom && <BottomNav />}
@@ -177,6 +177,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           onDismiss={handleCampusDismiss}
         />
       )}
-    </>
+    </div>
   );
 }

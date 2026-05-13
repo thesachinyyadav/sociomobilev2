@@ -135,11 +135,11 @@ export default function VolunteerDashboardPage() {
   const firstName = userData?.name?.split(" ")[0] || "Volunteer";
 
   return (
-    <div className="pwa-page bg-[var(--color-bg)]">
+    <div className="pwa-page bg-[var(--color-bg)] pt-[var(--nav-height)]">
 
       {/* ── Header ── */}
       <header
-        className="sticky top-0 z-20 bg-white border-b border-[var(--color-border)]"
+        className="sticky top-[var(--nav-height)] z-20 bg-white border-b border-[var(--color-border)]"
         style={{ paddingTop: "calc(var(--safe-top))" }}
       >
         <div className="flex items-center gap-3 px-4 h-14">
@@ -159,12 +159,6 @@ export default function VolunteerDashboardPage() {
             <p className="text-[14px] font-bold text-[var(--color-text)] truncate leading-tight">
               {userData?.name || "Volunteer"}
             </p>
-          </div>
-
-          {/* Online pill */}
-          <div className="flex items-center gap-1.5 bg-emerald-50 px-2.5 py-1 rounded-full">
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="text-[11px] font-semibold text-emerald-700">Online</span>
           </div>
         </div>
       </header>
@@ -310,7 +304,7 @@ export default function VolunteerDashboardPage() {
                         e.stopPropagation();
                         void handleToggleShake(event.event_id);
                       }}
-                      className="relative h-6 w-11 rounded-full transition-colors"
+                      className="relative h-6 w-11 rounded-full transition-colors shrink-0"
                       style={{
                         background: isQuickScanOn
                           ? "var(--color-primary)"
@@ -319,9 +313,9 @@ export default function VolunteerDashboardPage() {
                       aria-label="Toggle Shake to Scan"
                     >
                       <span
-                        className="absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform"
+                        className="absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform"
                         style={{
-                          transform: isQuickScanOn ? "translateX(21px)" : "translateX(2px)",
+                          transform: isQuickScanOn ? "translateX(20px)" : "translateX(0px)",
                         }}
                       />
                     </button>

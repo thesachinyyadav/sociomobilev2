@@ -855,9 +855,9 @@ html, body {
   display: flex;
   align-items: center;
   gap: 10px;
-  /* Safe area + proper padding to prevent top bar overlap */
-  padding: calc(var(--safe-top) + 12px) 14px 10px;
-  min-height: calc(var(--safe-top) + 56px);
+  /* Safe area + nav height + padding to prevent top bar overlap */
+  padding: calc(var(--nav-height) + var(--safe-top) + 10px) 14px 10px;
+  min-height: calc(var(--nav-height) + var(--safe-top) + 56px);
   background: linear-gradient(180deg, rgba(0, 15, 66, 0.98) 0%, rgba(1, 22, 84, 0.95) 100%);
   border-bottom: 1px solid rgba(170, 200, 255, 0.14);
   flex-shrink: 0;

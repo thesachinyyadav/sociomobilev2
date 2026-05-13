@@ -173,13 +173,18 @@ html, body {
 
 .op-root {
   position: fixed;
-  inset: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  height: 100%;
   z-index: 50;
-  pointer-events: none;
-  animation: op-fade-in 180ms ease-out both;
   display: flex;
   align-items: center;
   justify-content: center;
+  pointer-events: none;
+  animation: op-fade-in 180ms ease-out both;
 }
 .op-root-blocking { pointer-events: auto; }
 .op-root-passive  { pointer-events: none; }
@@ -633,7 +638,7 @@ html, body {
     animation: none !important;
     transition: none !important;
   }
-  .op-card { transform: translate(-50%, -50%); }
+  .op-card { transform: none; }
   .bp-bone { stroke-dashoffset: 0; }
   .bp-sweep-group { display: none; }
 }

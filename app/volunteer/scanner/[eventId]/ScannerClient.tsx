@@ -301,20 +301,34 @@ export default function ScannerClient() {
       }
     }
 
+    const liveStatus = networkStatusRef.current;
+    const isActuallyOffline = !navigator.onLine || liveStatus === "offline" || liveStatus === "reconnecting";
+
     if (!decision.allow) {
-      void haptic("error");
-      flashViewport("error");
-      pushToast({
-        type:
-          decision.reason === "assignment-expired" ||
-          decision.reason === "event-window-closed" ||
-          decision.reason === "event-not-started"
-            ? "unauthorized"
-            : "error",
-        name: "Cannot scan",
-        message: decision.message,
-      });
-      return;
+      // If offline, we MUST block.
+      // If online, we only block if it's a hard business logic rejection (not started / closed).
+      // We do NOT block online scans for technical time-sync issues (no-anchor / compromised)
+      // because the server is the authoritative clock during live verification.
+      const isTechnicalBlock =
+        decision.reason === "no-trusted-time" ||
+        decision.reason === "time-compromised" ||
+        decision.reason === "anchor-expired";
+
+      if (isActuallyOffline || !isTechnicalBlock) {
+        void haptic("error");
+        flashViewport("error");
+        pushToast({
+          type:
+            decision.reason === "assignment-expired" ||
+            decision.reason === "event-window-closed" ||
+            decision.reason === "event-not-started"
+              ? "unauthorized"
+              : "error",
+          name: "Cannot scan",
+          message: decision.message,
+        });
+        return;
+      }
     }
 
     const cached = attendeeCacheRef.current.get(qrData);
@@ -351,27 +365,10 @@ export default function ScannerClient() {
       setIsVerifying(true);
 
       let res: any;
-      // Route offline AND unstable network through the queue. Raw navigator.onLine
-      // can flap during cell-tower handoff; NetworkContext already debounces with a
-      // 3s latency heartbeat, so we trust it as the single source of truth.
-      const liveStatus = networkStatusRef.current;
-      const treatAsOffline =
-        !navigator.onLine || liveStatus === "offline" || liveStatus === "reconnecting";
-
-      if (treatAsOffline) {
-        // Offline: immediately queue with full trusted-time provenance.
-        const operationId = await syncEngine.queueScan(
-          event.event_id,
-          qrData,
-          userData?.register_number || undefined,
-          payload.scannerInfo,
-          provenance,
-        );
-        res = { participant: { name: "Offline Attendee", status: "scanned" } };
-        // Save to offline DB
-        await db.attendees.put({ qrData, eventId: event.event_id, name: "Offline Attendee", status: "already_present", synced: false, updatedAt: Date.now() });
-        pushToast({ type: "offline", name: "Scan queued", message: "Will sync when online" });
-        setHistory(prev => [{ id: operationId, name: "Queued", status: "offline" as ScanStatus, time: new Date() }, ...prev].slice(0, 50));
+      if (isActuallyOffline) {
+        // ONLINE ONLY POLICY ENFORCEMENT
+        // We explicitly do not queue scans offline for volunteers at this stage.
+        throw new Error("Scanner requires internet connection.");
       } else {
         res = await withPerfSpan("scanner.verify.request", async () =>
           apiRequest(
@@ -384,7 +381,7 @@ export default function ScannerClient() {
       if (recoveryTimer) clearTimeout(recoveryTimer);
       if (isNative) stopRecoveryTransition("scanner-verify");
 
-      if (!treatAsOffline) {
+      if (!isActuallyOffline) {
         const participant = res.participant;
         const finalName   = participant?.name || "Attendee";
         const rememberAttendee = () => {
@@ -690,11 +687,7 @@ export default function ScannerClient() {
 
   /* ── Loading / Error guards ── */
   if (authLoading || isChecking) {
-    return (
-      <div className="fixed inset-0 z-[40] bg-[var(--color-bg)]">
-        <BlueprintFossilLoader variant="compact" operation="scanner.prepare" blocking={false} />
-      </div>
-    );
+    return <BlueprintFossilLoader variant="panel" operation="scanner.prepare" blocking={true} />;
   }
 
   if (!event || accessError) {

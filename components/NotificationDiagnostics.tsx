@@ -24,18 +24,17 @@ export default function NotificationDiagnostics() {
 
       try {
         if (Capacitor.isNativePlatform()) {
-          const OS = (await import("onesignal-cordova-plugin")).default;
+          const OS = (await import("onesignal-cordova-plugin")).default as any;
           if (OS) {
             osState = "Initialized (Native)";
-            const deviceState = await OS.User.pushSubscription.getPushSubscriptionId();
+            const deviceState = OS.User.pushSubscription?.id;
             pushToken = deviceState || "None";
           }
         } else {
-          const OS = (await import("react-onesignal")).default;
-          if (OS.initialized) {
+          const OS = (await import("react-onesignal")).default as any;
+          if (OS) {
             osState = "Initialized (Web)";
             permission = Notification.permission;
-            // The getPushSubscriptionId might be different in web
             pushToken = OS.User.PushSubscription.id || "None";
           }
         }

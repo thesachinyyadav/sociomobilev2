@@ -142,21 +142,29 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         if (Capacitor.isNativePlatform()) {
           OS = (await import("onesignal-cordova-plugin")).default;
           OS.initialize(appId);
-          OS.Notifications.addEventListener("click", (event: any) => {
-            const route = event.notification.additionalData?.route;
-            if (route) router.push(route);
-          });
-          OS.Notifications.addEventListener("foregroundWillDisplay", (event: any) => {
-            event.preventDefault();
-            const n = event.notification;
-            toast.success(`${n.title}: ${n.body}`, { duration: 5000, position: "top-center" });
-          });
         } else {
           OS = (await import("react-onesignal")).default;
           await OS.init({
             appId: appId,
             allowLocalhostAsSecureOrigin: true,
             notifyButton: { enable: false }
+          });
+        }
+
+        // Attach listeners for both Native and Web
+        if (OS.Notifications) {
+          OS.Notifications.addEventListener("click", (event: any) => {
+            const route = event.notification.additionalData?.route || event.notification.additionalData?.actionUrl;
+            if (route) {
+              router.push(route);
+            } else {
+              router.push("/notifications");
+            }
+          });
+          OS.Notifications.addEventListener("foregroundWillDisplay", (event: any) => {
+            event.preventDefault();
+            const n = event.notification;
+            toast.success(`${n.title}: ${n.body}`, { duration: 5000, position: "top-center" });
           });
         }
         

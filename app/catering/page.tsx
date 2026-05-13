@@ -180,9 +180,9 @@ export default function CateringDashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] pb-[calc(var(--bottom-nav,60px)+var(--safe-bottom,0px)+16px)]">
-      {/* Sticky Header */}
-      <div className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-slate-100 pt-[calc(var(--nav-height,54px)+var(--safe-top,0px))] px-4">
+    <div className="pwa-page bg-[#F8FAFC]">
+      {/* Sticky Sub-Header — aligns perfectly below global TopBar */}
+      <div className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-slate-100 pt-4 px-4">
         <div className="flex items-center gap-3 mb-6">
           <button
             onClick={() => router.back()}

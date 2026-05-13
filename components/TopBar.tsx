@@ -30,7 +30,7 @@ export default function TopBar() {
 
   return (
     <header
-      className={`fixed top-0 left-0 right-0 z-50 will-change-none transition-colors duration-200 ${
+      className={`sticky top-0 left-0 right-0 z-50 will-change-none transition-colors duration-200 ${
         isProfile && userData
           ? "bg-[var(--color-primary-dark)] text-white"
           : "glass border-b border-[var(--color-border)] text-[var(--color-text)]"

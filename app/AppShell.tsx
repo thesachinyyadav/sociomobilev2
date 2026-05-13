@@ -11,6 +11,7 @@ import InstallPrompt from "@/components/InstallPrompt";
 import PageTransition from "@/components/PageTransition";
 import NativeLaunchController from "@/components/native/NativeLaunchController";
 import NetworkBanner from "@/components/NetworkBanner";
+import NotificationDiagnostics from "@/components/NotificationDiagnostics";
 import dynamic from "next/dynamic";
 import { useAuth } from "@/context/AuthContext";
 import { isCampusDismissedRecently } from "@/components/CampusSelector";
@@ -161,7 +162,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       <OrientationGate />
       {!isNative && <DesktopGate />}
       {!hideTop && <TopBar />}
-      <main className="flex-1 overflow-y-auto overflow-x-hidden relative">
+      <main className={`flex-1 overflow-y-auto overflow-x-hidden relative ${!hideBottom ? "pb-[calc(var(--bottom-nav)+var(--safe-bottom)+20px)]" : ""}`}>
         <PageTransition>{children}</PageTransition>
       </main>
       {!hideBottom && <BottomNav />}
@@ -177,6 +178,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           onDismiss={handleCampusDismiss}
         />
       )}
+
+      {process.env.NODE_ENV === "development" && <NotificationDiagnostics />}
     </div>
   );
 }

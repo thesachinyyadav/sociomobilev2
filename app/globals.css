@@ -851,11 +851,11 @@ html, body {
 .scan-page {
   display: flex;
   flex-direction: column;
-  height: 100dvh;
+  height: 100%;
   min-height: 0;
-  /* Account for SOCIO app header (--nav-height) + safe area + bottom nav */
-  padding-top: 0;
-  padding-bottom: calc(var(--bottom-nav) + var(--safe-bottom) + 4px);
+  /* Padding-top removed as sticky header handles space. 
+     Padding-bottom removed as sticky bottom nav handles space. */
+  padding: 0;
   background:
     radial-gradient(circle at 8% 5%, rgba(106, 162, 255, 0.12), transparent 38%),
     linear-gradient(180deg, #010f3a 0%, #000c2e 48%, #f4f7ff 48.3%, #f8faff 100%);

@@ -175,7 +175,7 @@ export default function NotificationsPage() {
   };
 
   return (
-    <div className="pwa-page min-h-screen bg-[#F8FAFC]">
+    <div className="pwa-page bg-[#F8FAFC]">
       {/* Sticky Header */}
       <div className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-slate-100 pt-[calc(var(--safe-top)+12px)] pb-4 px-4">
         <div className="flex items-center gap-3">

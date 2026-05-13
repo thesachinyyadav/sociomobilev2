@@ -36,8 +36,10 @@ export type TimeIntegrityLevel =
   | "trusted"
   /** No anchor yet — we have not seen the server. Block sensitive ops. */
   | "no-anchor"
-  /** Anchor present but old (past offline trust horizon). */
+  /** Anchor present but old (past offline trust horizon, degraded mode). */
   | "stale-anchor"
+  /** Anchor is too old (past block horizon). Hard block. */
+  | "expired-anchor"
   /** Drift or jump detected within tolerance, but suspicious. */
   | "drift-warning"
   /** Hard tamper signal: backward jump, large forward jump, TZ change. */

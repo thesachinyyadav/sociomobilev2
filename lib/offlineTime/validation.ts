@@ -31,7 +31,7 @@ export type OfflineDecision =
 export type OfflineRejectReason =
   | "no-trusted-time"
   | "time-compromised"
-  | "anchor-stale"
+  | "anchor-expired"
   | "event-not-started"
   | "event-window-closed"
   | "assignment-expired"
@@ -90,21 +90,21 @@ export function decideOfflineScan(
   if (integrity.level === "compromised") {
     return blockFor(
       "time-compromised",
-      "Time verification unavailable. Please reconnect.",
+      "Scanner needs quick reconnect",
       integrity,
     );
   }
   if (integrity.level === "no-anchor") {
     return blockFor(
       "no-trusted-time",
-      "Time verification required. Please reconnect briefly.",
+      "Scanner needs quick reconnect",
       integrity,
     );
   }
-  if (integrity.level === "stale-anchor") {
+  if (integrity.level === "expired-anchor") {
     return blockFor(
-      "anchor-stale",
-      "Sync required soon to keep offline scans valid.",
+      "anchor-expired",
+      "Reconnect briefly to refresh secure verification",
       integrity,
     );
   }
@@ -174,9 +174,11 @@ export function integrityLabel(level: TimeIntegrityLevel): string {
     case "drift-warning":
       return "Sync recommended soon";
     case "stale-anchor":
-      return "Sync required soon";
+      return "Offline • Secure sync pending";
+    case "expired-anchor":
+      return "Reconnect required";
     case "compromised":
-      return "Time verification unavailable";
+      return "Scanner needs quick reconnect";
     case "no-anchor":
       return "Connect briefly to start";
     default:

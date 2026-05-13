@@ -20,15 +20,28 @@ const STORAGE_KEY = "socio_trusted_time_anchor_v1";
 
 /**
  * After this many ms without a fresh server sync, the anchor is considered
- * stale and offline trust must be re-verified. Default: 6 hours.
+ * stale (degraded trust). Default: 15 minutes.
  * Configurable via NEXT_PUBLIC_OFFLINE_TRUST_HORIZON_MS at build time.
  */
-const DEFAULT_TRUST_HORIZON_MS = 6 * 60 * 60 * 1000;
+const DEFAULT_TRUST_HORIZON_MS = 15 * 60 * 1000;
 
 function getTrustHorizonMs(): number {
   const raw = process.env.NEXT_PUBLIC_OFFLINE_TRUST_HORIZON_MS;
   const parsed = raw ? Number(raw) : NaN;
   return Number.isFinite(parsed) && parsed > 0 ? parsed : DEFAULT_TRUST_HORIZON_MS;
+}
+
+/**
+ * After this many ms without a fresh server sync, the anchor is considered
+ * expired and offline trust must be re-verified (hard block). Default: 60 minutes.
+ * Configurable via NEXT_PUBLIC_OFFLINE_BLOCK_HORIZON_MS at build time.
+ */
+const DEFAULT_BLOCK_HORIZON_MS = 60 * 60 * 1000;
+
+function getBlockHorizonMs(): number {
+  const raw = process.env.NEXT_PUBLIC_OFFLINE_BLOCK_HORIZON_MS;
+  const parsed = raw ? Number(raw) : NaN;
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : DEFAULT_BLOCK_HORIZON_MS;
 }
 
 let inMemoryAnchor: TrustedTimeAnchor | null = null;
@@ -159,6 +172,13 @@ export function setAnchor(
  */
 export function getOfflineTrustHorizonMs(): number {
   return getTrustHorizonMs();
+}
+
+/**
+ * Returns the configured offline block horizon.
+ */
+export function getOfflineBlockHorizonMs(): number {
+  return getBlockHorizonMs();
 }
 
 /**

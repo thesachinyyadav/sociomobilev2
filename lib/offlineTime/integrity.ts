@@ -18,6 +18,7 @@ import { logTimeAudit, warnTimeAudit } from "./audit";
 import {
   getAnchor,
   getOfflineTrustHorizonMs,
+  getOfflineBlockHorizonMs,
   isAnchorSameSession,
 } from "./anchor";
 import type {
@@ -169,9 +170,15 @@ export function getTimeIntegrityReport(): TimeIntegrityReport {
 
   // Trust horizon — anchor age check.
   const horizon = getOfflineTrustHorizonMs();
-  if (level !== "compromised" && anchorAgeMs > horizon) {
-    level = "stale-anchor";
-    notes.push(`anchor age ${anchorAgeMs}ms exceeds trust horizon ${horizon}ms`);
+  const blockHorizon = getOfflineBlockHorizonMs();
+  if (level !== "compromised") {
+    if (anchorAgeMs > blockHorizon) {
+      level = "expired-anchor";
+      notes.push(`anchor age ${anchorAgeMs}ms exceeds block horizon ${blockHorizon}ms`);
+    } else if (anchorAgeMs > horizon) {
+      level = "stale-anchor";
+      notes.push(`anchor age ${anchorAgeMs}ms exceeds trust horizon ${horizon}ms (degraded)`);
+    }
   }
 
   lastObservation = sample;

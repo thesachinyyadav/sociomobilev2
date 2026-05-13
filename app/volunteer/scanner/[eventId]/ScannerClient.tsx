@@ -694,6 +694,7 @@ export default function ScannerClient() {
         <div
           className={`scan-status-row scan-status-${
             integrity.level === "compromised" ? "error"
+            : integrity.level === "expired-anchor" ? "error"
             : integrity.level === "no-anchor" ? "warning"
             : integrity.level === "stale-anchor" ? "warning"
             : "info"

@@ -18,7 +18,11 @@ export default function GlobalError({
       error.message.includes("Failed to fetch dynamically imported module");
 
     if (isChunkError) {
-      window.location.reload();
+      if (typeof navigator !== 'undefined' && !navigator.onLine) {
+        window.location.href = '/offline';
+      } else {
+        window.location.reload();
+      }
     }
 
     console.error("[FatalScannerTrace] GLOBAL ERROR BOUNDARY CAUGHT ERROR:", {

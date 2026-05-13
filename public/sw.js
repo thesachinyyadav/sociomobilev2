@@ -6,9 +6,9 @@
    • Network-first for navigations and next data routes
    ────────────────────────────────────────────────────────── */
 
-const CACHE_STATIC = "socio-static-v5";   // Next.js chunks, fonts, CSS
-const CACHE_PAGES = "socio-pages-v5";     // HTML navigations
-const CACHE_IMAGES = "socio-images-v5";   // images
+const CACHE_STATIC = "socio-static-v6";   // Next.js chunks, fonts, CSS
+const CACHE_PAGES = "socio-pages-v6";     // HTML navigations
+const CACHE_IMAGES = "socio-images-v6";   // images
 const OFFLINE_URL = "/offline";
 
 const ALL_CACHES = [CACHE_STATIC, CACHE_PAGES, CACHE_IMAGES];
@@ -16,6 +16,7 @@ const ALL_CACHES = [CACHE_STATIC, CACHE_PAGES, CACHE_IMAGES];
 const CORE_ROUTES = [
   "/",
   "/offline",
+  "/offline.html",
   "/auth",
   "/discover",
   "/events",
@@ -144,7 +145,7 @@ self.addEventListener("fetch", (event) => {
   /* 1. Next.js immutable static bundles — cache-first (they're fingerprinted) */
   if (isNextStatic(url)) {
     event.respondWith(
-      caches.match(request).then(
+      caches.match(request, { ignoreSearch: true }).then(
         (cached) => {
           if (cached) {
             CACHE_AUDIT.counters.staticHit += 1;
@@ -186,7 +187,7 @@ self.addEventListener("fetch", (event) => {
           caches.open(CACHE_PAGES).then((c) => c.put(request, clone));
           return res;
         })
-        .catch(() => caches.match(request))
+        .catch(() => caches.match(request, { ignoreSearch: true }))
     );
     return;
   }
@@ -204,9 +205,14 @@ self.addEventListener("fetch", (event) => {
         })
         .catch(() =>
           caches
-            .match(request)
-            .then((r) => r || caches.match(OFFLINE_URL))
-            .then((r) => r || caches.match("/"))
+            .match(request, { ignoreSearch: true })
+            .then((r) => r || caches.match(OFFLINE_URL, { ignoreSearch: true }))
+            .then((r) => r || caches.match("/offline.html", { ignoreSearch: true }))
+            .then((r) => r || caches.match("/", { ignoreSearch: true }))
+            .then((r) => r || new Response(
+              "<!DOCTYPE html><html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>Offline - SOCIO</title><style>body{font-family:system-ui,sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;margin:0;background:#f9fafb;color:#111827;text-align:center;padding:20px}svg{width:64px;height:64px;color:#9ca3af;margin-bottom:16px}h1{font-size:1.5rem;font-weight:700;margin-bottom:8px}p{font-size:0.875rem;color:#6b7280;margin-bottom:24px}.btn{background:#1a3a7a;color:white;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:600;font-size:0.875rem}</style></head><body><svg fill='none' stroke='currentColor' viewBox='0 0 24 24'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M3 3l18 18m-2.286-2.286A8.953 8.953 0 0112 21a8.953 8.953 0 01-6.714-2.286M5.586 15.586a5 5 0 010-7.072M2.757 12.757a9.002 9.002 0 011.664-2.454M12 9v.01M16.414 16.414A5 5 0 0019 12M19.243 9.243a9.002 9.002 0 00-1.664-2.454'></path></svg><h1>Offline Mode</h1><p>You are currently offline and this page is not cached.</p><a href='/' class='btn'>Go to Home</a></body></html>",
+              { headers: { "Content-Type": "text/html" } }
+            ))
         )
     );
     return;
@@ -215,7 +221,7 @@ self.addEventListener("fetch", (event) => {
   /* 5. Images — cache-first */
   if (isImage(request)) {
     event.respondWith(
-      caches.match(request).then(
+      caches.match(request, { ignoreSearch: true }).then(
         (cached) => {
           if (cached) {
             CACHE_AUDIT.counters.imageHit += 1;
@@ -238,7 +244,7 @@ self.addEventListener("fetch", (event) => {
   /* 6. Other static assets (CSS, JS, fonts) — cache-first */
   if (isStaticAsset(request)) {
     event.respondWith(
-      caches.match(request).then(
+      caches.match(request, { ignoreSearch: true }).then(
         (cached) =>
           cached ||
           fetch(request).then((res) => {

@@ -7,6 +7,7 @@ import {
   useState,
   useCallback,
   useRef,
+  useMemo,
   type ReactNode,
 } from "react";
 import { Capacitor } from "@capacitor/core";
@@ -19,6 +20,7 @@ import { signInWithGoogleNative } from "@/lib/auth/nativeAuth";
 import { apiRequest } from "@/lib/apiClient";
 import { emitAuthTransition } from "@/lib/nativeLaunchState";
 import { logCapacitorPerfAudit, startPerfSpan, withPerfSpan } from "@/lib/capacitorPerfAudit";
+import { db } from "@/lib/offline";
 
 /* ── Local-storage helpers for PWA session persistence ── */
 const LS_SESSION_KEY = "socio_pwa_session";
@@ -30,8 +32,10 @@ function persistSessionToLS(session: Session | null) {
   try {
     if (session) {
       localStorage.setItem(LS_SESSION_KEY, JSON.stringify(session));
+      db.auth.put({ id: "current", sessionData: session, userData: null, updatedAt: Date.now() }).catch(() => {});
     } else {
       localStorage.removeItem(LS_SESSION_KEY);
+      db.auth.delete("current").catch(() => {});
     }
   } catch {}
 }
@@ -50,8 +54,6 @@ function restoreSessionFromLS(): Session | null {
 function persistUserDataToLS(user: UserData | null) {
   try {
     if (user) {
-      // Lightweight Local Profile Snapshot Optimization
-      // Do not store large nested arrays like volunteerEvents to save parse time.
       const snapshot: Partial<UserData> = {
         id: user.id,
         email: user.email,
@@ -65,8 +67,10 @@ function persistUserDataToLS(user: UserData | null) {
         register_number: user.register_number,
       };
       localStorage.setItem(LS_USER_KEY, JSON.stringify(snapshot));
+      db.auth.update("current", { userData: user, updatedAt: Date.now() }).catch(() => {});
     } else {
       localStorage.removeItem(LS_USER_KEY);
+      db.auth.update("current", { userData: null, updatedAt: Date.now() }).catch(() => {});
     }
   } catch {}
 }
@@ -554,11 +558,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         authTimingsRef.current.start = Date.now();
 
         // 1. Restore from LS Backup (OPTIMISTIC)
-        const lsSession = restoreSessionFromLS();
-        const lsUser = restoreUserDataFromLS();
+        let lsSession = restoreSessionFromLS();
+        let lsUser = restoreUserDataFromLS();
+        
+        // 1.5 Restore from DB Backup (FULL)
+        try {
+          const authCache = await db.auth.get("current");
+          if (authCache) {
+            if (authCache.sessionData) lsSession = authCache.sessionData;
+            if (authCache.userData) lsUser = authCache.userData;
+          }
+        } catch (err) {}
         
         if (lsSession?.user) {
-          console.log(`🔍 [AuthRaceDebug] ${Date.now()} Bootstrap: Optimistic LS Restore.`);
+          console.log(`🔍 [AuthRaceDebug] ${Date.now()} Bootstrap: Optimistic Restore.`);
           setSession(lsSession);
           setUser(lsSession.user);
           setUserData(lsUser);
@@ -739,21 +752,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     userData.organization_type === "christ_member" &&
     !userData.campus;
 
+  const contextValue = useMemo(
+    () => ({
+      session,
+      user,
+      userData,
+      isLoading: !isHydrated || isLoading,
+      isAuthReady,
+      isAuthenticated,
+      needsCampus,
+      signInWithGoogle,
+      signOut,
+      refreshUserData,
+    }),
+    [
+      session,
+      user,
+      userData,
+      isHydrated,
+      isLoading,
+      isAuthReady,
+      isAuthenticated,
+      needsCampus,
+      signInWithGoogle,
+      signOut,
+      refreshUserData,
+    ]
+  );
+
   return (
-    <AuthContext.Provider
-      value={{
-        session,
-        user,
-        userData,
-        isLoading: !isHydrated || isLoading,
-        isAuthReady,
-        isAuthenticated,
-        needsCampus,
-        signInWithGoogle,
-        signOut,
-        refreshUserData
-      }}
-    >
+    <AuthContext.Provider value={contextValue}>
       {children}
 
 

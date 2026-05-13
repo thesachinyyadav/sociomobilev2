@@ -1,5 +1,7 @@
 "use client";
 
+import { memo } from "react";
+
 import ShimmerImage from "./ShimmerImage";
 import Link from "next/link";
 import { MapPinIcon, ClockIcon, UsersIcon, TrendingUpIcon, ShareIcon } from "@/components/icons";
@@ -7,7 +9,7 @@ import type { FetchedEvent } from "@/context/EventContext";
 import { formatDateShort, formatTime, getDaysUntil, isDeadlinePassed } from "@/lib/dateUtils";
 import { shareEvent } from "@/lib/share";
 
-export default function EventCard({
+const EventCard = memo(function EventCard({
   event,
   compact,
   featured,
@@ -190,4 +192,6 @@ export default function EventCard({
       </div>
     </Link>
   );
-}
+});
+
+export default EventCard;

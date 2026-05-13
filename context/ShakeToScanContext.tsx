@@ -207,18 +207,29 @@ export function ShakeToScanProvider({ children }: { children: ReactNode }) {
     };
   }, [state.shakeEnabled, state.activeScanEvent, isAuthorizedVolunteer, router, pathname, userData?.volunteerEvents]);
 
+  const contextValue = useMemo(
+    () => ({
+      activeScanEvent: state.activeScanEvent,
+      shakeEnabled: state.shakeEnabled,
+      motionSupported,
+      motionPermission,
+      enableForEvent,
+      disableShake,
+      requestMotionPermission,
+    }),
+    [
+      state.activeScanEvent,
+      state.shakeEnabled,
+      motionSupported,
+      motionPermission,
+      enableForEvent,
+      disableShake,
+      requestMotionPermission,
+    ]
+  );
+
   return (
-    <ShakeToScanContext.Provider
-      value={{
-        activeScanEvent: state.activeScanEvent,
-        shakeEnabled: state.shakeEnabled,
-        motionSupported,
-        motionPermission,
-        enableForEvent,
-        disableShake,
-        requestMotionPermission,
-      }}
-    >
+    <ShakeToScanContext.Provider value={contextValue}>
       {children}
     </ShakeToScanContext.Provider>
   );

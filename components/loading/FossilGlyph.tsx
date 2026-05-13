@@ -16,53 +16,53 @@ interface BoneSpec {
 }
 
 const BONES: BoneSpec[] = [
-  // Spine (skull base → tail tip)
+  // 1. Skull & Upper Spine (Geometric head to shoulders)
   {
-    d: "M88 110 C 130 96, 178 90, 220 96 C 252 100, 280 112, 296 124 L 312 132",
-    len: 260,
+    d: "M 36 94 L 70 90 L 92 84 L 140 84",
+    len: 120,
     delay: 0,
   },
-  // Skull + jaw
+  // 2. Lower Jaw & Neck
   {
-    d: "M70 116 L 60 104 L 78 96 L 90 102 L 96 110 L 86 116 Z M 78 116 L 84 122 L 92 120",
-    len: 110,
-    delay: 0,
-  },
-  // Tail taper
-  {
-    d: "M 296 124 C 314 128, 326 132, 338 140",
-    len: 70,
+    d: "M 40 102 L 72 100 L 98 110 L 150 108",
+    len: 120,
     delay: 1,
   },
-  // Front leg
+  // 3. The Great Sail (Sweeping outer curve)
   {
-    d: "M 138 108 L 142 142 L 134 168 L 138 174 L 152 174",
+    d: "M 140 84 C 160 30, 220 30, 240 84",
+    len: 160,
+    delay: 2,
+  },
+  // 4. Sail Ribs (Vertical struts)
+  {
+    d: "M 155 84 L 155 49 M 175 84 L 175 36 M 195 84 L 195 34 M 215 84 L 215 44",
+    len: 180,
+    delay: 3,
+  },
+  // 5. Upper Tail (Smooth taper)
+  {
+    d: "M 240 84 C 275 88, 310 96, 340 104",
     len: 110,
     delay: 4,
   },
-  // Rear leg
+  // 6. Belly & Lower Tail (Continuous bottom line)
   {
-    d: "M 244 108 L 250 146 L 240 174 L 244 180 L 262 180",
-    len: 120,
+    d: "M 150 108 C 180 124, 220 124, 245 108 C 275 118, 310 116, 340 104",
+    len: 200,
     delay: 5,
   },
-  // Ribs (single combined path)
+  // 7. Front Arm (Angular geometric)
   {
-    d: "M 152 102 C 156 122, 158 134, 156 150 M 178 96 C 182 118, 184 132, 182 152 M 204 94 C 208 118, 210 132, 208 152",
-    len: 220,
-    delay: 3,
-  },
-  // Sail spines (combined)
-  {
-    d: "M 132 100 L 130 76 M 150 94 L 148 62 M 168 88 L 166 48 M 188 84 L 188 38 M 208 84 L 210 46 M 226 88 L 230 60 M 246 96 L 250 76",
-    len: 240,
-    delay: 2,
-  },
-  // Belly line
-  {
-    d: "M 138 152 C 170 158, 220 158, 252 150",
-    len: 130,
+    d: "M 150 108 L 158 135 L 148 152 L 156 152",
+    len: 70,
     delay: 6,
+  },
+  // 8. Rear Leg (Digitigrade angular)
+  {
+    d: "M 245 106 L 232 136 L 246 162 L 264 162",
+    len: 100,
+    delay: 7,
   },
 ];
 
@@ -122,10 +122,10 @@ export function FossilGlyph({ mode = "active", scannerSafe = false }: FossilGlyp
             />
           ))}
           {/* Eye */}
-          <circle className="bp-eye" cx="74" cy="108" r="1.6" />
+          <circle className="bp-eye" cx="80" cy="88" r="1.6" />
           {/* Front knee + rear knee joints */}
-          <circle className="bp-joint" cx="142" cy="142" r="1.4" />
-          <circle className="bp-joint" cx="250" cy="146" r="1.4" />
+          <circle className="bp-joint" cx="158" cy="135" r="1.4" />
+          <circle className="bp-joint" cx="232" cy="136" r="1.4" />
         </g>
 
         {/* Floating blueprint particles */}

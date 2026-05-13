@@ -5,6 +5,7 @@ import { AuthProvider } from "@/context/AuthContext";
 import { EventProvider } from "@/context/EventContext";
 import { NotificationProvider } from "@/context/NotificationContext";
 import { ShakeToScanProvider } from "@/context/ShakeToScanContext";
+import { NetworkProvider } from "@/context/NetworkContext";
 import type { FetchedEvent } from "@/context/EventContext";
 import AppShell from "./AppShell";
 import { apiRequest } from "@/lib/apiClient";
@@ -123,15 +124,17 @@ export default async function RootLayout({
         />
       </head>
       <body>
-        <AuthProvider>
-          <EventProvider initialEvents={events}>
-            <NotificationProvider>
-              <ShakeToScanProvider>
-                <AppShell>{children}</AppShell>
-              </ShakeToScanProvider>
-            </NotificationProvider>
-          </EventProvider>
-        </AuthProvider>
+        <NetworkProvider>
+          <AuthProvider>
+            <EventProvider initialEvents={events}>
+              <NotificationProvider>
+                <ShakeToScanProvider>
+                  <AppShell>{children}</AppShell>
+                </ShakeToScanProvider>
+              </NotificationProvider>
+            </EventProvider>
+          </AuthProvider>
+        </NetworkProvider>
         <Toaster
           position="top-center"
           toastOptions={{

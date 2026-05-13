@@ -23,6 +23,8 @@ import { Capacitor } from "@capacitor/core";
 import { Haptics, NotificationType } from "@capacitor/haptics";
 import { startRecoveryTransition, stopRecoveryTransition } from "@/lib/nativeLaunchState";
 import { logCapacitorPerfAudit, logMemorySnapshot, startPerfSpan, withPerfSpan } from "@/lib/capacitorPerfAudit";
+import { useLiveQuery } from "dexie-react-hooks";
+import { db, syncEngine } from "@/lib/offline";
 
 const DENIED_MESSAGE = "You do not have permission to access this feature";
 
@@ -94,10 +96,15 @@ export default function ScannerClient() {
   /* ── UX state ── */
   const [history,      setHistory]      = useState<HistoryRow[]>([]);
   const [toasts,       setToasts]       = useState<ScanToast[]>([]);
-  const [syncQueue,    setSyncQueue]    = useState<QueuedScan[]>([]);
   const [scanCount,    setScanCount]    = useState(0);
   const [viewportStatus, setViewportStatus] = useState<"idle"|"success"|"duplicate"|"error">("idle");
   const [isVerifying,  setIsVerifying]  = useState(false);
+
+  // Dexie live queries
+  const syncQueue = useLiveQuery(
+    () => db.syncQueue.where("eventId").equals(eventId).toArray(),
+    [eventId]
+  ) || [];
 
   /* ── Refs ── */
   const videoRef          = useRef<HTMLVideoElement | null>(null);
@@ -119,6 +126,7 @@ export default function ScannerClient() {
   /* ── Component Lifecycle ── */
   useEffect(() => {
     mountedRef.current = true;
+    syncEngine.start();
     return () => {
       mountedRef.current = false;
       if (viewportTimerRef.current) clearTimeout(viewportTimerRef.current);
@@ -210,10 +218,11 @@ export default function ScannerClient() {
     cooldownMapRef.current.set(qrData, now);
 
     const cached = attendeeCacheRef.current.get(qrData);
-    if (cached?.status === "already_present") {
+    const cachedAttendee = await db.attendees.get(qrData);
+    if (cached?.status === "already_present" || cachedAttendee?.status === "already_present") {
       void haptic("warning");
       flashViewport("duplicate");
-      pushToast({ type: "duplicate", name: cached.name, message: "Already checked in" });
+      pushToast({ type: "duplicate", name: cachedAttendee?.name || cached?.name || "Attendee", message: "Already checked in" });
       return;
     }
 
@@ -235,31 +244,48 @@ export default function ScannerClient() {
 
     try {
       setIsVerifying(true);
-      const res: any = await withPerfSpan("scanner.verify.request", async () =>
-        apiRequest(
-          `/events/${encodeURIComponent(event.event_id)}/scan-qr`,
-          { method: "POST", body: JSON.stringify(payload), cache: "no-store", timeoutMs: 4000 }
-        ), { eventId: event.event_id }
-      );
+      
+      let res: any;
+      if (!navigator.onLine) {
+        // Offline: immediately queue and treat as success for now
+        const operationId = await syncEngine.queueScan(event.event_id, qrData, userData?.register_number || undefined, payload.scannerInfo);
+        res = { participant: { name: "Offline Attendee", status: "scanned" } };
+        // Save to offline DB
+        await db.attendees.put({ qrData, eventId: event.event_id, name: "Offline Attendee", status: "already_present", synced: false, updatedAt: Date.now() });
+        pushToast({ type: "offline", name: "Scan queued", message: "Will sync when online" });
+        setHistory(prev => [{ id: operationId, name: "Queued", status: "offline" as ScanStatus, time: new Date() }, ...prev].slice(0, 50));
+      } else {
+        res = await withPerfSpan("scanner.verify.request", async () =>
+          apiRequest(
+            `/events/${encodeURIComponent(event.event_id)}/scan-qr`,
+            { method: "POST", body: JSON.stringify(payload), cache: "no-store", timeoutMs: 4000 }
+          ), { eventId: event.event_id }
+        );
+      }
+
       if (recoveryTimer) clearTimeout(recoveryTimer);
       if (isNative) stopRecoveryTransition("scanner-verify");
 
-      const participant = res.participant;
-      const finalName   = participant?.name || "Attendee";
+      if (navigator.onLine) {
+        const participant = res.participant;
+        const finalName   = participant?.name || "Attendee";
 
-      if (participant?.status === "already_present") {
-        void haptic("warning");
-        flashViewport("duplicate");
-        attendeeCacheRef.current.set(qrData, { name: finalName, status: "already_present" });
-        pushToast({ type: "duplicate", name: finalName, message: "Already checked in" });
-        setHistory(prev => [{ id: `r_${Date.now()}`, name: finalName, status: "duplicate" as ScanStatus, time: new Date() }, ...prev].slice(0, 50));
-      } else {
-        void haptic("success");
-        flashViewport("success");
-        attendeeCacheRef.current.set(qrData, { name: finalName, status: "already_present" });
-        pushToast({ type: "success", name: finalName, message: "Attendance marked" });
-        setHistory(prev => [{ id: `r_${Date.now()}`, name: finalName, status: "success" as ScanStatus, time: new Date() }, ...prev].slice(0, 50));
-        setScanCount(prev => prev + 1);
+        if (participant?.status === "already_present") {
+          void haptic("warning");
+          flashViewport("duplicate");
+          attendeeCacheRef.current.set(qrData, { name: finalName, status: "already_present" });
+          await db.attendees.put({ qrData, eventId: event.event_id, name: finalName, status: "already_present", synced: true, updatedAt: Date.now() });
+          pushToast({ type: "duplicate", name: finalName, message: "Already checked in" });
+          setHistory(prev => [{ id: `r_${Date.now()}`, name: finalName, status: "duplicate" as ScanStatus, time: new Date() }, ...prev].slice(0, 50));
+        } else {
+          void haptic("success");
+          flashViewport("success");
+          attendeeCacheRef.current.set(qrData, { name: finalName, status: "already_present" });
+          await db.attendees.put({ qrData, eventId: event.event_id, name: finalName, status: "already_present", synced: true, updatedAt: Date.now() });
+          pushToast({ type: "success", name: finalName, message: "Attendance marked" });
+          setHistory(prev => [{ id: `r_${Date.now()}`, name: finalName, status: "success" as ScanStatus, time: new Date() }, ...prev].slice(0, 50));
+          setScanCount(prev => prev + 1);
+        }
       }
     } catch (err: any) {
       if (recoveryTimer) clearTimeout(recoveryTimer);
@@ -270,8 +296,8 @@ export default function ScannerClient() {
       const isUnauthorized = err.status === 403 || err.status === 429;
 
       if (isNetworkError) {
-        const offlineId = `r_${Date.now()}`;
-        setSyncQueue(prev => [...prev, { id: offlineId, payload, timestamp: Date.now() }]);
+        const offlineId = await syncEngine.queueScan(event.event_id, qrData, userData?.register_number || undefined, payload.scannerInfo);
+        await db.attendees.put({ qrData, eventId: event.event_id, name: "Offline Attendee", status: "already_present", synced: false, updatedAt: Date.now() });
         pushToast({ type: "offline", name: "Scan queued", message: "Will sync when online" });
         setHistory(prev => [{ id: offlineId, name: "Queued", status: "offline" as ScanStatus, time: new Date() }, ...prev].slice(0, 50));
       } else if (isUnauthorized) {
@@ -435,8 +461,17 @@ export default function ScannerClient() {
           pushToast({ type: "error", name: "Access Denied", message: err.message || DENIED_MESSAGE });
           setTimeout(() => router.replace("/volunteer"), 1500);
         } else if (isNetworkError && cachedEvent) {
-          // Network down — allow cached assignment as best-effort
-          setEvent(cachedEvent);
+          // Network down — allow cached assignment as best-effort if not expired
+          const expiresAt = cachedEvent.volunteer_assignment?.expires_at;
+          const isExpired = expiresAt && new Date(expiresAt).getTime() < Date.now();
+          if (isExpired) {
+            setEvent(null);
+            setAccessError("Assignment expired. Please reconnect to internet to verify.");
+            pushToast({ type: "error", name: "Expired", message: "Assignment expired. Please reconnect." });
+            setTimeout(() => router.replace("/volunteer"), 1500);
+          } else {
+            setEvent(cachedEvent);
+          }
         } else {
           // Unknown error without cache — deny for safety
           setEvent(null);
@@ -472,8 +507,6 @@ export default function ScannerClient() {
           }
         });
       }
-      const rawQ = localStorage.getItem(`scan_queue_${eventId}`);
-      if (rawQ) setSyncQueue(JSON.parse(rawQ));
     } catch {}
   }, [eventId]);
 
@@ -481,52 +514,6 @@ export default function ScannerClient() {
     if (history.length > 0)
       sessionStorage.setItem(`scan_hist_${eventId}`, JSON.stringify(history));
   }, [history, eventId]);
-
-  useEffect(() => {
-    localStorage.setItem(`scan_queue_${eventId}`, JSON.stringify(syncQueue));
-  }, [syncQueue, eventId]);
-
-
-  /* ── Background offline sync ──
-   * Must be declared after pushToast (uses it in the catch path).
-   * Distinguishes 403/429 (permanent failures) from network errors (transient).
-   * Unauthorized or rate-limited scans are permanently dropped with visible feedback.
-   */
-  useEffect(() => {
-    if (syncQueue.length === 0 || !session?.access_token) return;
-    const t = setTimeout(async () => {
-      const remaining: QueuedScan[] = [];
-      for (const item of syncQueue) {
-        try {
-          await withPerfSpan("scanner.sync-item", () =>
-            apiRequest(`/events/${encodeURIComponent(eventId)}/scan-qr`, {
-              method: "POST",
-              body: JSON.stringify(item.payload),
-              cache: "no-store",
-              timeoutMs: 5000,
-            }), { eventId }
-          );
-        } catch (err: any) {
-          console.error(`[Scanner] Background sync failed for item ${item.id}:`, err?.message || err);
-          const msg = (err.message || "").toLowerCase();
-          const isPermanentFailure =
-            msg.includes("not assigned") ||
-            msg.includes("volunteer access") ||
-            msg.includes("too many") ||
-            err.status === 403 ||
-            err.status === 429;
-          if (isPermanentFailure) {
-            // Drop permanently — surface as one toast
-            pushToast({ type: "unauthorized", name: "Sync failed", message: "Volunteer access was revoked" });
-          } else {
-            remaining.push(item); // Retry on transient network errors
-          }
-        }
-      }
-      setSyncQueue(remaining);
-    }, 5000);
-    return () => clearTimeout(t);
-  }, [syncQueue, session, eventId, pushToast]);
 
   /* ── Scanner lifecycle ── */
   useEffect(() => {

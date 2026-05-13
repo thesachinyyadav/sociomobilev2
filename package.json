@@ -30,6 +30,8 @@
     "@zxing/browser": "^0.2.0",
     "@zxing/library": "^0.22.0",
     "dayjs": "^1.11.19",
+    "dexie": "^4.4.2",
+    "dexie-react-hooks": "^4.4.0",
     "framer-motion": "^12.38.0",
     "hono": "^4.12.18",
     "jspdf": "^4.2.1",

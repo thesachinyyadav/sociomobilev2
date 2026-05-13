@@ -3,6 +3,7 @@
 import { createContext, useContext, useState, useEffect, type ReactNode, useCallback } from "react";
 import { apiRequest } from "@/lib/apiClient";
 import { startPerfSpan } from "@/lib/capacitorPerfAudit";
+import { db } from "@/lib/offline";
 
 /* ── Types ── */
 export interface FetchedEvent {
@@ -195,11 +196,36 @@ export function EventProvider({
         timeoutMs: 15000 
       });
       const events = data.events ?? data.data ?? data ?? [];
-      setAllEvents(Array.isArray(events) ? events : []);
+      const fetched = Array.isArray(events) ? events : [];
+      setAllEvents(fetched);
       setLastUpdated(Date.now());
+      
+      try {
+        const toPut = fetched.map(ev => ({
+          id: ev.event_id,
+          data: ev,
+          updatedAt: Date.now()
+        }));
+        if (toPut.length > 0) {
+          await db.events.bulkPut(toPut);
+        }
+      } catch (err) {
+        console.error("🔍 [EventCtx] Offline cache update failed:", err);
+      }
     } catch (err: any) {
       console.error("🔍 [EventCtx] Refresh failed:", err);
       if (!silent) setError(err.message || "Failed to fetch events");
+      
+      // Try offline fallback
+      try {
+        const offlineEvents = await db.events.toArray();
+        if (offlineEvents.length > 0) {
+          setAllEvents(offlineEvents.map(e => e.data));
+          console.log("🔍 [EventCtx] Loaded offline cache as fallback");
+        }
+      } catch (dbErr) {
+        // ignore
+      }
     } finally {
       if (!silent) setIsLoading(false);
       endSpan({ status: "completed" });
@@ -208,10 +234,23 @@ export function EventProvider({
 
   // Fetch events on mount if we have none OR if they are older than 5 minutes
   useEffect(() => {
-    const shouldRefresh = allEvents.length === 0 || (lastUpdated && Date.now() - lastUpdated > 300000);
-    if (shouldRefresh) {
-      void refreshEvents(allEvents.length > 0);
-    }
+    const loadCacheThenFetch = async () => {
+      if (allEvents.length === 0) {
+        try {
+          const offlineEvents = await db.events.toArray();
+          if (offlineEvents.length > 0) {
+            setAllEvents(offlineEvents.map(e => e.data));
+          }
+        } catch (e) {}
+      }
+      
+      const shouldRefresh = allEvents.length === 0 || (lastUpdated && Date.now() - lastUpdated > 300000);
+      if (shouldRefresh) {
+        void refreshEvents(allEvents.length > 0);
+      }
+    };
+    
+    void loadCacheThenFetch();
   }, [allEvents.length, lastUpdated, refreshEvents]);
 
   return (

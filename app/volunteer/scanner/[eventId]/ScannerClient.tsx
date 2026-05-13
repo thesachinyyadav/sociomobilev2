@@ -25,6 +25,13 @@ import { startRecoveryTransition, stopRecoveryTransition } from "@/lib/nativeLau
 import { logCapacitorPerfAudit, logMemorySnapshot, startPerfSpan, withPerfSpan } from "@/lib/capacitorPerfAudit";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db, syncEngine } from "@/lib/offline";
+import {
+  buildTrustedTimeProvenance,
+  decideOfflineScan,
+  getTimeIntegrityReport,
+  integrityLabel,
+  type TimeIntegrityReport,
+} from "@/lib/offlineTime";
 
 const DENIED_MESSAGE = "You do not have permission to access this feature";
 
@@ -99,6 +106,7 @@ export default function ScannerClient() {
   const [scanCount,    setScanCount]    = useState(0);
   const [viewportStatus, setViewportStatus] = useState<"idle"|"success"|"duplicate"|"error">("idle");
   const [isVerifying,  setIsVerifying]  = useState(false);
+  const [integrity,    setIntegrity]    = useState<TimeIntegrityReport | null>(null);
 
   // Dexie live queries
   const syncQueue = useLiveQuery(
@@ -118,9 +126,12 @@ export default function ScannerClient() {
   const isNative = useMemo(() => Capacitor.isNativePlatform(), []);
 
   const cachedEvent = useMemo(() =>
-    getActiveVolunteerEvents(userData?.volunteerEvents).find(
-      (e) => e.event_id === eventId
-    ) ?? null,
+    // Filter via trusted "now" so a tampered device clock cannot promote
+    // an already-expired cached assignment back into the active set.
+    getActiveVolunteerEvents(
+      userData?.volunteerEvents,
+      new Date(getTimeIntegrityReport().trustedNowMs),
+    ).find((e) => e.event_id === eventId) ?? null,
   [eventId, userData?.volunteerEvents]);
 
   /* ── Component Lifecycle ── */
@@ -138,6 +149,20 @@ export default function ScannerClient() {
       }
     };
   }, [isNative]);
+
+  /* ── Time-integrity poll ──
+   * The integrity monitor compares device time against the trusted server
+   * anchor and surfaces tampering/drift before it can affect a scan.
+   * Polling at 5s keeps the banner reactive without measurable CPU cost. */
+  useEffect(() => {
+    if (!mountedRef.current) return;
+    setIntegrity(getTimeIntegrityReport());
+    const id = setInterval(() => {
+      if (!mountedRef.current) return;
+      setIntegrity(getTimeIntegrityReport());
+    }, 5_000);
+    return () => clearInterval(id);
+  }, []);
 
   /* ── UX & Toast system ── */
   const pushToast = useCallback((t: Omit<ScanToast, "id" | "timestamp">) => {
@@ -212,10 +237,34 @@ export default function ScannerClient() {
     if (!session?.access_token || !event) return;
 
     const qrData = result.data;
-    const now    = Date.now();
-    const last   = cooldownMapRef.current.get(qrData);
+
+    // Time-integrity gate (Phases 3, 4, 5, 9). The integrity report drives
+    // the trusted "now" we use for cooldown, expiry, and event-window checks.
+    // We pre-compute it once per scan so the cooldown and the validator see
+    // a consistent snapshot.
+    const report = getTimeIntegrityReport();
+    const decision = decideOfflineScan(event, { integrity: report });
+
+    const now = report.trustedNowMs;
+    const last = cooldownMapRef.current.get(qrData);
     if (last && now - last < 2500) return;
     cooldownMapRef.current.set(qrData, now);
+
+    if (!decision.allow) {
+      void haptic("error");
+      flashViewport("error");
+      pushToast({
+        type:
+          decision.reason === "assignment-expired" ||
+          decision.reason === "event-window-closed" ||
+          decision.reason === "event-not-started"
+            ? "unauthorized"
+            : "error",
+        name: "Cannot scan",
+        message: decision.message,
+      });
+      return;
+    }
 
     const cached = attendeeCacheRef.current.get(qrData);
     const cachedAttendee = await db.attendees.get(qrData);
@@ -226,15 +275,20 @@ export default function ScannerClient() {
       return;
     }
 
+    const provenance = buildTrustedTimeProvenance(report);
+    const scannerInfo = {
+      source:    "sociomobilev2",
+      platform:  Capacitor.getPlatform(),
+      format:    result.format,
+      timestamp: new Date().toISOString(),
+      // Trusted-time fields travel with every scan (online + offline) so the
+      // server can reconcile against its own clock (Phase 7).
+      trustedTime: provenance,
+    };
     const payload = {
       qrCodeData: qrData,
       volunteerId: userData?.register_number,
-      scannerInfo: {
-        source:    "sociomobilev2",
-        platform:  Capacitor.getPlatform(),
-        format:    result.format,
-        timestamp: new Date().toISOString(),
-      },
+      scannerInfo,
     };
 
     // Recovery transition is a native-only overlay signal — never dispatch on web/PWA
@@ -247,8 +301,14 @@ export default function ScannerClient() {
       
       let res: any;
       if (!navigator.onLine) {
-        // Offline: immediately queue and treat as success for now
-        const operationId = await syncEngine.queueScan(event.event_id, qrData, userData?.register_number || undefined, payload.scannerInfo);
+        // Offline: immediately queue with full trusted-time provenance.
+        const operationId = await syncEngine.queueScan(
+          event.event_id,
+          qrData,
+          userData?.register_number || undefined,
+          payload.scannerInfo,
+          provenance,
+        );
         res = { participant: { name: "Offline Attendee", status: "scanned" } };
         // Save to offline DB
         await db.attendees.put({ qrData, eventId: event.event_id, name: "Offline Attendee", status: "already_present", synced: false, updatedAt: Date.now() });
@@ -296,7 +356,13 @@ export default function ScannerClient() {
       const isUnauthorized = err.status === 403 || err.status === 429;
 
       if (isNetworkError) {
-        const offlineId = await syncEngine.queueScan(event.event_id, qrData, userData?.register_number || undefined, payload.scannerInfo);
+        const offlineId = await syncEngine.queueScan(
+          event.event_id,
+          qrData,
+          userData?.register_number || undefined,
+          payload.scannerInfo,
+          provenance,
+        );
         await db.attendees.put({ qrData, eventId: event.event_id, name: "Offline Attendee", status: "already_present", synced: false, updatedAt: Date.now() });
         pushToast({ type: "offline", name: "Scan queued", message: "Will sync when online" });
         setHistory(prev => [{ id: offlineId, name: "Queued", status: "offline" as ScanStatus, time: new Date() }, ...prev].slice(0, 50));
@@ -461,16 +527,18 @@ export default function ScannerClient() {
           pushToast({ type: "error", name: "Access Denied", message: err.message || DENIED_MESSAGE });
           setTimeout(() => router.replace("/volunteer"), 1500);
         } else if (isNetworkError && cachedEvent) {
-          // Network down — allow cached assignment as best-effort if not expired
-          const expiresAt = cachedEvent.volunteer_assignment?.expires_at;
-          const isExpired = expiresAt && new Date(expiresAt).getTime() < Date.now();
-          if (isExpired) {
-            setEvent(null);
-            setAccessError("Assignment expired. Please reconnect to internet to verify.");
-            pushToast({ type: "error", name: "Expired", message: "Assignment expired. Please reconnect." });
-            setTimeout(() => router.replace("/volunteer"), 1500);
-          } else {
+          // Network down — gate the cached assignment through the trusted-time
+          // validator so a device with a tampered clock cannot "unexpire" its
+          // own assignment by rolling the clock back.
+          const decision = decideOfflineScan(cachedEvent);
+          if (decision.allow) {
             setEvent(cachedEvent);
+          } else {
+            setEvent(null);
+            const fallbackMsg = decision.message || "Assignment cannot be verified. Please reconnect.";
+            setAccessError(fallbackMsg);
+            pushToast({ type: "error", name: "Verification needed", message: fallbackMsg });
+            setTimeout(() => router.replace("/volunteer"), 1500);
           }
         } else {
           // Unknown error without cache — deny for safety
@@ -625,6 +693,25 @@ export default function ScannerClient() {
         <span className="scan-status-dot" />
         <span className="scan-status-text">{statusConfig.text}</span>
       </div>
+
+      {/* Time-integrity banner — surfaces clock-tampering, stale anchor, or
+          "no anchor yet" states in plain language (Phase 11). Hidden when the
+          system is fully trusted so it doesn't add visual noise. */}
+      {integrity && integrity.level !== "trusted" && (
+        <div
+          className={`scan-status-row scan-status-${
+            integrity.level === "compromised" ? "error"
+            : integrity.level === "no-anchor" ? "warning"
+            : integrity.level === "stale-anchor" ? "warning"
+            : "info"
+          }`}
+          role="status"
+          aria-live="polite"
+        >
+          <span className="scan-status-dot" />
+          <span className="scan-status-text">{integrityLabel(integrity.level)}</span>
+        </div>
+      )}
 
       <div className="scan-main-column px-4 pt-3 pb-4 max-w-[480px] mx-auto space-y-3">
         {/* ── Camera Viewport ── */}

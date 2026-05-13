@@ -43,6 +43,19 @@ export function isVolunteerEventActive(event: VolunteerEvent, now = new Date()) 
   return true;
 }
 
-export function getActiveVolunteerEvents(events?: VolunteerEvent[] | null) {
-  return (Array.isArray(events) ? events : []).filter((event) => isVolunteerEventActive(event));
+/**
+ * Returns the subset of volunteer events that are still active at `now`.
+ *
+ * `now` defaults to `new Date()` for backwards compatibility, but callers
+ * that operate on attendance-critical surfaces should pass the trusted
+ * "now" derived from `@/lib/offlineTime` so a tampered device clock cannot
+ * resurrect an expired assignment.
+ */
+export function getActiveVolunteerEvents(
+  events?: VolunteerEvent[] | null,
+  now: Date = new Date(),
+) {
+  return (Array.isArray(events) ? events : []).filter((event) =>
+    isVolunteerEventActive(event, now),
+  );
 }

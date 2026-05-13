@@ -1,5 +1,6 @@
 import { PWA_API_URL } from "@/lib/apiConfig";
 import { CLIENT_CACHE_TTL_MS, shouldBypassClientMemoryCache } from "@/lib/cache/policy";
+import { recordServerTimeFromHeaders } from "@/lib/offlineTime";
 import { Capacitor, CapacitorHttp } from "@capacitor/core";
 
 type ApiFetchOptions = RequestInit & {
@@ -315,6 +316,16 @@ export async function apiFetch<T = any>(
           timeoutMs
         );
         const durationMs = Date.now() - startedAt;
+
+        // Trusted-time anchor refresh — every successful response carries
+        // an authoritative server `Date` header that we feed into the
+        // offline trusted-time system. Safe no-op when the header is
+        // absent or unparseable.
+        try {
+          recordServerTimeFromHeaders(response.headers);
+        } catch {
+          // never break the request pipeline on time-sync issues
+        }
 
         const rawBody = await response.text();
         const parsedBody = parseBody(rawBody, response.headers.get("content-type"));

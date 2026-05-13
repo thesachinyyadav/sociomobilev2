@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState, useEffect, type ReactNode, useCallback } from "react";
+import { createContext, useContext, useState, useEffect, type ReactNode, useCallback, useMemo } from "react";
 import { apiRequest } from "@/lib/apiClient";
 import { startPerfSpan } from "@/lib/capacitorPerfAudit";
 import { db } from "@/lib/offline";
@@ -253,8 +253,13 @@ export function EventProvider({
     void loadCacheThenFetch();
   }, [allEvents.length, lastUpdated, refreshEvents]);
 
+  const contextValue = useMemo(
+    () => ({ allEvents, isLoading, error, refreshEvents, lastUpdated }),
+    [allEvents, isLoading, error, refreshEvents, lastUpdated]
+  );
+
   return (
-    <EventContext.Provider value={{ allEvents, isLoading, error, refreshEvents, lastUpdated }}>
+    <EventContext.Provider value={contextValue}>
       {children}
     </EventContext.Provider>
   );

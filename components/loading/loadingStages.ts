@@ -33,7 +33,7 @@ export const TITLES: Record<OperationKey, string> = {
 
 export function stageMessage(operation: OperationKey, index: number): string {
   const list = STAGES[operation];
-  if (!list || list.length === 0) return "";
+  if (!list) return "";
   const clamped = Math.max(0, Math.min(list.length - 1, index));
   return list[clamped];
 }

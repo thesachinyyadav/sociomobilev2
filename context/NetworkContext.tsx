@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, useMemo, ReactNode } from "react";
 import { syncEngine } from "@/lib/offline";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "@/lib/offline";
@@ -42,7 +42,7 @@ export function NetworkProvider({ children }: { children: ReactNode }) {
       setIsOnline(true);
       
       // Attempt a lightweight heartbeat to confirm internet
-      fetch('/api/healthcheck', { method: 'HEAD', cache: 'no-store' })
+      fetch('/manifest.json', { method: 'HEAD', cache: 'no-store' })
         .then(() => {
           setStatus(pendingSyncCount > 0 ? "syncing" : "online");
         })
@@ -89,8 +89,13 @@ export function NetworkProvider({ children }: { children: ReactNode }) {
     }
   }, [isOnline, pendingSyncCount, status]);
 
+  const contextValue = useMemo(
+    () => ({ status, isOnline, pendingSyncCount }),
+    [status, isOnline, pendingSyncCount]
+  );
+
   return (
-    <NetworkContext.Provider value={{ status, isOnline, pendingSyncCount }}>
+    <NetworkContext.Provider value={contextValue}>
       {children}
     </NetworkContext.Provider>
   );

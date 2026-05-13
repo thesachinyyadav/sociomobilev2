@@ -356,16 +356,10 @@ export default function ScannerClient() {
       const isUnauthorized = err.status === 403 || err.status === 429;
 
       if (isNetworkError) {
-        const offlineId = await syncEngine.queueScan(
-          event.event_id,
-          qrData,
-          userData?.register_number || undefined,
-          payload.scannerInfo,
-          provenance,
-        );
-        await db.attendees.put({ qrData, eventId: event.event_id, name: "Offline Attendee", status: "already_present", synced: false, updatedAt: Date.now() });
-        pushToast({ type: "offline", name: "Scan queued", message: "Will sync when online" });
-        setHistory(prev => [{ id: offlineId, name: "Queued", status: "offline" as ScanStatus, time: new Date() }, ...prev].slice(0, 50));
+        void haptic("error");
+        flashViewport("error");
+        pushToast({ type: "error", name: "Offline", message: "Scanner requires internet connection" });
+        setTimeout(() => stopScanner(), 500);
       } else if (isUnauthorized) {
         void haptic("error");
         flashViewport("error");
@@ -526,20 +520,13 @@ export default function ScannerClient() {
           setAccessError(err.message || DENIED_MESSAGE);
           pushToast({ type: "error", name: "Access Denied", message: err.message || DENIED_MESSAGE });
           setTimeout(() => router.replace("/volunteer"), 1500);
-        } else if (isNetworkError && cachedEvent) {
-          // Network down — gate the cached assignment through the trusted-time
-          // validator so a device with a tampered clock cannot "unexpire" its
-          // own assignment by rolling the clock back.
-          const decision = decideOfflineScan(cachedEvent);
-          if (decision.allow) {
-            setEvent(cachedEvent);
-          } else {
-            setEvent(null);
-            const fallbackMsg = decision.message || "Assignment cannot be verified. Please reconnect.";
-            setAccessError(fallbackMsg);
-            pushToast({ type: "error", name: "Verification needed", message: fallbackMsg });
-            setTimeout(() => router.replace("/volunteer"), 1500);
-          }
+        } else if (isNetworkError) {
+          // ONLINE ONLY POLICY ENFORCEMENT
+          setEvent(null);
+          const fallbackMsg = "Scanner requires an active internet connection. Please reconnect.";
+          setAccessError(fallbackMsg);
+          pushToast({ type: "error", name: "Offline", message: fallbackMsg });
+          setTimeout(() => router.replace("/volunteer"), 2000);
         } else {
           // Unknown error without cache — deny for safety
           setEvent(null);

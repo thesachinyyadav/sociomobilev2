@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState, useEffect, useCallback, useRef, type ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, useCallback, useRef, useMemo, type ReactNode } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { Capacitor } from "@capacitor/core";
 import { useRouter } from "next/navigation";
@@ -391,26 +391,44 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     }
   }, [notifications, userData?.email]);
 
+  const contextValue = useMemo(
+    () => ({
+      notifications,
+      unreadCount,
+      isLoading,
+      pushStatus,
+      promptStatus,
+      markRead,
+      markAllRead,
+      dismiss,
+      dismissAll,
+      refresh: () => fetchRef.current(),
+      hasMore,
+      loadMore,
+      enablePushNotifications,
+      updatePromptStatus,
+      triggerPrompt,
+    }),
+    [
+      notifications,
+      unreadCount,
+      isLoading,
+      pushStatus,
+      promptStatus,
+      markRead,
+      markAllRead,
+      dismiss,
+      dismissAll,
+      hasMore,
+      loadMore,
+      enablePushNotifications,
+      updatePromptStatus,
+      triggerPrompt,
+    ]
+  );
+
   return (
-    <NotifContext.Provider
-      value={{
-        notifications,
-        unreadCount,
-        isLoading,
-        pushStatus,
-        promptStatus,
-        markRead,
-        markAllRead,
-        dismiss,
-        dismissAll,
-        refresh: () => fetchRef.current(),
-        hasMore,
-        loadMore,
-        enablePushNotifications,
-        updatePromptStatus,
-        triggerPrompt,
-      }}
-    >
+    <NotifContext.Provider value={contextValue}>
       {children}
     </NotifContext.Provider>
   );

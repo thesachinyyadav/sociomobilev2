@@ -200,6 +200,7 @@ export default function ScannerClient() {
 
   /* ── UX state ── */
   const [history,      setHistory]      = useState<HistoryRow[]>([]);
+  const [selectedRow,  setSelectedRow]  = useState<HistoryRow | null>(null);
   const [toasts,       setToasts]       = useState<ScanToast[]>([]);
   const [scanCount,    setScanCount]    = useState(0);
   const [viewportStatus, setViewportStatus] = useState<"idle"|"success"|"duplicate"|"error">("idle");

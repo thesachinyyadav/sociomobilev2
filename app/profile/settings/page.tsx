@@ -14,7 +14,7 @@ export default function SettingsPage() {
   if (!userData) return null;
 
   return (
-    <div className="pwa-page min-h-screen px-4 pb-[calc(var(--bottom-nav)+var(--safe-bottom)+96px)] pt-[calc(var(--nav-height)+var(--safe-top)+20px)] animate-fade-in">
+    <div className="pwa-page px-4 pb-[calc(var(--bottom-nav)+var(--safe-bottom)+96px)] pt-5 animate-fade-in">
 
 
       {/* Account Actions */}

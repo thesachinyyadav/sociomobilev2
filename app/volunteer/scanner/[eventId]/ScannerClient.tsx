@@ -21,6 +21,7 @@ import {
   type IScanner,
   type ScannerResult,
 } from "@/lib/ScannerService";
+import { useNotifications } from "@/context/NotificationContext";
 import { Capacitor } from "@capacitor/core";
 import { Haptics, NotificationType } from "@capacitor/haptics";
 import { startRecoveryTransition, stopRecoveryTransition } from "@/lib/nativeLaunchState";
@@ -219,6 +220,7 @@ export default function ScannerClient() {
   const [scanCount,    setScanCount]    = useState(0);
   const [viewportStatus, setViewportStatus] = useState<"idle"|"success"|"duplicate"|"error">("idle");
   const [integrity,    setIntegrity]    = useState<TimeIntegrityReport | null>(null);
+  const { unreadCount } = useNotifications();
 
   // Dexie live queries
   const syncQueue = useLiveQuery(
@@ -844,10 +846,14 @@ export default function ScannerClient() {
           
           {/* Right: Notification Bell in Blue */}
           <div className="flex-1 flex justify-end">
-            <div className="relative text-[#011F7B]">
+            <Link href="/notifications" className="relative text-[#011F7B] p-1.5 -mr-1.5 active:scale-95 transition-transform">
               <BellIcon size={24} />
-              <span className="absolute -top-1 -right-1 w-4 h-4 bg-[#011F7B] text-white rounded-full text-[10px] flex items-center justify-center font-bold">2</span>
-            </div>
+              {unreadCount > 0 && (
+                <span className="absolute top-0 right-0 min-w-[16px] h-4 bg-[#011F7B] text-white rounded-full text-[10px] flex items-center justify-center font-bold px-1 ring-2 ring-white">
+                  {unreadCount > 99 ? "99+" : unreadCount}
+                </span>
+              )}
+            </Link>
           </div>
         </div>
       </header>
@@ -938,6 +944,18 @@ export default function ScannerClient() {
                 <div className="scan-corner scan-corner-bl" />
                 <div className="scan-corner scan-corner-br" />
                 <div className="scan-line" />
+
+                {/* Stop scanning button */}
+                <button
+                  className="absolute top-5 right-5 w-10 h-10 bg-black/40 backdrop-blur-md text-white rounded-full flex items-center justify-center z-50 pointer-events-auto active:scale-95 transition-transform"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    void stopScanner();
+                  }}
+                  aria-label="Stop scanning"
+                >
+                  <span className="text-[18px]">✕</span>
+                </button>
               </div>
             )}
 

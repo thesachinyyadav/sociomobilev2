@@ -221,6 +221,9 @@ export default function ScannerClient() {
   const [viewportStatus, setViewportStatus] = useState<"idle"|"success"|"duplicate"|"error">("idle");
   const [integrity,    setIntegrity]    = useState<TimeIntegrityReport | null>(null);
   const { unreadCount } = useNotifications();
+  const [isViewingAll, setIsViewingAll] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 10;
 
   // Dexie live queries
   const syncQueue = useLiveQuery(
@@ -1014,7 +1017,12 @@ export default function ScannerClient() {
                 <span className="text-[#F59E0B] text-[9px]">● {syncQueue.length} pending</span>
               )}
             </h3>
-            <span className="text-[12px] font-bold text-[#011F7B] cursor-pointer">View all</span>
+            <button 
+              onClick={() => { setIsViewingAll(true); setCurrentPage(1); }}
+              className="text-[12px] font-bold text-[#011F7B] hover:opacity-70 transition-opacity"
+            >
+              View all
+            </button>
           </div>
 
           <div className="flex flex-col">
@@ -1076,6 +1084,84 @@ export default function ScannerClient() {
 
       {selectedRow && (
         <ScannerParticipantSheet row={selectedRow} eventTitle={event.title} onClose={() => setSelectedRow(null)} />
+      )}
+
+      {/* ── Full History View All Modal ── */}
+      {isViewingAll && (
+        <div className="fixed inset-0 z-[100] bg-white flex flex-col pwa-safe-top">
+          <header className="flex items-center justify-between px-4 h-[var(--nav-height)] border-b border-[#F1F5F9]">
+            <button onClick={() => setIsViewingAll(false)} className="p-2 -ml-2 text-[#0F172A]">
+              <ArrowLeftIcon size={20} />
+            </button>
+            <h2 className="text-[16px] font-bold text-[#0F172A]">All Scans</h2>
+            <div className="w-10" /> {/* Spacer */}
+          </header>
+
+          <div className="flex-1 overflow-y-auto px-4 py-4">
+            <div className="flex flex-col gap-1">
+              {history.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE).map(row => {
+                const getInitials = (name: string) => {
+                  const parts = name.trim().split(' ');
+                  if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+                  return name.substring(0, 2).toUpperCase();
+                };
+
+                const statusLabel =
+                  row.status === "success" ? "Verified" :
+                  row.status === "duplicate" ? "Recheck" :
+                  row.status === "offline" ? "Pending" :
+                  row.status === "unauthorized" ? "Not assigned" :
+                  "Error";
+
+                const statusIcon =
+                  row.status === "success" ? "✓" :
+                  row.status === "duplicate" ? "!" :
+                  row.status === "offline" ? "↑" :
+                  "✕";
+
+                return (
+                  <div key={row.id} className="flex items-center justify-between py-4 border-b border-[#F8FAFC] last:border-0" onClick={() => setSelectedRow(row)}>
+                    <div className="flex items-center gap-4 overflow-hidden min-w-0 flex-1">
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center text-[14px] font-bold shrink-0 ${row.status === 'success' ? 'bg-[#D1FAE5] text-[#10B981]' : row.status === 'duplicate' ? 'bg-[#FEF3C7] text-[#F59E0B]' : row.status === 'error' ? 'bg-[#FEE2E2] text-[#EF4444]' : 'bg-[#E0E7FF] text-[#3B82F6]'}`}>
+                        {getInitials(row.name)}
+                      </div>
+                      <div className="flex flex-col min-w-0">
+                        <span className="text-[14px] font-bold text-[#0F172A] truncate">{row.name}</span>
+                        <span className="text-[12px] font-medium text-[#64748B]">{row.time.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}</span>
+                      </div>
+                    </div>
+                    <div className={`flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-bold ${row.status === 'success' ? 'bg-[#D1FAE5] text-[#10B981]' : row.status === 'duplicate' ? 'bg-[#FEF3C7] text-[#F59E0B]' : row.status === 'error' ? 'bg-[#FEE2E2] text-[#EF4444]' : 'bg-[#E0E7FF] text-[#3B82F6]'}`}>
+                      {statusIcon} {statusLabel}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Pagination Controls */}
+          {history.length > ITEMS_PER_PAGE && (
+            <div className="p-4 border-t border-[#F1F5F9] bg-white flex items-center justify-between">
+              <button 
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                className="px-4 py-2 text-[13px] font-bold text-[#011F7B] disabled:opacity-30 disabled:grayscale transition-all flex items-center gap-2"
+              >
+                <ArrowLeftIcon size={14} /> Previous
+              </button>
+              <span className="text-[13px] font-bold text-[#64748B]">
+                Page {currentPage} of {Math.ceil(history.length / ITEMS_PER_PAGE)}
+              </span>
+              <button 
+                disabled={currentPage >= Math.ceil(history.length / ITEMS_PER_PAGE)}
+                onClick={() => setCurrentPage(prev => prev + 1)}
+                className="px-4 py-2 text-[13px] font-bold text-[#011F7B] disabled:opacity-30 disabled:grayscale transition-all flex items-center gap-2"
+              >
+                Next <ArrowLeftIcon size={14} className="rotate-180" />
+              </button>
+            </div>
+          )}
+        </div>
       )}
     </div>
   );

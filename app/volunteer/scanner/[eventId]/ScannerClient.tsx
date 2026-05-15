@@ -839,32 +839,25 @@ export default function ScannerClient() {
       </div>
 
       {/* ── Header ── */}
-      <header className="scan-header">
+      {/* ── Header ── */}
+      <header className="scan-header relative flex items-center justify-between">
         <button
-          className="scan-back-btn"
+          className="scan-back-btn relative z-10"
           aria-label="Go back"
           onClick={() => { void stopScanner(); router.replace("/volunteer"); }}
         >
           <ArrowLeftIcon size={20} />
         </button>
 
-        <div className="scan-header-title">
-          <span className="scan-event-name-header">{event.title}</span>
-          {isScanning && (
-            <span className="scan-live-pill">
-              <span className="scan-live-dot" />
-              Scanning
-            </span>
-          )}
+        <div className="absolute inset-x-0 top-auto flex flex-col items-center justify-center pointer-events-none mt-[calc(var(--nav-height)/2)]">
+          <span className="text-white font-bold text-lg tracking-widest">SOCIO</span>
+          <span className="text-white/80 text-xs mt-0.5 max-w-[200px] text-center truncate font-medium">{event.title}</span>
         </div>
 
-        <span className="scan-count-badge">{scanCount} scanned</span>
+        <div className="relative z-10">
+          <button className="scan-count-badge">{scanCount} scanned</button>
+        </div>
       </header>
-
-      <div className={`scan-status-row scan-status-${statusConfig.tone}`}>
-        <span className="scan-status-dot" />
-        <span className="scan-status-text">{statusConfig.text}</span>
-      </div>
 
       {/* Time-integrity banner — surfaces clock-tampering, stale anchor, or
           "no anchor yet" states in plain language (Phase 11). Hidden when the
@@ -886,7 +879,7 @@ export default function ScannerClient() {
         </div>
       )}
 
-      <div className="scan-main-column px-4 pt-3 pb-4 max-w-[480px] mx-auto space-y-3">
+      <div className="scan-main-column px-4 pt-4 pb-4 max-w-[480px] mx-auto space-y-4">
         {/* ── Camera Viewport ── */}
         <section
           id="scan-viewport"
@@ -918,30 +911,31 @@ export default function ScannerClient() {
             {/* Idle state */}
             {!isScanning && (
               <div className="scan-idle-overlay">
-                <CameraIcon size={36} className="scan-idle-icon" />
                 {cameraError && <p className="scan-camera-error">{cameraError}</p>}
                 <button
                   id="start-scanning-btn"
                   className="scan-start-btn"
                   onClick={() => void startScanner()}
                 >
-                  Start scanning
+                  <QrCodeIcon size={20} className="text-[#FFBA09]" /> Start Scanning
                 </button>
               </div>
             )}
           </div>
 
-          <div className="scan-terminal-panel">
-            <div className="scan-terminal-copy">
-              {isScanning && (
-                <p className="scan-terminal-meta">Align QR within frame</p>
+          <div className="scan-terminal-panel flex items-center justify-between px-4 py-3 bg-white border-t border-[rgba(1,31,123,0.06)]">
+            <div className="flex flex-col justify-center">
+              {isScanning ? (
+                <p className="text-[12px] font-medium text-[#64748B] m-0">Position QR code within the frame</p>
+              ) : (
+                <p className="text-[12px] font-medium text-[#64748B] m-0">Camera is idle</p>
               )}
             </div>
 
-            <div className="scan-terminal-actions">
+            <div className="flex items-center">
               {isScanning && (
                 <button
-                  className="scan-stop-btn scan-stop-btn-inline"
+                  className="bg-[rgba(1,31,123,0.05)] text-[#011F7B] border border-[rgba(1,31,123,0.14)] rounded-[8px] px-3 py-1.5 text-[12px] font-semibold active:bg-[rgba(1,31,123,0.1)] transition-colors"
                   aria-label="Stop scanning"
                   onClick={() => void stopScanner()}
                 >
@@ -953,34 +947,66 @@ export default function ScannerClient() {
         </section>
 
         {/* ── Recent Scans ── */}
-        <section className="scan-history-section" aria-label="Recent scans">
-          <p className="scan-history-label">
-            Recent scans
-            {syncQueue.length > 0 && (
-              <span className="scan-sync-badge">● {syncQueue.length} pending sync</span>
-            )}
-          </p>
+        <section className="scan-history-section flex-1 flex flex-col overflow-hidden bg-transparent" aria-label="Recent scans">
+          <div className="flex items-center justify-between px-1 mb-2 shrink-0">
+            <h3 className="text-[11px] font-bold text-[#0F172A] tracking-wider uppercase m-0 flex items-center gap-2">
+              Recent scans
+              {syncQueue.length > 0 && (
+                <span className="text-[#F59E0B] text-[9px]">● {syncQueue.length} pending sync</span>
+              )}
+            </h3>
+            <span className="text-[11px] font-bold text-[#011F7B] uppercase cursor-pointer">View all</span>
+          </div>
 
-          <div className="scan-history-list" id="scan-history-list">
+          <div className="scan-history-list flex flex-col gap-2 overflow-y-auto flex-1 pb-4" id="scan-history-list">
             {history.length === 0 ? (
-              <div className="scan-history-empty">
+              <div className="flex flex-col items-center justify-center gap-1.5 py-7 px-4 text-[#94A3B8]">
                 <QrCodeIcon size={22} />
-                <span>No scans yet</span>
+                <span className="text-[12px] font-semibold">No scans yet</span>
               </div>
             ) : (
-              history.slice(0, 20).map(row => (
-                <div key={row.id} className={`scan-row scan-row-${row.status}`} onClick={() => setSelectedRow(row)}>
-                  <span className="scan-row-icon">{ROW_ICON[row.status]}</span>
-                  <span className="scan-row-name">{row.name}</span>
-                  <span className="scan-row-time">
-                    {row.time.toLocaleTimeString([], {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                      second: "2-digit",
-                    })}
-                  </span>
-                </div>
-              ))
+              history.slice(0, 20).map(row => {
+                const getInitials = (name: string) => {
+                  const parts = name.split(' ');
+                  if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+                  return name.substring(0, 2).toUpperCase();
+                };
+                
+                return (
+                  <div key={row.id} className="scan-row justify-between" onClick={() => setSelectedRow(row)}>
+                    <div className="flex items-center gap-3 overflow-hidden min-w-0 flex-1">
+                      <div className={`w-[38px] h-[38px] shrink-0 rounded-full flex items-center justify-center text-[13px] font-bold ${
+                        row.status === 'success' ? 'bg-[rgba(16,185,129,0.10)] text-[#10B981]' : 
+                        row.status === 'duplicate' ? 'bg-[rgba(245,158,11,0.10)] text-[#D97706]' : 
+                        row.status === 'offline' ? 'bg-[rgba(59,130,246,0.10)] text-[#3B82F6]' : 
+                        'bg-[rgba(239,68,68,0.10)] text-[#EF4444]'
+                      }`}>
+                        {getInitials(row.name)}
+                      </div>
+                      <div className="flex flex-col min-w-0">
+                        <span className="text-[14px] font-bold text-[#0F172A] truncate">{row.name}</span>
+                        <span className="text-[11px] font-medium text-[#64748B] truncate">General Admission</span>
+                      </div>
+                    </div>
+                    
+                    <div className="flex flex-col items-end gap-1 shrink-0 ml-2">
+                      <div className={`px-[10px] py-[4px] rounded-full text-[11px] font-semibold flex items-center gap-1 ${
+                        row.status === 'success' ? 'bg-[rgba(16,185,129,0.10)] text-[#10B981]' : 
+                        row.status === 'duplicate' ? 'bg-[rgba(245,158,11,0.10)] text-[#D97706]' : 
+                        row.status === 'offline' ? 'bg-[rgba(59,130,246,0.10)] text-[#3B82F6]' : 
+                        'bg-[rgba(239,68,68,0.10)] text-[#EF4444]'
+                      }`}>
+                        {row.status === 'success' ? '✓ Verified' : 
+                         row.status === 'duplicate' ? '! Recheck' : 
+                         row.status === 'offline' ? '↑ Pending' : '✕ Error'}
+                      </div>
+                      <span className="text-[11px] font-semibold text-[#94A3B8]">
+                        {row.time.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })
             )}
           </div>
         </section>

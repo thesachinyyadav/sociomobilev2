@@ -148,6 +148,12 @@ export default async function RootLayout({
               fontWeight: 600,
               padding: "10px 16px",
             },
+            loading: {
+              iconTheme: {
+                primary: "#FFBA09",
+                secondary: "transparent",
+              },
+            },
           }}
         />
       </body>

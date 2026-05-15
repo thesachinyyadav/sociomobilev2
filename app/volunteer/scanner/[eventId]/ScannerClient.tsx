@@ -870,79 +870,53 @@ export default function ScannerClient() {
           className={`scan-viewport scan-viewport-${viewportStatus}`}
           aria-label="Camera scanner"
         >
-          <div className="scan-viewport-camera">
-            <video
-              ref={videoRef}
-              className={`scan-video${isNative ? " scan-video-native" : ""}`}
-              muted
-              playsInline
-              autoPlay
-            />
+          <video
+            ref={videoRef}
+            className={`scan-video${isNative ? " scan-video-native" : ""}`}
+            muted
+            playsInline
+            autoPlay
+          />
 
-            <div className="scan-viewport-glow" aria-hidden="true" />
+          <div className="scan-viewport-glow" aria-hidden="true" />
 
-            {/* Corner brackets + sweep line */}
-            {isScanning && (
-              <div className="scan-frame" aria-hidden="true">
-                <div className="scan-corner scan-corner-tl" />
-                <div className="scan-corner scan-corner-tr" />
-                <div className="scan-corner scan-corner-bl" />
-                <div className="scan-corner scan-corner-br" />
-                <div className="scan-line" />
-              </div>
-            )}
-
-            {/* Idle state */}
-            {!isScanning && (
-              <div className="scan-idle-overlay">
-                <div className="scan-idle-art" aria-hidden="true">
-                  <div className="scan-idle-grid" />
-                  <svg className="scan-idle-qr" viewBox="0 0 120 120" focusable="false" aria-hidden="true">
-                    <rect className="scan-idle-qr-block" x="8" y="8" width="32" height="32" rx="7" />
-                    <rect className="scan-idle-qr-block" x="80" y="8" width="32" height="32" rx="7" />
-                    <rect className="scan-idle-qr-block" x="8" y="80" width="32" height="32" rx="7" />
-                    <rect className="scan-idle-qr-block" x="48" y="48" width="24" height="24" rx="5" />
-                    <rect className="scan-idle-qr-block" x="78" y="48" width="14" height="14" rx="3" />
-                    <rect className="scan-idle-qr-block" x="48" y="78" width="14" height="14" rx="3" />
-                    <rect className="scan-idle-qr-block" x="72" y="78" width="12" height="12" rx="3" />
-                    <rect className="scan-idle-qr-block" x="32" y="56" width="8" height="8" rx="2" />
-                    <rect className="scan-idle-qr-block" x="56" y="32" width="8" height="8" rx="2" />
-                    <rect className="scan-idle-qr-block" x="96" y="56" width="8" height="8" rx="2" />
-                    <rect className="scan-idle-qr-block" x="56" y="96" width="8" height="8" rx="2" />
-                  </svg>
-                  <div className="scan-idle-halo" />
-                </div>
-                {cameraError && <p className="scan-camera-error">{cameraError}</p>}
-                <button
-                  id="start-scanning-btn"
-                  className="scan-start-btn"
-                  onClick={() => void startScanner()}
-                >
-                  <QrCodeIcon size={20} className="text-[#FFBA09]" /> Start Scanning
-                </button>
-              </div>
-            )}
-          </div>
-
-          <div className="scan-terminal-panel flex items-center justify-between px-4 py-3 bg-white border-t border-[rgba(1,31,123,0.06)]">
-            <div className="flex flex-col justify-center">
-              {isScanning && (
-                <p className="text-[12px] font-medium text-[#64748B] m-0">Position QR code within the frame</p>
-              )}
+          {/* Corner brackets + sweep line */}
+          {isScanning && (
+            <div className="scan-frame" aria-hidden="true">
+              <div className="scan-corner scan-corner-tl" />
+              <div className="scan-corner scan-corner-tr" />
+              <div className="scan-corner scan-corner-bl" />
+              <div className="scan-corner scan-corner-br" />
+              <div className="scan-line" />
             </div>
+          )}
 
-            <div className="flex items-center">
-              {isScanning && (
+          {/* Idle state */}
+          {!isScanning && (
+            <div className="scan-idle-overlay">
+              {cameraError && <p className="scan-camera-error">{cameraError}</p>}
+              <button
+                id="start-scanning-btn"
+                className="scan-start-btn"
+                onClick={() => void startScanner()}
+              >
+                <QrCodeIcon size={20} className="text-[#FFBA09]" /> Start Scanning
+              </button>
+            </div>
+          )}
+          
+          {/* Action overlay when scanning */}
+          {isScanning && (
+             <div className="absolute bottom-4 left-0 right-0 flex justify-center z-20">
                 <button
-                  className="bg-[rgba(1,31,123,0.05)] text-[#011F7B] border border-[rgba(1,31,123,0.14)] rounded-[8px] px-3 py-1.5 text-[12px] font-semibold active:bg-[rgba(1,31,123,0.1)] transition-colors"
+                  className="bg-[rgba(0,0,0,0.4)] backdrop-blur-md text-white border border-[rgba(255,255,255,0.2)] rounded-full px-5 py-2 text-[13px] font-semibold active:bg-[rgba(0,0,0,0.6)] transition-colors shadow-lg"
                   aria-label="Stop scanning"
                   onClick={() => void stopScanner()}
                 >
                   Stop
                 </button>
-              )}
-            </div>
-          </div>
+             </div>
+          )}
         </section>
 
         {/* ── Recent Scans ── */}

@@ -803,9 +803,9 @@ export default function ScannerClient() {
 
       {/* ── Header ── */}
       {/* ── Header ── */}
-      <header className="scan-header relative flex items-center justify-between">
+      <header className="scan-header">
         <button
-          className="scan-back-btn relative z-10"
+          className="scan-back-btn"
           aria-label="Go back"
           onClick={() => { void stopScanner(); router.replace("/volunteer"); }}
         >
@@ -823,10 +823,7 @@ export default function ScannerClient() {
               </span>
             ))}
           </div>
-        </div>
-
-        <div className="relative z-10">
-          <button className="scan-count-badge">{scanCount} scanned</button>
+          <button className="scan-count-badge pointer-events-auto">{scanCount} scanned</button>
         </div>
       </header>
 
@@ -913,10 +910,8 @@ export default function ScannerClient() {
 
           <div className="scan-terminal-panel flex items-center justify-between px-4 py-3 bg-white border-t border-[rgba(1,31,123,0.06)]">
             <div className="flex flex-col justify-center">
-              {isScanning ? (
+              {isScanning && (
                 <p className="text-[12px] font-medium text-[#64748B] m-0">Position QR code within the frame</p>
-              ) : (
-                <p className="text-[12px] font-medium text-[#64748B] m-0">Camera is idle</p>
               )}
             </div>
 

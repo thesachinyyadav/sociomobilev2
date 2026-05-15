@@ -907,15 +907,20 @@ html, body {
 /* ── Header ── */
 .scan-header {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 10px;
-  padding: calc(var(--nav-height) + var(--safe-top) + 10px) 16px 14px;
-  min-height: calc(var(--nav-height) + var(--safe-top) + 56px);
+  justify-content: flex-start;
+  padding: calc(var(--nav-height) + var(--safe-top) + 12px) 16px 16px;
+  min-height: 88px;
   background: #011F7B;
   flex-shrink: 0;
   z-index: 10;
+  position: relative;
 }
 .scan-back-btn {
+  position: absolute;
+  left: 16px;
+  top: calc(var(--safe-top) + 20px);
   display: flex; align-items: center; justify-content: center;
   width: 36px; height: 36px;
   border-radius: 10px; border: none;
@@ -923,6 +928,7 @@ html, body {
   flex-shrink: 0; cursor: pointer;
   -webkit-tap-highlight-color: transparent;
   transition: background 100ms ease;
+  z-index: 20;
 }
 .scan-back-btn:active { background: rgba(255,255,255,0.22); }
 
@@ -940,26 +946,31 @@ html, body {
   justify-content: center;
   gap: 4px;
   text-align: center;
-  padding: 0 6px;
+  padding: 0 40px;
+  width: 100%;
 }
 .scan-header-brand {
-  font-size: 12px;
-  font-weight: 800;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
+  font-family: var(--font-sans);
+  font-size: 28px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
   color: #FFFFFF;
+  margin: 0 0 4px 0;
+  line-height: 1;
 }
 .scan-header-event {
-  margin: 0;
-  max-width: min(100%, 320px);
-  font-size: clamp(22px, 5.1vw, 29px);
-  line-height: 1.06;
-  font-weight: 750;
-  letter-spacing: -0.03em;
+  margin: 0 0 6px 0;
+  width: 100%;
+  font-size: 20px;
+  line-height: 1.3;
+  font-weight: 600;
   color: #FFFFFF;
-  white-space: nowrap;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
   overflow: hidden;
   text-overflow: ellipsis;
+  text-align: center;
 }
 .scan-header-meta {
   display: flex;
@@ -968,8 +979,8 @@ html, body {
   gap: 8px;
   max-width: 100%;
   color: rgba(255,255,255,0.78);
-  font-size: 11px;
-  font-weight: 600;
+  font-size: 13px;
+  font-weight: 500;
   line-height: 1.2;
   white-space: nowrap;
   overflow: hidden;
@@ -1007,13 +1018,19 @@ html, body {
   background: #FFBA09; animation: pulse-soft 1.5s ease infinite;
 }
 .scan-count-badge {
-  font-size: 12px; font-weight: 700; color: #011F7B; flex-shrink: 0;
-  padding: 8px 14px;
+  font-size: 13px; 
+  font-weight: 600; 
+  color: #FFFFFF; 
+  flex-shrink: 0;
+  height: 38px;
+  padding: 0 16px;
   border-radius: 999px;
-  background: #FFBA09;
-  border: none;
-  letter-spacing: 0.01em;
-  box-shadow: 0 8px 18px rgba(255,186,9,0.18);
+  background: rgba(255,255,255,0.12);
+  border: 1px solid rgba(255,255,255,0.14);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 12px;
 }
 
 
@@ -1054,13 +1071,14 @@ html, body {
   align-self: center;
   display: flex;
   flex-direction: column;
-  min-height: clamp(340px, 48dvh, 390px);
+  min-height: 320px;
+  max-height: 350px;
   background: linear-gradient(180deg, #FFFFFF 0%, #F8FAFF 100%);
   overflow: hidden;
-  border: 1px solid rgba(1,31,123,0.08);
+  border: 1px solid rgba(1,31,123,0.06);
   transition: border-color 110ms ease, box-shadow 140ms ease;
   flex-shrink: 0;
-  border-radius: 28px;
+  border-radius: 26px;
   box-shadow: 0 18px 45px rgba(1,31,123,0.10);
   contain: layout style;
 }
@@ -1071,8 +1089,7 @@ html, body {
 
 .scan-viewport-camera {
   position: relative;
-  min-height: clamp(240px, 36dvh, 310px);
-  flex: 1 1 80%;
+  flex: 1 1 auto;
   /* Blueprint-grid idle texture — extremely low opacity, premium operational feel */
   background-color: #F8FAFF;
   background-image:
@@ -1102,24 +1119,24 @@ html, body {
 /* ── QR Corner Brackets — premium gold, thicker, no glow ── */
 .scan-frame { position: absolute; inset: 0; pointer-events: none; }
 .scan-corner {
-  position: absolute; width: 26px; height: 26px;
+  position: absolute; width: 32px; height: 32px;
   border-color: #FFBA09; border-style: solid;
   border-radius: 2px;
 }
-.scan-corner-tl { top: 18%; left: 12%; border-width: 4px 0 0 4px; border-top-left-radius: 10px; }
-.scan-corner-tr { top: 18%; right: 12%; border-width: 4px 4px 0 0; border-top-right-radius: 10px; }
-.scan-corner-bl { bottom: 18%; left: 12%; border-width: 0 0 4px 4px; border-bottom-left-radius: 10px; }
-.scan-corner-br { bottom: 18%; right: 12%; border-width: 0 4px 4px 0; border-bottom-right-radius: 10px; }
+.scan-corner-tl { top: 15%; left: 15%; border-width: 4px 0 0 4px; border-top-left-radius: 10px; }
+.scan-corner-tr { top: 15%; right: 15%; border-width: 4px 4px 0 0; border-top-right-radius: 10px; }
+.scan-corner-bl { bottom: 15%; left: 15%; border-width: 0 0 4px 4px; border-bottom-left-radius: 10px; }
+.scan-corner-br { bottom: 15%; right: 15%; border-width: 0 4px 4px 0; border-bottom-right-radius: 10px; }
 
 /* ── Scan Line — subtle operational yellow sweep ── */
 .scan-line {
-  position: absolute; left: 12%; right: 12%;
+  position: absolute; left: 15%; right: 15%;
   height: 2px;
   background: linear-gradient(90deg, rgba(255,186,9,0), rgba(255,186,9,0.9), rgba(255,186,9,0));
-  top: 18%;
+  top: 15%;
   animation: scan-sweep 2.6s linear infinite;
   will-change: top;
-  box-shadow: 0 0 18px rgba(255,186,9,0.22);
+  box-shadow: 0 0 8px rgba(255,186,9,0.20);
 }
 
 /* ── Idle Overlay — clean white with blueprint grid showing through ── */
@@ -1153,7 +1170,7 @@ html, body {
   position: relative;
   width: 58%;
   height: auto;
-  color: rgba(1,31,123,0.18);
+  color: rgba(1,31,123,0.10);
   filter: saturate(0.6);
 }
 .scan-idle-qr-block {
@@ -1167,19 +1184,18 @@ html, body {
   opacity: 0.8;
 }
 .scan-idle-icon { color: rgba(1,31,123,0.18); margin-bottom: 4px; }
-.scan-idle-label { font-size: 13px; font-weight: 600; color: #64748B; margin: 0; }
 .scan-camera-error {
   font-size: 12px; color: #EF4444; margin: 0;
   text-align: center; padding: 0 24px; font-weight: 500;
-
 }
 
 /* Start scanning button — premium navy CTA */
 .scan-start-btn {
   margin-top: 16px;
   padding: 0 28px;
-  width: 72%;
-  height: 56px;
+  width: 100%;
+  max-width: 220px;
+  height: 54px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1188,13 +1204,12 @@ html, body {
   color: #FFFFFF;
   border: none;
   border-radius: 18px;
-  font-size: 18px;
+  font-size: 17px;
   font-weight: 600;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
   transition: opacity 100ms ease, transform 120ms ease;
-  letter-spacing: 0.01em;
-  box-shadow: 0 12px 30px rgba(1,31,123,0.22);
+  box-shadow: 0 10px 24px rgba(1,31,123,0.18);
   animation: scan-btn-appear 300ms cubic-bezier(0.22,1,0.36,1) both;
 }
 .scan-start-btn:active { background: #1E3FAB; transform: scale(0.97); }

@@ -22,6 +22,7 @@ import {
   type ScannerResult,
 } from "@/lib/ScannerService";
 import { useNotifications } from "@/context/NotificationContext";
+import { Capacitor } from "@capacitor/core";
 import {
   showSuccessToast,
   showWarningToast,
@@ -83,6 +84,23 @@ interface HistoryRow {
   time: Date;
   qrData?: string;
 }
+
+/** Auto-dismiss durations per toast type (ms) */
+const TOAST_MS: Record<ScanStatus, number> = {
+  success:      1200,
+  duplicate:    1800,
+  error:        2000,
+  unauthorized: 2000,
+  offline:      2000,
+};
+
+const TOAST_ICON: Record<ScanStatus, string> = {
+  success:      "✅",
+  duplicate:    "⚠️",
+  error:        "❌",
+  unauthorized: "🚫",
+  offline:      "📡",
+};
 
 function ScannerParticipantSheet({
   row,

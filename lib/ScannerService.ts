@@ -89,8 +89,8 @@ class WebScanner implements IScanner {
         },
         {
           preferredCamera: 'environment',
-          highlightScanRegion: true,
-          highlightCodeOutline: true,
+          highlightScanRegion: false,
+          highlightCodeOutline: false,
           // 22 fps balances acquisition latency against battery on mid-range mobile
           // browsers — empirically the elbow where missed-QR rate flattens. Native
           // APK uses ML Kit event listener (no polling) — unaffected by this value.

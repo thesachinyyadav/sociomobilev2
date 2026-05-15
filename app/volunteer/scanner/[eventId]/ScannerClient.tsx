@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState, useCallback, useRef } from "react";
+import Image from "next/image";
+import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth, type VolunteerEvent } from "@/context/AuthContext";
 import { useNetwork } from "@/context/NetworkContext";
@@ -195,6 +197,7 @@ export default function ScannerClient() {
   /* ── UX state ── */
   const { show: showGlobalLoader } = useLoading();
   const [mounted, setMounted] = useState(false);
+  const [imgError, setImgError] = useState(false);
   const [history,      setHistory]      = useState<HistoryRow[]>([]);
   
   useEffect(() => { setMounted(true); }, []);
@@ -811,11 +814,27 @@ export default function ScannerClient() {
           className="relative flex items-center px-4"
           style={{ height: "var(--nav-height)" }}
         >
-          {/* Left: App Logo / Avatar (Red circle with navy ring as in image) */}
+          {/* Left: Profile Avatar */}
           <div className="flex-1 flex justify-start">
-            <div className="w-[34px] h-[34px] flex items-center justify-center bg-[#bc0d08] rounded-full text-white font-bold text-[11px] ring-[2.5px] ring-[#000103] shadow-sm tracking-widest">
-              SOC
-            </div>
+            <Link href="/profile" className="shrink-0 block">
+              <div className="w-[34px] h-[34px] rounded-full overflow-hidden ring-[2.5px] ring-[#000103] shadow-sm bg-[#011F7B] flex items-center justify-center">
+                {userData?.avatar_url && !imgError ? (
+                  <Image
+                    src={userData.avatar_url}
+                    alt={userData.name || "User"}
+                    width={34}
+                    height={34}
+                    className="w-full h-full object-cover"
+                    onError={() => setImgError(true)}
+                    referrerPolicy="no-referrer"
+                  />
+                ) : (
+                  <span className="text-[13px] font-black text-white drop-shadow-sm">
+                    {userData?.name?.[0]?.toUpperCase() || session?.user?.email?.[0]?.toUpperCase() || "U"}
+                  </span>
+                )}
+              </div>
+            </Link>
           </div>
           
           {/* Center: SOCIO in Blue */}

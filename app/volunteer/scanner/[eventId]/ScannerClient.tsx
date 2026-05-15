@@ -9,6 +9,7 @@ import {
   AlertTriangleIcon,
   ArrowLeftIcon,
   QrCodeIcon,
+  BellIcon,
 } from "@/components/icons";
 import { getActiveVolunteerEvents } from "@/lib/volunteerAccess";
 import { apiRequest } from "@/lib/apiClient";
@@ -803,24 +804,32 @@ export default function ScannerClient() {
 
       {/* ── Standard TopBar (White) ── */}
       <header
-        className="sticky top-0 left-0 right-0 z-50 bg-white text-[#011F7B]"
+        className="sticky top-0 left-0 right-0 z-50 bg-white border-b border-[#E2E8F0]"
         style={{ paddingTop: "var(--safe-top)", backfaceVisibility: "hidden" }}
       >
         <div
           className="relative flex items-center px-4"
           style={{ height: "var(--nav-height)" }}
         >
-          <button 
-            className="absolute left-4 w-10 h-10 flex items-center justify-start text-[#011F7B]"
-            onClick={() => { void stopScanner(); router.replace("/volunteer"); }}
-          >
-            <ArrowLeftIcon size={24} />
-          </button>
-          <div className="flex-1" />
-          <span className="text-[20px] font-black tracking-tight text-[#011F7B]">
+          {/* Left: App Logo / Avatar (Red circle with navy ring as in image) */}
+          <div className="flex-1 flex justify-start">
+            <div className="w-[34px] h-[34px] flex items-center justify-center bg-[#bc0d08] rounded-full text-white font-bold text-[11px] ring-[2.5px] ring-[#000103] shadow-sm tracking-widest">
+              SOC
+            </div>
+          </div>
+          
+          {/* Center: SOCIO in Blue */}
+          <span className="absolute left-1/2 -translate-x-1/2 text-[18px] font-black tracking-tight text-[#011F7B]">
             SOCIO
           </span>
-          <div className="flex-1" />
+          
+          {/* Right: Notification Bell in Blue */}
+          <div className="flex-1 flex justify-end">
+            <div className="relative text-[#011F7B]">
+              <BellIcon size={24} />
+              <span className="absolute -top-1 -right-1 w-4 h-4 bg-[#011F7B] text-white rounded-full text-[10px] flex items-center justify-center font-bold">2</span>
+            </div>
+          </div>
         </div>
       </header>
 
@@ -910,18 +919,7 @@ export default function ScannerClient() {
               </div>
             )}
             
-            {/* Action overlay when scanning */}
-            {isScanning && (
-               <div className="absolute bottom-5 left-0 right-0 flex justify-center z-20">
-                  <button
-                    className="bg-[rgba(255,255,255,0.15)] backdrop-blur-md text-white border border-[rgba(255,255,255,0.2)] rounded-full px-6 py-2.5 text-[14px] font-semibold active:bg-[rgba(255,255,255,0.25)] transition-colors shadow-lg"
-                    aria-label="Stop scanning"
-                    onClick={() => void stopScanner()}
-                  >
-                    Stop Scanning
-                  </button>
-               </div>
-            )}
+            {/* No explicit stop scanning button overlay to match the clean design */}
           </section>
         </div>
 

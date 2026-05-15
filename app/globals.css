@@ -1110,31 +1110,30 @@ html, body {
 .scan-video-native { opacity: 0; }
 
 /* ── QR Corner Brackets — premium gold, thicker, no glow ── */
-.scan-frame { position: absolute; inset: 0; pointer-events: none; filter: drop-shadow(0 0 12px rgba(255,186,9,0.22)); z-index: 10; }
+.scan-frame { position: absolute; inset: 0; pointer-events: none; z-index: 10; }
 .scan-corner {
-  position: absolute; width: 40px; height: 40px;
+  position: absolute; width: 60px; height: 60px;
   border-color: #FFBA09; border-style: solid;
-  border-radius: 2px;
 }
-.scan-corner-tl { top: 12%; left: 12%; border-width: 5px 0 0 5px; border-top-left-radius: 12px; }
-.scan-corner-tr { top: 12%; right: 12%; border-width: 5px 5px 0 0; border-top-right-radius: 12px; }
-.scan-corner-bl { bottom: 12%; left: 12%; border-width: 0 0 5px 5px; border-bottom-left-radius: 12px; }
-.scan-corner-br { bottom: 12%; right: 12%; border-width: 0 5px 5px 0; border-bottom-right-radius: 12px; }
+.scan-corner-tl { top: 15%; left: 12%; border-width: 6px 0 0 6px; border-top-left-radius: 16px; }
+.scan-corner-tr { top: 15%; right: 12%; border-width: 6px 6px 0 0; border-top-right-radius: 16px; }
+.scan-corner-bl { bottom: 15%; left: 12%; border-width: 0 0 6px 6px; border-bottom-left-radius: 16px; }
+.scan-corner-br { bottom: 15%; right: 12%; border-width: 0 6px 6px 0; border-bottom-right-radius: 16px; }
 
 /* ── Scan Line — subtle operational yellow sweep ── */
 .scan-line {
   position: absolute; left: 12%; right: 12%;
   height: 2px;
-  background: linear-gradient(90deg, transparent 0%, rgba(255,186,9,0.95) 50%, transparent 100%);
-  top: 12%;
-  animation: scan-sweep 2s ease-in-out infinite alternate;
+  background: linear-gradient(90deg, transparent 0%, rgba(255,186,9,1) 50%, transparent 100%);
+  top: 15%;
+  animation: scan-sweep 2.5s ease-in-out infinite alternate;
   will-change: top;
-  box-shadow: 0 0 14px rgba(255,186,9,0.35);
+  box-shadow: 0 0 12px rgba(255,186,9,0.8);
   z-index: 10;
 }
 @keyframes scan-sweep {
-  0%   { top: 12%; }
-  100% { top: 88%; }
+  0%   { top: 15%; }
+  100% { top: 85%; }
 }
 
 /* ── Idle Overlay — clean white with blueprint grid showing through ── */

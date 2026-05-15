@@ -880,7 +880,7 @@ export default function ScannerClient() {
             >
               <ArrowLeftIcon size={20} />
             </button>
-            <h1 className="text-white text-[17px] font-semibold leading-tight flex-1 line-clamp-1">{event.title}</h1>
+            <h1 className="text-white text-[17px] font-semibold leading-tight flex-1">{event.title}</h1>
             <div className="flex-shrink-0 border border-[rgba(255,255,255,0.14)] bg-[rgba(255,255,255,0.08)] rounded-[14px] px-3 py-1.5 text-white text-[12px] font-semibold whitespace-nowrap">
               {scanCount} scanned
             </div>
@@ -943,7 +943,7 @@ export default function ScannerClient() {
 
             {/* Idle state inside viewport */}
             {!isScanning && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center bg-white relative">
+              <div className="absolute inset-0 flex flex-col items-center justify-center bg-white z-30">
                 {/* Dotted grid background */}
                 <div className="absolute inset-0" style={{ backgroundImage: 'radial-gradient(#CBD5E1 1px, transparent 1px)', backgroundSize: '16px 16px', opacity: 0.4 }} />
                 

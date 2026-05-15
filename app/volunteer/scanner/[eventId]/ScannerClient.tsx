@@ -22,7 +22,12 @@ import {
   type ScannerResult,
 } from "@/lib/ScannerService";
 import { useNotifications } from "@/context/NotificationContext";
-import { Capacitor } from "@capacitor/core";
+import {
+  showSuccessToast,
+  showWarningToast,
+  showErrorToast,
+  showInfoToast,
+} from "@/lib/toastUtils";
 import { Haptics, NotificationType } from "@capacitor/haptics";
 import { startRecoveryTransition, stopRecoveryTransition } from "@/lib/nativeLaunchState";
 import { logCapacitorPerfAudit, logMemorySnapshot, startPerfSpan, withPerfSpan } from "@/lib/capacitorPerfAudit";
@@ -162,22 +167,7 @@ function ScannerParticipantSheet({
   );
 }
 
-/** Auto-dismiss durations per toast type (ms) */
-const TOAST_MS: Record<ScanStatus, number> = {
-  success:      1200,
-  duplicate:    1800,
-  error:        2000,
-  unauthorized: 2000,
-  offline:      2000,
-};
-
-const TOAST_ICON: Record<ScanStatus, string> = {
-  success:      "✅",
-  duplicate:    "⚠️",
-  error:        "❌",
-  unauthorized: "🚫",
-  offline:      "📡",
-};
+// Auto-dismiss durations and icons are now managed by toastUtils
 
 export default function ScannerClient() {
   const params  = useParams();
@@ -216,7 +206,6 @@ export default function ScannerClient() {
     }
   }, [isChecking, mounted, showGlobalLoader]);
   const [selectedRow,  setSelectedRow]  = useState<HistoryRow | null>(null);
-  const [toasts,       setToasts]       = useState<ScanToast[]>([]);
   const [scanCount,    setScanCount]    = useState(0);
   const [viewportStatus, setViewportStatus] = useState<"idle"|"success"|"duplicate"|"error">("idle");
   const [integrity,    setIntegrity]    = useState<TimeIntegrityReport | null>(null);
@@ -236,7 +225,6 @@ export default function ScannerClient() {
   const scannerRef        = useRef<IScanner | null>(null);
   const cooldownMapRef    = useRef<Map<string, number>>(new Map());
   const attendeeCacheRef  = useRef<Map<string, { name: string; status: string }>>(new Map());
-  const toastTimersRef    = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
   const viewportTimerRef  = useRef<ReturnType<typeof setTimeout> | null>(null);
   const mountedRef        = useRef(true);
   // Stable handler the scanner subscribes to. We mutate this ref's callback when
@@ -275,7 +263,6 @@ export default function ScannerClient() {
     return () => {
       mountedRef.current = false;
       if (viewportTimerRef.current) clearTimeout(viewportTimerRef.current);
-      toastTimersRef.current.forEach(clearTimeout);
       // Recovery transitions and memory snapshots are native-only signals
       if (isNative) {
         stopRecoveryTransition("scanner-verify");
@@ -299,19 +286,23 @@ export default function ScannerClient() {
   }, []);
 
   /* ── UX & Toast system ── */
-  const pushToast = useCallback((t: Omit<ScanToast, "id" | "timestamp">) => {
-    const id = `t_${Date.now()}_${Math.random().toString(36).slice(2, 5)}`;
-    setToasts(prev => [{ ...t, id, timestamp: new Date() }, ...prev].slice(0, 3));
-
-    const timer = setTimeout(() => {
-      setToasts(prev => prev.map(x => x.id === id ? { ...x, exiting: true } : x));
-      setTimeout(() => {
-        setToasts(prev => prev.filter(x => x.id !== id));
-        toastTimersRef.current.delete(id);
-      }, 140);
-    }, TOAST_MS[t.type]);
-
-    toastTimersRef.current.set(id, timer);
+  const pushToast = useCallback((t: { type: "success" | "duplicate" | "error" | "unauthorized" | "offline", name: string, message: string }) => {
+    const opts = { title: t.name, message: t.message };
+    switch (t.type) {
+      case "success":
+        showSuccessToast(opts);
+        break;
+      case "duplicate":
+        showWarningToast(opts);
+        break;
+      case "offline":
+        showInfoToast(opts);
+        break;
+      case "unauthorized":
+      case "error":
+        showErrorToast(opts);
+        break;
+    }
   }, []);
 
   const flashViewport = useCallback((s: "success" | "duplicate" | "error") => {
@@ -754,7 +745,6 @@ export default function ScannerClient() {
 
     return () => {
       void stopScanner();
-      toastTimersRef.current.forEach(clearTimeout);
     };
   }, [isChecking, event, accessError, stopScanner]);
 
@@ -790,25 +780,7 @@ export default function ScannerClient() {
   return (
     <div className={`scan-page${isNative && isScanning ? " scan-native-active" : ""}`}>
 
-      {/* ── Toast Stack ── */}
-      <div className="scan-toast-stack" aria-live="polite" aria-atomic="false">
-        {toasts.map(toast => (
-          <div
-            key={toast.id}
-            role="alert"
-            className={`scan-toast scan-toast-${toast.type}${toast.exiting ? " scan-toast-exit" : ""}`}
-          >
-            <span className="scan-toast-icon">{TOAST_ICON[toast.type]}</span>
-            <div className="scan-toast-body">
-              <span className="scan-toast-name">{toast.name}</span>
-              <span className="scan-toast-msg">{toast.message}</span>
-            </div>
-            <span className="scan-toast-time">
-              {toast.timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-            </span>
-          </div>
-        ))}
-      </div>
+      {/* ── Main TopBar Area Removed from Scan Toasts ── */}
 
       {/* ── Standard TopBar (White) ── */}
       <header
@@ -950,7 +922,7 @@ export default function ScannerClient() {
 
                 {/* Stop scanning button */}
                 <button
-                  className="absolute top-5 right-5 w-10 h-10 bg-black/40 backdrop-blur-md text-white rounded-full flex items-center justify-center z-50 pointer-events-auto active:scale-95 transition-transform"
+                  className="absolute top-2 right-2 w-10 h-10 bg-black/40 backdrop-blur-md text-white rounded-full flex items-center justify-center z-50 pointer-events-auto active:scale-95 transition-transform"
                   onClick={(e) => {
                     e.stopPropagation();
                     void stopScanner();

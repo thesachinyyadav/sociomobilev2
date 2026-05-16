@@ -381,21 +381,36 @@ export default function QRCodeDisplay({
 
         {/* Content Section - Compact and centered */}
         <div className="flex-1 overflow-hidden flex flex-col p-6 items-center justify-center gap-6">
-          {/* Info Bar - Inline style */}
-          <div className="w-full flex items-center justify-between bg-[#F8FAFC] rounded-2xl p-4 border border-[#F1F5F9] shrink-0">
-            <div className="flex flex-col">
-              <span className="text-[8px] text-[#64748B] font-black uppercase tracking-wider mb-0.5">Date</span>
-              <span className="text-[11px] text-[#011F7B] font-black">{dateInfo.main}</span>
+          {/* Info Bar - Matches visual reference */}
+          <div className="w-full grid grid-cols-3 gap-0 bg-white border border-[#E2E8F0] rounded-[24px] p-4 relative z-20 shadow-[0_8px_30px_rgba(0,0,0,0.04)] shrink-0 -mt-8">
+            {/* Date Section */}
+            <div className="flex gap-3 pr-2">
+              <CalendarIcon size={18} className="text-[#FFBA09] shrink-0 mt-0.5" />
+              <div className="flex flex-col min-w-0">
+                <span className="text-[10px] text-[#94A3B8] font-bold tracking-tight">Date</span>
+                <span className="text-[12px] text-[#0F172A] font-extrabold leading-tight truncate">{dateInfo.main}</span>
+                <span className="text-[10px] text-[#94A3B8] font-medium leading-tight truncate">{dateInfo.sub || "TBA"}</span>
+              </div>
             </div>
-            <div className="w-px h-6 bg-[#E2E8F0]" />
-            <div className="flex flex-col items-center">
-              <span className="text-[8px] text-[#64748B] font-black uppercase tracking-wider mb-0.5">Time</span>
-              <span className="text-[11px] text-[#011F7B] font-black">{time || "TBA"}</span>
+
+            {/* Time Section */}
+            <div className="flex gap-3 border-l border-[#F1F5F9] px-3">
+              <ClockIcon size={18} className="text-[#FFBA09] shrink-0 mt-0.5" />
+              <div className="flex flex-col min-w-0">
+                <span className="text-[10px] text-[#94A3B8] font-bold tracking-tight">Time</span>
+                <span className="text-[12px] text-[#0F172A] font-extrabold leading-tight truncate">{time || "TBA"}</span>
+                <span className="text-[10px] text-[#94A3B8] font-medium leading-tight truncate">IST</span>
+              </div>
             </div>
-            <div className="w-px h-6 bg-[#E2E8F0]" />
-            <div className="flex flex-col items-end">
-              <span className="text-[8px] text-[#64748B] font-black uppercase tracking-wider mb-0.5">Venue</span>
-              <span className="text-[11px] text-[#011F7B] font-black truncate max-w-[80px]">{venue || "TBA"}</span>
+
+            {/* Venue Section */}
+            <div className="flex gap-3 border-l border-[#F1F5F9] pl-3">
+              <MapPinIcon size={18} className="text-[#FFBA09] shrink-0 mt-0.5" />
+              <div className="flex flex-col min-w-0">
+                <span className="text-[10px] text-[#94A3B8] font-bold tracking-tight">Venue</span>
+                <span className="text-[12px] text-[#0F172A] font-extrabold leading-tight truncate" title={venue}>{venue || "TBA"}</span>
+                <span className="text-[10px] text-[#94A3B8] font-medium leading-tight truncate">Main Campus</span>
+              </div>
             </div>
           </div>
 

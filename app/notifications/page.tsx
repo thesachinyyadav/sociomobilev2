@@ -205,7 +205,7 @@ export default function NotificationsPage() {
   };
 
   return (
-    <div className="min-h-screen relative overflow-hidden bg-[#F8FAFC]">
+    <div className="min-h-screen relative overflow-x-hidden bg-[#F8FAFC]">
       {/* Background operational layers */}
       <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden">
         {/* Subtle blueprint grid */}
@@ -218,20 +218,25 @@ export default function NotificationsPage() {
       {/* Premium Hero Header */}
       <div className="relative z-20 w-full overflow-visible" style={{
         background: "linear-gradient(135deg, #011F7B 0%, #0c2b8c 50%, #153c9b 100%)",
-        borderBottomLeftRadius: "36px",
-        borderBottomRightRadius: "36px",
-        paddingBottom: "36px",
+        minHeight: "260px",
+        borderBottomLeftRadius: "40px",
+        borderBottomRightRadius: "40px",
+        paddingTop: "calc(var(--safe-top) + 16px)",
+        paddingBottom: "48px",
+        paddingLeft: "24px",
+        paddingRight: "24px",
         boxShadow: "0 10px 40px rgba(1,31,123,0.15)"
       }}>
         {/* Background stars / dots */}
-        <div className="absolute inset-0 opacity-[0.4]" style={{
+        <div className="absolute inset-0 opacity-[0.4] pointer-events-none" style={{
           backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.2) 1px, transparent 1px)",
           backgroundSize: "30px 30px"
         }} />
 
-        <div className="absolute inset-0 pt-[calc(var(--safe-top)+16px)] px-5 flex flex-col justify-between pb-4">
+        {/* Content Wrapper */}
+        <div className="relative z-10 flex flex-col h-full min-h-[180px]">
           {/* Top Row */}
-          <div className="flex items-center justify-between relative z-10">
+          <div className="flex items-center justify-between mb-8">
             <button 
               onClick={() => router.back()} 
               className="w-10 h-10 rounded-full bg-white/10 border border-white/20 flex items-center justify-center active:scale-95 transition-transform backdrop-blur-md text-white"
@@ -244,24 +249,24 @@ export default function NotificationsPage() {
             </div>
 
             <div className="w-10 h-10 flex items-center justify-center text-white relative">
-              {/* Bell icon removed */}
+              {/* Bell icon removed as per request */}
             </div>
           </div>
 
-          {/* Second Row */}
-          <div className="mt-6 flex flex-col gap-1.5 relative z-10">
-            <h1 className="text-[34px] font-black tracking-tight text-white leading-none">
+          {/* Title Area */}
+          <div className="flex flex-col gap-1.5 mt-auto">
+            <h1 className="text-[38px] font-black tracking-tight text-white leading-none">
               Notifications
             </h1>
-            <div className="flex items-center gap-2 mt-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-[#FFBA09]" />
-              <span className="text-[13px] font-medium text-white">
+            <div className="flex items-center gap-2 mt-3">
+              <span className="w-2.5 h-2.5 rounded-full bg-[#FFBA09] shadow-[0_0_8px_#FFBA09]" />
+              <span className="text-[14px] font-bold text-white tracking-wide">
                 {unreadCount} unread updates
               </span>
             </div>
-            <div className="flex items-center gap-1.5 mt-0.5 opacity-80">
+            <div className="flex items-center gap-1.5 mt-1 opacity-70">
               <RefreshCwIcon size={12} className="text-white" />
-              <span className="text-[12px] font-medium text-white">
+              <span className="text-[12px] font-medium text-white tracking-wide">
                 Last synced just now
               </span>
             </div>
@@ -269,11 +274,11 @@ export default function NotificationsPage() {
         </div>
       </div>
 
-      {/* Action Buttons Row */}
+      {/* Action Buttons Row - Fixed negative margin overlap */}
       <div className="relative z-30 px-6 flex items-center justify-center gap-4 -mt-6">
         <button
           onClick={markAllRead}
-          className="flex-1 h-12 rounded-2xl bg-white shadow-[0_8px_20px_rgba(1,31,123,0.12)] flex items-center justify-center gap-2 active:scale-95 transition-transform"
+          className="flex-1 h-12 rounded-2xl bg-white shadow-[0_12px_24px_rgba(1,31,123,0.12)] border border-[#E2E8F0]/50 flex items-center justify-center gap-2 active:scale-95 transition-transform"
         >
           <CheckIcon size={16} className="text-[#011F7B]" />
           <span className="text-[12px] font-bold uppercase tracking-wider text-[#011F7B]">MARK ALL AS READ</span>
@@ -282,7 +287,7 @@ export default function NotificationsPage() {
         {notifications.length > 0 && (
           <button
             onClick={() => setShowClearModal(true)}
-            className="flex-1 h-12 rounded-2xl bg-white shadow-[0_8px_20px_rgba(1,31,123,0.12)] flex items-center justify-center gap-2 active:scale-95 transition-transform"
+            className="flex-1 h-12 rounded-2xl bg-white shadow-[0_12px_24px_rgba(1,31,123,0.12)] border border-[#E2E8F0]/50 flex items-center justify-center gap-2 active:scale-95 transition-transform"
           >
             <TrashIcon size={16} className="text-[#EF4444]" />
             <span className="text-[12px] font-bold uppercase tracking-wider text-[#EF4444]">CLEAR ALL</span>
@@ -291,7 +296,7 @@ export default function NotificationsPage() {
       </div>
 
       {/* Main Content */}
-      <div className="relative z-10 px-4 pt-8 pb-28">
+      <div className="relative z-10 px-4 pt-10 pb-28">
         {isLoading && notifications.length === 0 ? (
           <div className="space-y-4">
             {[...Array(4)].map((_, i) => (

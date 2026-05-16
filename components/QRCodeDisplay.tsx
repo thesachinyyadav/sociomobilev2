@@ -366,33 +366,33 @@ export default function QRCodeDisplay({
         }}
       >
         {/* Header Section - Operational Navy Gradient */}
-        <div className="relative shrink-0 overflow-hidden p-6 bg-gradient-to-br from-[#011F7B] to-[#1E3FAB] rounded-b-[28px]">
+        <div className="relative shrink-0 overflow-hidden p-5 bg-gradient-to-br from-[#011F7B] to-[#1E3FAB] rounded-b-[24px]">
           <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.6)_0,transparent_100%)] pointer-events-none" />
           
-          <div className="flex items-start justify-between relative z-10 mb-6">
-            <div className="flex flex-col gap-1.5">
+          <div className="flex items-start justify-between relative z-10 mb-3">
+            <div className="flex flex-col gap-1">
               <div className="flex items-center gap-2">
                 <div className="w-1.5 h-1.5 rounded-full bg-[#FFBA09] shadow-[0_0_8px_#FFBA09]" />
                 <span className="text-[10px] font-black tracking-[0.25em] text-white/80 uppercase">Event Pass</span>
               </div>
-              <h3 className="text-[28px] font-black text-white tracking-tight leading-tight">{eventTitle}</h3>
-              <p className="text-[12px] text-white/50 font-bold tracking-tight">Your pass to an amazing experience</p>
+              <h3 className="text-[24px] sm:text-[28px] font-black text-white tracking-tight leading-tight">{eventTitle}</h3>
+              <p className="text-[11px] text-white/50 font-bold tracking-tight">Your pass to an amazing experience</p>
             </div>
             
             <button 
               onClick={onClose} 
-              className="w-[52px] h-[52px] rounded-full bg-white/12 flex items-center justify-center border border-white/18 backdrop-blur-[8px] hover:bg-white/20 transition-all active:scale-90" 
+              className="w-[44px] h-[44px] rounded-full bg-white/12 flex items-center justify-center border border-white/18 backdrop-blur-[8px] hover:bg-white/20 transition-all active:scale-90" 
               aria-label="Close"
             >
-              <XIcon size={20} className="text-white" strokeWidth={2.5} />
+              <XIcon size={18} className="text-white" strokeWidth={2.5} />
             </button>
           </div>
 
-          <div className="h-6" /> {/* Spacer for overlap */}
+          <div className="h-4" /> {/* Reduced Spacer for overlap */}
         </div>
 
-        {/* Content Section */}
-        <div className="flex-1 flex flex-col px-[22px] pt-0 pb-[28px] items-center min-h-0">
+        {/* Content Section - Scrollable to prevent clipping */}
+        <div className="flex-1 flex flex-col px-[22px] pt-0 pb-[28px] items-center min-h-0 overflow-y-auto no-scrollbar">
           
           {/* Floating Info Card - 3 Columns with Dividers */}
           <div className="w-full flex items-stretch bg-white rounded-[26px] p-[22px] shadow-[0_10px_30px_rgba(15,23,42,0.08)] -mt-10 relative z-20">

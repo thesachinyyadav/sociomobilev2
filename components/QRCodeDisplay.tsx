@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { XIcon, AlertCircleIcon, Loader2Icon } from "@/components/icons";
+import QRCode from "qrcode";
+import toast from "react-hot-toast";
+import { XIcon, AlertCircleIcon, Loader2Icon, CalendarIcon, ClockIcon, MapPinIcon } from "@/components/icons";
 import { useAuth } from "@/context/AuthContext";
 import { apiRequest } from "@/lib/apiClient";
 
@@ -56,16 +58,24 @@ function imgToPng(src: string): Promise<{ dataUrl: string; w: number; h: number 
 
 interface QRCodeDisplayProps {
   registrationId: string;
+  eventId: string;
   eventTitle: string;
   participantName: string;
   onClose: () => void;
+  date?: string;
+  time?: string;
+  venue?: string;
 }
 
 export default function QRCodeDisplay({
   registrationId,
+  eventId,
   eventTitle,
   participantName,
   onClose,
+  date,
+  time,
+  venue,
 }: QRCodeDisplayProps) {
   const { session, userData } = useAuth();
   const [qrImage, setQrImage] = useState<string | null>(null);
@@ -78,7 +88,7 @@ export default function QRCodeDisplay({
   useEffect(() => {
     const fetchQRCode = async () => {
       if (!session?.access_token) {
-        setError("Please sign in again to generate QR code.");
+        setError("Please sign in again to generate secure pass.");
         setLoading(false);
         return;
       }
@@ -87,20 +97,82 @@ export default function QRCodeDisplay({
         setLoading(true);
         setError(null);
 
-        const data: any = await apiRequest(`/registrations/${encodeURIComponent(registrationId)}/qr-code`, {
-          cache: "no-store",
+        // Fetch secure JWT payload
+        const res = await fetch('/api/wallet/qr', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            registrationId,
+            eventId,
+            attendeeId: userData?.visitor_id || userData?.register_number || 'unknown',
+            participantName
+          })
         });
 
-        setQrImage(data.qrCodeImage || null);
+        if (!res.ok) throw new Error("Failed to generate secure payload");
+        
+        const data = await res.json();
+        if (!data.token) throw new Error("No secure token received");
+
+        // Generate QR code image from the JWT token
+        const qrDataUrl = await QRCode.toDataURL(data.token, {
+          width: 300,
+          margin: 1,
+          color: {
+            dark: '#011F7B', // Navy blue
+            light: '#FFFFFF'
+          }
+        });
+
+        setQrImage(qrDataUrl);
       } catch (err: any) {
-        setError(err.message || "Network error while loading QR code.");
+        setError(err.message || "Network error while generating secure pass.");
       } finally {
         setLoading(false);
       }
     };
 
     fetchQRCode();
-  }, [registrationId, session?.access_token]);
+  }, [registrationId, eventId, session?.access_token, userData, participantName]);
+
+  const addToAppleWallet = async () => {
+    try {
+      const loadingToast = toast.loading("Preparing secure credential...");
+      const res = await fetch('/api/wallet/apple', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ registrationId, eventId, eventTitle, participantName, venue, date, time })
+      });
+      if (!res.ok) throw new Error();
+      toast.dismiss(loadingToast);
+      toast.success("Pass added successfully");
+    } catch {
+      toast.dismiss();
+      toast.error("Unable to generate secure pass");
+    }
+  };
+
+  const addToGoogleWallet = async () => {
+    try {
+      const loadingToast = toast.loading("Preparing secure credential...");
+      const res = await fetch('/api/wallet/google', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ registrationId, eventId, eventTitle, participantName, venue, date, time })
+      });
+      if (!res.ok) throw new Error();
+      const data = await res.json();
+      toast.dismiss(loadingToast);
+      toast.success("Pass ready to save");
+      if (data.saveUrl) {
+        window.open(data.saveUrl, '_blank');
+      }
+    } catch {
+      toast.dismiss();
+      toast.error("Unable to generate secure pass");
+    }
+  };
+
 
   const downloadAsPDF = async () => {
     if (!qrImage || pdfLoading) return;
@@ -236,70 +308,178 @@ export default function QRCodeDisplay({
     }
   };
 
+  const formatEventDate = (rawDate?: string) => {
+    if (!rawDate) return { main: "TBA", sub: "" };
+    const d = new Date(rawDate);
+    if (Number.isNaN(d.getTime())) return { main: "TBA", sub: "" };
+    return {
+      main: d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
+      sub: d.toLocaleDateString("en-US", { weekday: "long" })
+    };
+  };
+
+  const dateInfo = formatEventDate(date);
+
   return (
-    <div className="modal-backdrop">
-      <div className="modal-card max-w-[360px] overflow-hidden">
-        <div className="bg-gradient-to-r from-[var(--color-primary-dark)] to-[var(--color-primary)] px-4 py-3 text-white flex items-center justify-between">
-          <h3 className="text-[15px] font-bold">Event Ticket</h3>
-          <button onClick={onClose} className="p-1 rounded-full bg-white/10" aria-label="Close QR">
-            <XIcon size={16} />
-          </button>
+    <div className="fixed inset-0 z-[999] flex items-center justify-center bg-[#0F172A]/45 backdrop-blur-[12px] p-4 transition-opacity animate-fade-in duration-180">
+      <div 
+        className="relative w-full max-w-[380px] max-h-[85vh] overflow-y-auto bg-white rounded-[32px] shadow-[0_20px_60px_rgba(1,31,123,0.18)] border border-[var(--color-border)] flex flex-col hide-scrollbar"
+        style={{
+          width: 'calc(100vw - 32px)',
+          animation: 'modalEnter 180ms ease-out forwards'
+        }}
+      >
+        <div className="relative h-[170px] shrink-0 rounded-t-[32px] rounded-b-[28px] overflow-hidden flex flex-col p-5 bg-gradient-to-br from-[#011F7B] to-[#1E3FAB] shadow-sm">
+          <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.4)_0,transparent_100%)] pointer-events-none" />
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-16 h-1 bg-[#FFBA09] rounded-b-full shadow-[0_2px_8px_rgba(255,186,9,0.5)]" />
+
+          <div className="flex items-center justify-between relative z-10">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-xl bg-white/10 flex items-center justify-center border border-white/20">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                   <path d="M4 7V17C4 19.2091 5.79086 21 8 21H16C18.2091 21 20 19.2091 20 17V7C20 4.79086 18.2091 3 16 3H8C5.79086 3 4 4.79086 4 7Z" stroke="#FFBA09" strokeWidth="2"/>
+                   <circle cx="12" cy="12" r="2" fill="#FFBA09"/>
+                </svg>
+              </div>
+              <span className="text-[11px] font-bold tracking-wider text-white/90 uppercase">Event Pass</span>
+            </div>
+            
+            <button 
+              onClick={onClose} 
+              className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center border border-white/20 hover:bg-white/20 transition-all active:scale-95 shrink-0" 
+              aria-label="Close QR"
+            >
+              <XIcon size={18} className="text-white" />
+            </button>
+          </div>
+
+          <div className="mt-auto relative z-10 flex flex-col items-start">
+            <h3 className="text-[22px] font-bold text-white tracking-tight drop-shadow-md leading-tight mb-1 truncate w-full">{eventTitle}</h3>
+            <p className="text-[13px] text-[rgba(255,255,255,0.82)] font-medium truncate w-full">{participantName}</p>
+            <div className="mt-3">
+              <span className="inline-flex items-center gap-1.5 bg-[#FFBA09] text-[#011F7B] px-3.5 py-1.5 rounded-full text-[11px] font-extrabold tracking-wide uppercase shadow-sm">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                   <path d="M12 17.27L18.18 21L16.54 13.97L22 9.24L14.81 8.63L12 2L9.19 8.63L2 9.24L7.46 13.97L5.82 21L12 17.27Z"/>
+                </svg>
+                Registered
+              </span>
+            </div>
+          </div>
         </div>
 
-        <div className="p-4 text-center">
+        <div className="p-5 flex flex-col items-center">
+          
+          <div className="w-full grid grid-cols-3 gap-2 bg-slate-50/80 border border-slate-100 rounded-[20px] p-3 -mt-9 relative z-20 shadow-sm backdrop-blur-md">
+            <div className="flex flex-col pl-1">
+              <div className="flex items-center gap-1.5 mb-1">
+                <CalendarIcon size={14} className="text-[#FFBA09]" />
+                <span className="text-[10px] text-[#64748B] font-semibold uppercase">Date</span>
+              </div>
+              <span className="text-[12px] text-[#0F172A] font-bold leading-tight truncate w-full">{dateInfo.main}</span>
+              {dateInfo.sub && <span className="text-[10px] text-[#64748B] truncate w-full">{dateInfo.sub}</span>}
+            </div>
+            <div className="flex flex-col border-l border-slate-200 pl-3">
+              <div className="flex items-center gap-1.5 mb-1">
+                <ClockIcon size={14} className="text-[#FFBA09]" />
+                <span className="text-[10px] text-[#64748B] font-semibold uppercase">Time</span>
+              </div>
+              <span className="text-[12px] text-[#0F172A] font-bold leading-tight truncate w-full">{time || "TBA"}</span>
+            </div>
+            <div className="flex flex-col border-l border-slate-200 pl-3">
+              <div className="flex items-center gap-1.5 mb-1">
+                <MapPinIcon size={14} className="text-[#FFBA09]" />
+                <span className="text-[10px] text-[#64748B] font-semibold uppercase">Venue</span>
+              </div>
+              <span className="text-[12px] text-[#0F172A] font-bold leading-tight truncate w-full" title={venue}>{venue || "TBA"}</span>
+            </div>
+          </div>
+
           {loading ? (
-            <div className="py-6 text-[var(--color-text-muted)]">
-              <Loader2Icon size={24} className="mx-auto mb-2 animate-spin" />
-              <p className="text-[13px]">Generating QR code...</p>
+            <div className="py-12 text-[#64748B] flex flex-col items-center">
+              <Loader2Icon size={28} className="animate-spin mb-3 text-[#1E3FAB]" />
+              <p className="text-[13px] font-medium">Generating secure QR pass...</p>
             </div>
           ) : error ? (
-            <div className="py-3">
-              <AlertCircleIcon size={24} className="mx-auto mb-2 text-[var(--color-danger)]" />
-              <p className="text-[13px] text-[var(--color-danger)]">{error}</p>
+            <div className="py-8 w-full">
+              <div className="bg-red-50 border border-red-100 rounded-2xl p-4 flex flex-col items-center text-center">
+                <AlertCircleIcon size={28} className="text-red-500 mb-2" />
+                <p className="text-[13px] text-red-600 font-medium">{error}</p>
+              </div>
             </div>
           ) : (
             <>
-              <h4 className="text-[14px] font-bold text-[var(--color-text)]">{eventTitle}</h4>
-              <p className="text-[12px] text-[var(--color-text-muted)] mt-1">{participantName}</p>
-
               {qrImage && (
-                <div className="mt-4 inline-block rounded-[var(--radius)] border border-[var(--color-border)] bg-white p-3">
-                  <img src={qrImage} alt="QR code ticket" className="h-52 w-52" />
+                <div className="mt-6 p-5 bg-white border border-[#EEF2FF] rounded-[24px] shadow-[0_4px_24px_rgba(1,31,123,0.08)] flex items-center justify-center">
+                  <img src={qrImage} alt="QR code ticket" className="w-[180px] h-[180px] object-contain" />
                 </div>
               )}
-
-              <p className="mt-3 text-[11px] text-[var(--color-text-muted)]">
-                Show this QR code at event entry.
-              </p>
-              {isOutsider && (
-                <p className="text-[11px] text-[var(--color-text-muted)]">
-                  Show this at the campus gate for entry.
-                </p>
-              )}
-
-              <button
-                onClick={downloadAsPDF}
-                disabled={pdfLoading}
-                className="btn btn-primary w-full mt-4 text-[13px] flex items-center justify-center gap-2 disabled:opacity-60"
-              >
-                {pdfLoading ? (
-                  <>
-                    <Loader2Icon size={14} className="animate-spin" />
-                    Generating...
-                  </>
-                ) : (
-                  <>
-                    <svg className="w-[14px] h-[14px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              
+              <div className="w-full mt-8 flex flex-col gap-3">
+                <button
+                  onClick={downloadAsPDF}
+                  disabled={pdfLoading}
+                  className="w-full h-[54px] bg-[#FFBA09] text-[#011F7B] rounded-[18px] font-semibold text-[15px] shadow-[0_8px_20px_rgba(255,186,9,0.28)] flex items-center justify-center gap-2 active:scale-95 transition-transform disabled:opacity-70 disabled:active:scale-100"
+                >
+                  {pdfLoading ? (
+                    <>
+                      <Loader2Icon size={18} className="animate-spin" />
+                      Preparing Pass...
+                    </>
+                  ) : (
+                    <>
+                      <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                      </svg>
+                      Download Pass
+                    </>
+                  )}
+                </button>
+                
+                <div className="flex gap-3">
+                  <button onClick={addToAppleWallet} className="flex-1 h-[48px] bg-white border border-[#E2E8F0] rounded-[16px] text-[#011F7B] font-semibold text-[13px] flex items-center justify-center gap-2 active:scale-95 transition-transform hover:bg-slate-50 shadow-sm">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M16.364 8.232c-.52-1.396-1.928-2.228-3.414-2.228-1.503 0-2.819.789-3.498 2.016-.363.655-.558 1.411-.558 2.193 0 1.258.494 2.457 1.341 3.325.867.887 2.051 1.365 3.3 1.365 1.096 0 2.164-.374 2.97-1.041.56-.464 1.246-.948 1.942-.948.337 0 .684.095.968.273l2.846 1.779A8.966 8.966 0 0112 21a9 9 0 119-9c0 1.272-.27 2.511-.79 3.658L16.364 8.232zM12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2z"/>
                     </svg>
-                    Download Pass
-                  </>
-                )}
-              </button>
+                    Apple Wallet
+                  </button>
+                  <button onClick={addToGoogleWallet} className="flex-1 h-[48px] bg-white border border-[#E2E8F0] rounded-[16px] text-[#011F7B] font-semibold text-[13px] flex items-center justify-center gap-2 active:scale-95 transition-transform hover:bg-slate-50 shadow-sm">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M21.35 11.1h-9.17v2.73h6.51c-.33 3.81-3.5 5.44-6.5 5.44-3.9 0-7.14-3.2-7.14-7.27s3.24-7.27 7.14-7.27c1.76 0 3.3.64 4.5 1.71l2.09-2.09C17.06 2.65 14.7 1.63 12.18 1.63 6.47 1.63 1.83 6.27 1.83 11.98s4.64 10.35 10.35 10.35c5.38 0 9.85-3.66 10.22-8.73h.01v-2.5h-1.06z"/>
+                    </svg>
+                    Google Wallet
+                  </button>
+                </div>
+              </div>
+
+              <div className="w-full mt-6 bg-[#FFF9E8] border border-[rgba(255,186,9,0.28)] rounded-[18px] py-3 px-4 flex items-center justify-center">
+                <p className="text-[12px] font-medium text-[#011F7B]">
+                  Show this pass at the event entry.
+                </p>
+              </div>
             </>
           )}
         </div>
       </div>
+      
+      <style jsx>{`
+        @keyframes modalEnter {
+          0% {
+            opacity: 0;
+            transform: scale(0.96) translateY(10px);
+          }
+          100% {
+            opacity: 1;
+            transform: scale(1) translateY(0);
+          }
+        }
+        .hide-scrollbar::-webkit-scrollbar {
+          display: none;
+        }
+        .hide-scrollbar {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+      `}</style>
     </div>
   );
 }

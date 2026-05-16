@@ -93,7 +93,7 @@ export default function ProfilePage() {
   const [nameInput, setNameInput] = useState("");
   const [isSubmittingName, setIsSubmittingName] = useState(false);
   const [nameEditError, setNameEditError] = useState<string | null>(null);
-  const [activeQR, setActiveQR] = useState<{ registrationId: string; eventTitle: string } | null>(null);
+  const [activeQR, setActiveQR] = useState<{ registrationId: string; eventId: string; eventTitle: string; date?: string; time?: string; venue?: string } | null>(null);
   const [cancelConfirmId, setCancelConfirmId] = useState<string | null>(null);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -483,7 +483,7 @@ export default function ProfilePage() {
                     <Button
                       variant="primary"
                       size="sm"
-                      onClick={() => setActiveQR({ registrationId: r.registration_id, eventTitle })}
+                      onClick={() => setActiveQR({ registrationId: r.registration_id, eventId: r.event_id, eventTitle, date: r.raw_date || r.event?.event_date, time: r.event?.event_time || undefined, venue: r.event?.venue || undefined })}
                       className="flex-1"
                       leftIcon={<QrCode size={14} />}
                     >
@@ -616,9 +616,13 @@ export default function ProfilePage() {
       {activeQR && (
         <QRCodeDisplay
           registrationId={activeQR.registrationId}
+          eventId={activeQR.eventId}
           eventTitle={activeQR.eventTitle}
           participantName={userData.name || "Participant"}
           onClose={() => setActiveQR(null)}
+          date={activeQR.date}
+          time={activeQR.time}
+          venue={activeQR.venue}
         />
       )}
     </div>

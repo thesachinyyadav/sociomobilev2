@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
+import * as jose from "jose";
 import { useAuth, type VolunteerEvent } from "@/context/AuthContext";
 import { useNetwork } from "@/context/NetworkContext";
 import { useLoading } from "@/components/loading";
@@ -398,10 +399,44 @@ export default function ScannerClient() {
     const report = getTimeIntegrityReport();
     const decision = decideOfflineScan(event, { integrity: report });
 
+    let effectiveRegistrationId = qrData;
+    let isJwt = false;
+
+    // JWT Verification Flow
+    if (qrData.startsWith('eyJ') && qrData.split('.').length === 3) {
+      isJwt = true;
+      try {
+        const decoded = jose.decodeJwt(qrData);
+        
+        // 1. Verify Expiry
+        if (decoded.exp && (decoded.exp * 1000) < Date.now()) {
+          void haptic("error");
+          flashViewport("error");
+          pushToast({ type: "error", name: "Expired Pass", message: "This pass has expired" });
+          return;
+        }
+
+        // 2. Verify Event
+        if (decoded.eventId && decoded.eventId !== event.event_id) {
+          void haptic("error");
+          flashViewport("error");
+          pushToast({ type: "error", name: "Wrong Event", message: "Pass is for a different event" });
+          return;
+        }
+
+        // 3. Extract actual registration ID for backend
+        if (decoded.registrationId) {
+          effectiveRegistrationId = String(decoded.registrationId);
+        }
+      } catch (err) {
+        console.warn("JWT Decode failed, falling back to raw payload", err);
+      }
+    }
+
     const now = report.trustedNowMs;
-    const last = cooldownMapRef.current.get(qrData);
+    const last = cooldownMapRef.current.get(effectiveRegistrationId);
     if (last && now - last < 2500) return;
-    cooldownMapRef.current.set(qrData, now);
+    cooldownMapRef.current.set(effectiveRegistrationId, now);
 
     // Opportunistically prune entries older than COOLDOWN_TTL_MS so long shifts
     // don't grow the Map unbounded. Runs O(n) only when the map crosses a soft
@@ -443,8 +478,8 @@ export default function ScannerClient() {
       }
     }
 
-    const cached = attendeeCacheRef.current.get(qrData);
-    const cachedAttendee = await db.attendees.get(qrData);
+    const cached = attendeeCacheRef.current.get(effectiveRegistrationId);
+    const cachedAttendee = await db.attendees.get(effectiveRegistrationId);
     if (cached?.status === "already_present" || cachedAttendee?.status === "already_present") {
       void haptic("warning");
       flashViewport("duplicate");
@@ -462,8 +497,12 @@ export default function ScannerClient() {
       // server can reconcile against its own clock (Phase 7).
       trustedTime: provenance,
     };
+    
+    // For wallet JWTs, we could optionally send the whole JWT to a new endpoint, 
+    // but to preserve scanner compatibility we pass the effective registration ID.
     const payload = {
-      qrCodeData: qrData,
+      qrCodeData: effectiveRegistrationId,
+      originalJwt: isJwt ? qrData : undefined,
       volunteerId: userData?.register_number,
       scannerInfo,
     };
@@ -501,23 +540,23 @@ export default function ScannerClient() {
             const oldest = attendeeCacheRef.current.keys().next().value;
             if (oldest !== undefined) attendeeCacheRef.current.delete(oldest);
           }
-          attendeeCacheRef.current.set(qrData, { name: finalName, status: "already_present" });
+          attendeeCacheRef.current.set(effectiveRegistrationId, { name: finalName, status: "already_present" });
         };
 
         if (participant?.status === "already_present") {
           void haptic("warning");
           flashViewport("duplicate");
           rememberAttendee();
-          await db.attendees.put({ qrData, eventId: event.event_id, name: finalName, status: "already_present", synced: true, updatedAt: Date.now() });
+          await db.attendees.put({ qrData: effectiveRegistrationId, eventId: event.event_id, name: finalName, status: "already_present", synced: true, updatedAt: Date.now() });
           pushToast({ type: "duplicate", name: finalName, message: "Already checked in" });
-          setHistory(prev => [{ id: `r_${Date.now()}`, name: finalName, status: "duplicate" as ScanStatus, time: new Date() }, ...prev].slice(0, 50));
+          setHistory(prev => [{ id: `r_${Date.now()}`, name: finalName, status: "duplicate" as ScanStatus, time: new Date(), qrData: effectiveRegistrationId }, ...prev].slice(0, 50));
         } else {
           void haptic("success");
           flashViewport("success");
           rememberAttendee();
-          await db.attendees.put({ qrData, eventId: event.event_id, name: finalName, status: "already_present", synced: true, updatedAt: Date.now() });
+          await db.attendees.put({ qrData: effectiveRegistrationId, eventId: event.event_id, name: finalName, status: "already_present", synced: true, updatedAt: Date.now() });
           pushToast({ type: "success", name: finalName, message: "Attendance marked" });
-          setHistory(prev => [{ id: `r_${Date.now()}`, name: finalName, status: "success" as ScanStatus, time: new Date() }, ...prev].slice(0, 50));
+          setHistory(prev => [{ id: `r_${Date.now()}`, name: finalName, status: "success" as ScanStatus, time: new Date(), qrData: effectiveRegistrationId }, ...prev].slice(0, 50));
           setScanCount(prev => prev + 1);
         }
       }

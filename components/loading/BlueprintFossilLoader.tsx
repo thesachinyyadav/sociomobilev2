@@ -64,7 +64,7 @@ export function BlueprintFossilLoader({
       className="fixed inset-0 flex items-center justify-center bg-[#FFFFFF] z-[99999]"
       style={{
         opacity: exiting ? 0 : 1,
-        transition: \`opacity \${exiting ? "220ms" : "180ms"} cubic-bezier(0.22, 1, 0.36, 1)\`,
+        transition: `opacity ${exiting ? "220ms" : "180ms"} cubic-bezier(0.22, 1, 0.36, 1)`,
         pointerEvents: "auto",
       }}
     >
@@ -93,12 +93,12 @@ export function BlueprintFossilLoader({
         </svg>
       </div>
 
-      <style dangerouslySetInnerHTML={{__html: \`
+      <style dangerouslySetInnerHTML={{__html: `
         @keyframes socio-pulse {
           0%, 100% { opacity: 1; transform: scale(1); }
           50% { opacity: 0.85; transform: scale(0.98); }
         }
-      \`}} />
+      `}} />
     </div>
   );
 }

@@ -288,48 +288,49 @@ export default function EventDetailClient({ eventId }: { eventId: string }) {
           alt={event.title} fill className="object-cover" priority sizes="100vw"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-black/10" />
-        {/* chips top-left */}
-        <div className="absolute top-[calc(var(--safe-top)+64px)] left-4 flex flex-wrap gap-2 z-10">
-          <div className={`px-3 py-1 rounded-full shadow-md flex items-center gap-1.5 transition-all ${
-            isFree 
-              ? "bg-emerald-500 text-white animate-badge-pulse" 
-              : "bg-[#FFBA09] text-[#011F7B]"
-          }`}>
-            <Ticket size={12} className={isFree ? "text-white opacity-90" : "text-[#011F7B] opacity-80"} />
-            <span className="text-[10px] font-black uppercase tracking-wider">
-              {isFree ? "Free Entry" : `₹${event.registration_fee}`}
-            </span>
+        {/* Interactive Top Row (Tags + Share) */}
+        <div className="absolute top-[calc(var(--safe-top)+var(--nav-height)+12px)] left-0 right-0 px-4 flex items-center justify-between z-10">
+          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
+            <div className={`shrink-0 px-3 py-1.5 rounded-full shadow-md flex items-center gap-1.5 transition-all ${
+              isFree 
+                ? "bg-emerald-500 text-white animate-badge-pulse" 
+                : "bg-[#FFBA09] text-[#011F7B]"
+            }`}>
+              <Ticket size={12} className={isFree ? "text-white opacity-90" : "text-[#011F7B] opacity-80"} />
+              <span className="text-[10px] font-black uppercase tracking-wider whitespace-nowrap">
+                {isFree ? "Free Entry" : `₹${event.registration_fee}`}
+              </span>
+            </div>
+            {event.allow_outsiders && (
+              <div className="shrink-0 px-3 py-1.5 rounded-full bg-white/95 text-[var(--color-primary)] shadow-md flex items-center gap-1.5 border border-white/20">
+                <Globe size={12} className="opacity-80" />
+                <span className="text-[10px] font-black uppercase tracking-wider whitespace-nowrap">Open to all</span>
+              </div>
+            )}
+            {event.claims_applicable && (
+              <div className="shrink-0 px-3 py-1.5 rounded-full bg-[var(--color-primary)] text-white shadow-md flex items-center gap-1.5 border border-white/20">
+                <Award size={12} className="opacity-90 text-[var(--color-accent)]" />
+                <span className="text-[10px] font-black uppercase tracking-wider whitespace-nowrap">Claims Info</span>
+              </div>
+            )}
           </div>
-          {event.allow_outsiders && (
-            <div className="px-3 py-1 rounded-full bg-white/95 text-[var(--color-primary)] shadow-md flex items-center gap-1.5">
-              <Globe size={12} className="opacity-80" />
-              <span className="text-[10px] font-black uppercase tracking-wider">Open to all</span>
-            </div>
-          )}
-          {event.claims_applicable && (
-            <div className="px-3 py-1 rounded-full bg-[var(--color-primary)] text-white shadow-md flex items-center gap-1.5 border border-white/20">
-              <Award size={12} className="opacity-90 text-[var(--color-accent)]" />
-              <span className="text-[10px] font-black uppercase tracking-wider">Claims Info</span>
-            </div>
-          )}
-        </div>
 
-        {/* Share Action */}
-        <button
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            void shareEvent({
-              title: event.title,
-              text: `Check out this event: ${event.title}`,
-              url: `/event/${event.event_id}`,
-            });
-          }}
-          className="absolute top-[calc(var(--safe-top)+64px)] right-4 z-40 w-10 h-10 rounded-full bg-black/30 backdrop-blur-md border border-white/20 flex items-center justify-center text-white active:scale-90 transition-transform"
-          aria-label="Share Event"
-        >
-          <ShareIcon size={20} />
-        </button>
+          <button
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              void shareEvent({
+                title: event.title,
+                text: `Check out this event: ${event.title}`,
+                url: `/event/${event.event_id}`,
+              });
+            }}
+            className="shrink-0 w-10 h-10 rounded-full bg-black/30 backdrop-blur-md border border-white/20 flex items-center justify-center text-white active:scale-90 transition-transform shadow-lg"
+            aria-label="Share Event"
+          >
+            <ShareIcon size={18} />
+          </button>
+        </div>
         {/* title area with extra bottom padding to prevent overlap */}
         <div className="absolute bottom-0 left-0 right-0 px-5 pb-16 pt-24 z-10">
           {event.organizing_dept && (

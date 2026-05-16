@@ -5,7 +5,7 @@ import Link from "next/link";
 import React from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useEvents, type FetchedEvent } from "@/context/EventContext";
-import { CalendarDaysIcon, BellIcon, CompassIcon, ArrowRightIcon, MapPinIcon, Clock3Icon, FlameIcon, TicketIcon, QrCodeIcon, BuildingIcon, UtensilsIcon, SparklesIcon } from "@/components/icons";
+import { CalendarDaysIcon, BellIcon, CompassIcon, ArrowRightIcon, MapPinIcon, Clock3Icon, FlameIcon, TicketIcon, QrCodeIcon, BuildingIcon, UtensilsIcon, ZapIcon } from "@/components/icons";
 import { formatDateShort, formatTime, isDeadlinePassed } from "@/lib/dateUtils";
 import { getActiveVolunteerEvents } from "@/lib/volunteerAccess";
 import EventCardSkeleton from "@/components/skeletons/EventCardSkeleton";
@@ -43,7 +43,7 @@ function getQuickActions(notificationCount: number, volunteerCount: number, isCa
       href: "#socioassist",
       label: "SocioAssist",
       subtitle: "Help & Guidance",
-      icon: SparklesIcon,
+      icon: ZapIcon,
       tone: "bg-[#fffbeb] text-[#92400e] border-[#fef3c7]",
     },
     {

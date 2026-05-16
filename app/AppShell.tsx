@@ -156,13 +156,12 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <div className="flex flex-col min-h-dvh overflow-hidden">
+    <div className="flex flex-col min-h-dvh overflow-hidden w-full max-w-[540px] mx-auto relative bg-[var(--color-bg)] sm:shadow-[0_0_40px_rgba(0,0,0,0.05)] sm:ring-1 sm:ring-[var(--color-border)]">
       <NativeLaunchController />
       <NetworkBanner />
       <OrientationGate />
-      {!isNative && <DesktopGate />}
       {!hideTop && <TopBar />}
-      <main className={`flex-1 overflow-y-auto overflow-x-hidden relative ${!hideBottom ? "pb-[calc(var(--bottom-nav)+var(--safe-bottom)+20px)]" : ""}`}>
+      <main className={`flex-1 flex flex-col overflow-y-auto overflow-x-hidden relative ${!hideBottom ? "pb-[calc(var(--bottom-nav)+var(--safe-bottom)+20px)]" : ""}`}>
         <PageTransition>{children}</PageTransition>
       </main>
       {!hideBottom && <BottomNav />}

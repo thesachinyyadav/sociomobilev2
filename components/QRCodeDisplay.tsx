@@ -335,54 +335,52 @@ export default function QRCodeDisplay({
 
   return (
     <div className="fixed inset-0 z-[999] flex items-center justify-center p-4">
-      {/* Backdrop */}
+      {/* Backdrop - Click to close removed to enforce 'X' button usage */}
       <motion.div 
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        onClick={onClose}
-        className="absolute inset-0 bg-[#0F172A]/60 backdrop-blur-[8px]"
+        className="absolute inset-0 bg-[#0F172A]/80 backdrop-blur-[12px]"
       />
 
       {/* Modal Container */}
       <motion.div 
-        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+        initial={{ opacity: 0, scale: 0.9, y: 0 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.95, y: 20 }}
-        transition={{ type: "spring", duration: 0.5, bounce: 0.3 }}
-        className="relative w-full max-w-[400px] bg-white rounded-[32px] shadow-[0_32px_64px_rgba(1,31,123,0.25)] border border-[var(--color-border)] flex flex-col overflow-hidden"
+        exit={{ opacity: 0, scale: 0.9, y: 0 }}
+        transition={{ type: "spring", duration: 0.4, bounce: 0.2 }}
+        className="relative w-full max-w-[380px] bg-white rounded-[32px] shadow-[0_40px_80px_rgba(0,0,0,0.4)] border border-white/10 flex flex-col overflow-hidden"
         style={{
-          maxHeight: 'calc(100dvh - env(safe-area-inset-top, 20px) - env(safe-area-inset-bottom, 20px) - 40px)',
+          maxHeight: 'min(90dvh, 680px)',
         }}
       >
         {/* Header Section */}
-        <div className="relative h-[130px] shrink-0 rounded-t-[32px] rounded-b-[24px] overflow-hidden flex flex-col p-5 bg-gradient-to-br from-[#011F7B] via-[#011F7B] to-[#1E3FAB] shadow-sm">
-          <div className="absolute inset-0 opacity-15 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.4)_0,transparent_100%)] pointer-events-none" />
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-12 h-1 bg-white/20 rounded-b-full" />
-
+        <div className="relative h-[120px] shrink-0 rounded-t-[32px] rounded-b-[24px] overflow-hidden flex flex-col p-5 bg-gradient-to-br from-[#011F7B] via-[#011F7B] to-[#1E3FAB] shadow-md">
+          <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.4)_0,transparent_100%)] pointer-events-none" />
+          
           <div className="flex items-center justify-between relative z-10">
             <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-[#FFBA09] animate-pulse" />
-              <span className="text-[10px] font-bold tracking-[0.1em] text-white/80 uppercase">Event Pass</span>
+              <div className="w-2 h-2 rounded-full bg-[#FFBA09] shadow-[0_0_8px_#FFBA09] animate-pulse" />
+              <span className="text-[10px] font-bold tracking-[0.15em] text-white uppercase">Event Pass</span>
             </div>
             
             <button 
               onClick={onClose} 
-              className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center border border-white/20 hover:bg-white/20 transition-all active:scale-90 shrink-0" 
+              className="w-10 h-10 rounded-full bg-white/15 flex items-center justify-center border border-white/20 hover:bg-white/25 transition-all active:scale-90 shrink-0 shadow-lg" 
               aria-label="Close"
             >
-              <XIcon size={16} className="text-white" />
+              <XIcon size={18} className="text-white" strokeWidth={3} />
             </button>
           </div>
 
           <div className="mt-auto relative z-10">
-            <h3 className="text-[20px] font-bold text-white tracking-tight leading-tight mb-0.5 truncate w-full">{eventTitle}</h3>
-            <p className="text-[12px] text-white/70 font-medium truncate w-full uppercase tracking-wide">{participantName}</p>
+            <h3 className="text-[22px] font-bold text-white tracking-tight leading-tight mb-0.5 truncate w-full drop-shadow-sm">{eventTitle}</h3>
+            <p className="text-[12px] text-white/80 font-medium truncate w-full uppercase tracking-widest">{participantName}</p>
           </div>
         </div>
 
-        {/* Content Section */}
-        <div className="flex-1 overflow-y-auto hide-scrollbar flex flex-col p-5 pt-0">
+        {/* Content Section - Internal scrolling disabled as requested */}
+        <div className="flex-1 overflow-hidden flex flex-col p-6 pt-0">
           {/* Info Bar */}
           <div className="w-full grid grid-cols-3 gap-2 bg-[#F8FAFC] border border-[#F1F5F9] rounded-[24px] p-3 -mt-6 relative z-20 shadow-lg backdrop-blur-md shrink-0">
             <div className="flex flex-col pl-1">

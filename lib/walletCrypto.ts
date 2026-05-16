@@ -13,7 +13,6 @@ export async function generateSecurePassPayload(payload: {
     eventId: payload.eventId,
     registrationId: payload.registrationId,
     participantName: payload.participantName,
-    nonce: Math.random().toString(36).substring(2),
   })
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()

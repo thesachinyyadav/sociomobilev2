@@ -133,10 +133,13 @@ class WebScanner implements IScanner {
              advanced.push({ exposureMode: 'continuous' });
           }
 
-          if (advanced.length > 0) {
+          if (advanced.length > 0 || currentConstraints) {
             await track.applyConstraints({
               ...currentConstraints,
-              advanced
+              width: { ideal: 1280 },
+              height: { ideal: 720 },
+              frameRate: { ideal: 30 },
+              advanced: advanced.length > 0 ? advanced : undefined
             });
           }
         }

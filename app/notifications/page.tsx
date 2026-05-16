@@ -210,11 +210,11 @@ export default function NotificationsPage() {
       <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden" />
 
       {/* Premium Hero Header with Curves */}
-      <div className="relative z-20 w-full overflow-visible" style={{
+      <div className="relative z-20 w-full overflow-hidden rounded-b-[40px]" style={{
         background: "linear-gradient(135deg, #011F7B 0%, #0c2b8c 50%, #153c9b 100%)",
-        minHeight: "280px",
+        minHeight: "260px",
         paddingTop: "calc(var(--safe-top) + 16px)",
-        paddingBottom: "80px",
+        paddingBottom: "60px",
         paddingLeft: "24px",
         paddingRight: "24px",
         boxShadow: "0 10px 40px rgba(1,31,123,0.15)"
@@ -224,13 +224,6 @@ export default function NotificationsPage() {
           backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.2) 1px, transparent 1px)",
           backgroundSize: "30px 30px"
         }} />
-
-        {/* Wavy bottom SVG shape */}
-        <div className="absolute bottom-[-1px] left-0 right-0 w-full pointer-events-none">
-          <svg viewBox="0 0 1440 120" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-auto">
-            <path d="M0 0C240 80 480 120 720 120C960 120 1200 80 1440 0V120H0V0Z" fill="#F8FAFC" />
-          </svg>
-        </div>
 
         {/* Content Wrapper */}
         <div className="relative z-10 flex flex-col h-full">
@@ -248,7 +241,12 @@ export default function NotificationsPage() {
             </div>
 
             <div className="w-11 h-11 flex items-center justify-center text-white relative">
-              {/* Bell icon removed as per request */}
+              <BellIcon size={24} />
+              {unreadCount > 0 && (
+                <div className="absolute top-1 right-1 bg-[#FFBA09] text-[#011F7B] text-[10px] font-bold px-1.5 min-w-[18px] h-[18px] rounded-full flex items-center justify-center border-2 border-[#011F7B]">
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </div>
+              )}
             </div>
           </div>
 
@@ -274,26 +272,26 @@ export default function NotificationsPage() {
       </div>
 
       {/* Action Buttons Row - Floating above the curve */}
-      <div className="relative z-30 px-6 flex items-center justify-center gap-4 -mt-10">
+      <div className="relative z-30 px-6 flex items-center justify-center gap-4 -mt-7">
         <button
           onClick={markAllRead}
-          className="flex-1 h-14 rounded-[20px] bg-white shadow-[0_12px_30px_rgba(1,31,123,0.14)] border border-[#E2E8F0]/40 flex items-center justify-center gap-2.5 active:scale-95 transition-transform"
+          className="flex-1 h-[46px] rounded-[16px] bg-white shadow-[0_8px_20px_rgba(1,31,123,0.12)] border border-[#E2E8F0] flex items-center justify-center gap-2 active:scale-95 transition-transform"
         >
-          <CheckIcon size={18} className="text-[#011F7B]" strokeWidth={2.5} />
-          <span className="text-[13px] font-black uppercase tracking-wider text-[#011F7B]">MARK ALL AS READ</span>
+          <CheckIcon size={16} className="text-[#011F7B]" strokeWidth={2.5} />
+          <span className="text-[12px] font-bold uppercase tracking-wider text-[#011F7B]">MARK ALL AS READ</span>
         </button>
 
         <button
           onClick={() => setShowClearModal(true)}
-          className="flex-1 h-14 rounded-[20px] bg-white shadow-[0_12px_30px_rgba(1,31,123,0.14)] border border-[#E2E8F0]/40 flex items-center justify-center gap-2.5 active:scale-95 transition-transform"
+          className="flex-1 h-[46px] rounded-[16px] bg-white shadow-[0_8px_20px_rgba(1,31,123,0.12)] border border-[#E2E8F0] flex items-center justify-center gap-2 active:scale-95 transition-transform"
         >
-          <TrashIcon size={18} className="text-[#EF4444]" strokeWidth={2.5} />
-          <span className="text-[13px] font-black uppercase tracking-wider text-[#EF4444]">CLEAR ALL</span>
+          <TrashIcon size={16} className="text-[#EF4444]" strokeWidth={2.5} />
+          <span className="text-[12px] font-bold uppercase tracking-wider text-[#EF4444]">CLEAR ALL</span>
         </button>
       </div>
 
       {/* Main Content */}
-      <div className="relative z-10 px-4 pt-12 pb-32">
+      <div className="relative z-10 px-4 pt-8 pb-48">
         {isLoading && notifications.length === 0 ? (
           <div className="space-y-5">
             {[...Array(4)].map((_, i) => (

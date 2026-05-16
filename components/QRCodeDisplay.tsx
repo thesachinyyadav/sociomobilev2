@@ -111,17 +111,22 @@ export default function QRCodeDisplay({
 
         if (!token) throw new Error("No secure token received");
 
-        // Generate QR code image from the JWT token
-        const qrDataUrl = await QRCode.toDataURL(token, {
-          width: 300,
+        // Generate QR code image from the JWT token using SVG for perfect crispness
+        const svgString = await QRCode.toString(token, {
+          type: 'svg',
           margin: 1,
+          errorCorrectionLevel: 'M',
           color: {
-            dark: '#011F7B', // Navy blue
+            dark: '#000000', // Maximum contrast for scanners
             light: '#FFFFFF'
           }
         });
-
-        setQrImage(qrDataUrl);
+        
+        const encodedSvg = typeof window !== 'undefined' 
+          ? window.btoa(unescape(encodeURIComponent(svgString)))
+          : Buffer.from(svgString).toString('base64');
+          
+        setQrImage(`data:image/svg+xml;base64,${encodedSvg}`);
       } catch (err: any) {
         setError(err.message || "Network error while generating secure pass.");
       } finally {
@@ -413,7 +418,12 @@ export default function QRCodeDisplay({
             <>
               {qrImage && (
                 <div className="mt-6 p-5 bg-white border border-[#EEF2FF] rounded-[24px] shadow-[0_4px_24px_rgba(1,31,123,0.08)] flex items-center justify-center">
-                  <img src={qrImage} alt="QR code ticket" className="w-[180px] h-[180px] object-contain" />
+                  <img 
+                    src={qrImage} 
+                    alt="QR code ticket" 
+                    className="w-[180px] h-[180px] object-contain" 
+                    style={{ imageRendering: 'pixelated', transform: 'translateZ(0)' }} 
+                  />
                 </div>
               )}
               

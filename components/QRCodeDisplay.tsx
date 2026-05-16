@@ -363,7 +363,7 @@ export default function QRCodeDisplay({
           <div className="flex items-center justify-between relative z-10">
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 rounded-full bg-[#FFBA09] animate-pulse" />
-              <span className="text-[10px] font-bold tracking-[0.1em] text-white/80 uppercase">Event Credentials</span>
+              <span className="text-[10px] font-bold tracking-[0.1em] text-white/80 uppercase">Event Pass</span>
             </div>
             
             <button 
@@ -446,40 +446,19 @@ export default function QRCodeDisplay({
                   <button
                     onClick={downloadAsPDF}
                     disabled={pdfLoading}
-                    className="w-full h-[52px] bg-[#FFBA09] text-[#011F7B] rounded-[20px] font-bold text-[14px] shadow-[0_12px_24px_rgba(255,186,9,0.3)] flex items-center justify-center gap-2 active:scale-[0.98] transition-all disabled:opacity-50"
+                    className="w-full h-[54px] bg-[#FFBA09] text-[#011F7B] rounded-[20px] font-bold text-[15px] shadow-[0_12px_24px_rgba(255,186,9,0.3)] flex items-center justify-center gap-2 active:scale-[0.98] transition-all disabled:opacity-50"
                   >
                     {pdfLoading ? (
                       <Loader2Icon size={18} className="animate-spin" />
                     ) : (
                       <>
-                        <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                         </svg>
                         Download PDF Pass
                       </>
                     )}
                   </button>
-
-                  <div className="grid grid-cols-2 gap-2.5">
-                    <button 
-                      onClick={addToAppleWallet}
-                      className="h-[48px] bg-white border border-[#E2E8F0] rounded-[18px] text-[#011F7B] font-bold text-[12px] flex items-center justify-center gap-2 active:scale-[0.98] transition-all hover:bg-slate-50"
-                    >
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M16.364 8.232c-.52-1.396-1.928-2.228-3.414-2.228-1.503 0-2.819.789-3.498 2.016-.363.655-.558 1.411-.558 2.193 0 1.258.494 2.457 1.341 3.325.867.887 2.051 1.365 3.3 1.365 1.096 0 2.164-.374 2.97-1.041.56-.464 1.246-.948 1.942-.948.337 0 .684.095.968.273l2.846 1.779A8.966 8.966 0 0112 21a9 9 0 119-9c0 1.272-.27 2.511-.79 3.658L16.364 8.232zM12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2z"/>
-                      </svg>
-                      Apple Wallet
-                    </button>
-                    <button 
-                      onClick={addToGoogleWallet}
-                      className="h-[48px] bg-white border border-[#E2E8F0] rounded-[18px] text-[#011F7B] font-bold text-[12px] flex items-center justify-center gap-2 active:scale-[0.98] transition-all hover:bg-slate-50"
-                    >
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M21.35 11.1h-9.17v2.73h6.51c-.33 3.81-3.5 5.44-6.5 5.44-3.9 0-7.14-3.2-7.14-7.27s3.24-7.27 7.14-7.27c1.76 0 3.3.64 4.5 1.71l2.09-2.09C17.06 2.65 14.7 1.63 12.18 1.63 6.47 1.63 1.83 6.27 1.83 11.98s4.64 10.35 10.35 10.35c5.38 0 9.85-3.66 10.22-8.73h.01v-2.5h-1.06z"/>
-                      </svg>
-                      Google Wallet
-                    </button>
-                  </div>
                 </div>
               </>
             )}

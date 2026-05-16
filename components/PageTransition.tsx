@@ -53,7 +53,7 @@ export default function PageTransition({ children }: { children: ReactNode }) {
   }, [pathname]);
 
   return (
-    <div ref={ref} className="page-enter flex flex-col flex-1 h-full min-h-full" style={{ willChange: "opacity, transform" }}>
+    <div ref={ref} className="page-enter" style={{ willChange: "opacity, transform" }}>
       {children}
     </div>
   );

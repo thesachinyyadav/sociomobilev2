@@ -842,7 +842,7 @@ export default function ScannerClient() {
 
       {/* ── Standard TopBar (White) ── */}
       <header
-        className="sticky top-0 w-full z-50 bg-white border-b border-[#E2E8F0]"
+        className="sticky top-0 left-0 right-0 z-50 bg-white border-b border-[#E2E8F0]"
         style={{ paddingTop: "var(--safe-top)", backfaceVisibility: "hidden" }}
       >
         <div

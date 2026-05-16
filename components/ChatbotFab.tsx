@@ -130,19 +130,15 @@ export default function ChatbotFab() {
     <>
       {/* FAB */}
       {!open && (
-        <div 
-          className="fixed inset-x-0 mx-auto max-w-[540px] pointer-events-none z-40"
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          aria-label="Open help"
+          className="fixed right-4 z-40 h-14 w-14 rounded-[20px] border border-[rgba(255,255,255,0.2)] bg-[#011F7B] text-white shadow-[0_8px_24px_rgba(1,31,123,0.15)] flex items-center justify-center hover:scale-105 active:scale-95 transition-all"
           style={{ bottom: `calc(var(--bottom-nav) + var(--safe-bottom) + ${fabBottomOffset})` }}
         >
-          <button
-            type="button"
-            onClick={() => setOpen(true)}
-            aria-label="Open help"
-            className="absolute right-4 h-14 w-14 rounded-[20px] border border-[rgba(255,255,255,0.2)] bg-[#011F7B] text-white shadow-[0_8px_24px_rgba(1,31,123,0.15)] flex items-center justify-center hover:scale-105 active:scale-95 transition-all pointer-events-auto"
-          >
-            <MessageSquareIcon size={22} strokeWidth={2} />
-          </button>
-        </div>
+          <MessageSquareIcon size={22} strokeWidth={2} />
+        </button>
       )}
 
       {/* Chat Panel */}
@@ -151,20 +147,18 @@ export default function ChatbotFab() {
         <button
           type="button"
           aria-label="Close chat"
-          className="fixed inset-0 z-40 bg-black/20 backdrop-blur-[2px] w-full max-w-[540px] mx-auto"
+          className="fixed inset-0 z-40 bg-black/20 backdrop-blur-[2px]"
           onClick={() => setOpen(false)}
         />
-        <div 
-          className="fixed inset-x-0 mx-auto max-w-[540px] pointer-events-none z-50 flex items-end justify-start px-3"
-          style={{ bottom: `calc(var(--bottom-nav, 0px) + var(--safe-bottom, 0px) + ${fabBottomOffset})` }}
+        <div
+          className="fixed z-50 flex flex-col rounded-[18px] border border-[var(--color-border)] bg-[var(--color-bg)] shadow-[0_18px_50px_rgba(17,24,39,0.22)] overflow-hidden"
+          style={{
+            left: "12px",
+            width: "min(86vw, 350px)",
+            bottom: `calc(var(--bottom-nav, 0px) + var(--safe-bottom, 0px) + ${fabBottomOffset})`,
+            maxHeight: "min(68dvh, 560px)",
+          }}
         >
-          <div
-            className="flex flex-col rounded-[18px] border border-[var(--color-border)] bg-[var(--color-bg)] shadow-[0_18px_50px_rgba(17,24,39,0.22)] overflow-hidden pointer-events-auto w-full"
-            style={{
-              maxWidth: "380px",
-              maxHeight: "min(68dvh, 560px)",
-            }}
-          >
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-[var(--color-primary-dark)] to-[var(--color-primary)] text-white shrink-0 border-b border-white/15">
             <div className="flex items-center gap-2.5">
@@ -253,7 +247,8 @@ export default function ChatbotFab() {
               </div>
             )}
           </div>
-        </div>
+
+
         </div>
         </>
       )}

@@ -129,8 +129,8 @@ export default function InstallPrompt() {
   }
 
   return (
-    <div className="fixed bottom-[calc(var(--bottom-nav)+var(--safe-bottom)+12px)] inset-x-0 mx-auto max-w-[540px] px-3 z-40 animate-slide-up pointer-events-none">
-      <div className="relative overflow-hidden rounded-[var(--radius-lg)] bg-gradient-to-br from-[var(--color-primary-dark)] via-[var(--color-primary)] to-[#1a3db0] text-white p-4 shadow-2xl border border-white/10 pointer-events-auto">
+    <div className="fixed bottom-[calc(var(--bottom-nav)+var(--safe-bottom)+12px)] left-3 right-3 z-40 animate-slide-up">
+      <div className="relative overflow-hidden rounded-[var(--radius-lg)] bg-gradient-to-br from-[var(--color-primary-dark)] via-[var(--color-primary)] to-[#1a3db0] text-white p-4 shadow-2xl border border-white/10">
         {/* Decorative background elements */}
         <div className="absolute -top-20 -right-20 w-40 h-40 rounded-full bg-white/5 blur-3xl" />
         <div className="absolute -bottom-16 -left-16 w-32 h-32 rounded-full bg-white/5 blur-3xl" />

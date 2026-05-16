@@ -1,43 +1,89 @@
 import { NextResponse } from 'next/server';
 import { generateSecurePassPayload } from '@/lib/walletCrypto';
+import { SignJWT, importPKCS8 } from 'jose';
 
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { registrationId, eventId, eventTitle, participantName } = body;
+    const { 
+      registrationId, 
+      eventId, 
+      eventTitle, 
+      participantName,
+      venue,
+      date,
+      time 
+    } = body;
 
     if (!registrationId || !eventId) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    const jwt = await generateSecurePassPayload({
+    // 1. Environment Variables Validation
+    const issuerId = process.env.GOOGLE_WALLET_ISSUER_ID;
+    const clientEmail = process.env.GOOGLE_WALLET_CLIENT_EMAIL;
+    const privateKeyRaw = process.env.GOOGLE_WALLET_PRIVATE_KEY;
+
+    if (!issuerId || !clientEmail || !privateKeyRaw) {
+      console.error('Google Wallet Config Missing:', { 
+        hasIssuer: !!issuerId, 
+        hasEmail: !!clientEmail, 
+        hasKey: !!privateKeyRaw 
+      });
+      return NextResponse.json({ 
+        error: 'Google Wallet integration is not configured on the server. Please check environment variables.' 
+      }, { status: 500 });
+    }
+
+    // 2. Private Key Fix
+    // Replace literal \n with actual newlines if present in env
+    const privateKey = privateKeyRaw.replace(/\\n/g, '\n');
+
+    // 3. Generate the same secure token used for the app QR
+    // This ensures that scanning the Google Wallet pass uses the same validation pipeline
+    const secureBarcodeValue = await generateSecurePassPayload({
       attendeeId: 'google-wallet',
       eventId,
       registrationId,
       participantName: participantName || 'Attendee',
     });
 
-    // Generate Google Wallet Objects API JWT
-    // NOTE: This uses dummy credentials as a placeholder since real credentials
-    // require an active Google Pay Developer Console account.
-    
-    // In production, you would:
-    // 1. Authenticate with GoogleAuth using a service account
-    // 2. Create an EventTicketClass if it doesn't exist
-    // 3. Create an EventTicketObject linked to the Class and the user
-    // 4. Sign a JWT with the object payload and the service account
-    
-    const issuerId = process.env.GOOGLE_WALLET_ISSUER_ID || '3333000000000000000';
-    const classId = `${issuerId}.EventTicket_${eventId}`;
-    const objectId = `${issuerId}.Ticket_${registrationId}`;
+    // 4. Define Google Wallet Objects
+    // Production IDs: issuerId.objectSuffix
+    const classId = `${issuerId}.EventTicketClass_${eventId}`;
+    const objectId = `${issuerId}.EventTicketObject_${registrationId}`;
 
     const claims = {
-      iss: 'placeholder-service-account@gserviceaccount.com',
+      iss: clientEmail,
       aud: 'google',
       typ: 'savetowallet',
       iat: Math.floor(Date.now() / 1000),
-      origins: [],
       payload: {
+        eventTicketClasses: [
+          {
+            id: classId,
+            issuerName: 'SOCIO',
+            eventName: {
+              defaultValue: {
+                language: 'en-US',
+                value: eventTitle || 'Event'
+              }
+            },
+            logo: {
+              sourceUri: {
+                uri: 'https://app.withsocio.com/icon-512x512.png'
+              },
+              accessibilityText: {
+                defaultValue: {
+                  language: 'en-US',
+                  value: 'SOCIO Logo'
+                }
+              }
+            },
+            reviewStatus: 'APPROVED',
+            hexBackgroundColor: '#011F7B'
+          }
+        ],
         eventTicketObjects: [
           {
             id: objectId,
@@ -45,22 +91,59 @@ export async function POST(req: Request) {
             state: 'ACTIVE',
             barcode: {
               type: 'QR_CODE',
-              value: jwt,
+              value: secureBarcodeValue,
               alternateText: registrationId
             },
-            ticketHolderName: participantName
+            ticketHolderName: participantName || 'Attendee',
+            venue: {
+              name: {
+                defaultValue: {
+                  language: 'en-US',
+                  value: venue || 'Venue TBA'
+                }
+              }
+            },
+            reservationInfo: {
+              confirmationCode: registrationId
+            },
+            // Metadata for the user inside the pass
+            textModulesData: [
+              {
+                header: 'EVENT DATE',
+                body: date || 'TBA',
+                id: 'event_date'
+              },
+              {
+                header: 'EVENT TIME',
+                body: time || 'TBA',
+                id: 'event_time'
+              }
+            ]
           }
         ]
       }
     };
 
-    // Placeholder: Return the object config. Real app signs this using google-auth-library
+    // 5. Sign the JWT with RS256 using the service account private key
+    const ecPrivateKey = await importPKCS8(privateKey, 'RS256');
+    
+    const signedJwt = await new SignJWT(claims)
+      .setProtectedHeader({ alg: 'RS256' })
+      .sign(ecPrivateKey);
+
+    const saveUrl = `https://pay.google.com/gp/v/save/${signedJwt}`;
+
     return NextResponse.json({ 
-      saveUrl: `https://pay.google.com/gp/v/save/fake_signed_jwt_for_demo`,
-      payload: claims
+      saveUrl,
+      objectId,
+      classId
     });
   } catch (err: any) {
-    console.error('Google Wallet Error:', err);
-    return NextResponse.json({ error: 'Failed to generate Google Wallet pass' }, { status: 500 });
+    console.error('Google Wallet Integration Error:', err);
+    return NextResponse.json({ 
+      error: `Google Wallet API Error: ${err.message}` 
+    }, { status: 500 });
   }
 }
+
+

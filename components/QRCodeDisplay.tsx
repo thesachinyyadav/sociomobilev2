@@ -149,23 +149,38 @@ export default function QRCodeDisplay({
   const addToGoogleWallet = async () => {
     try {
       const loadingToast = toast.loading("Preparing secure credential...");
-      // SIMULATED BACKEND CALL
-      const token = await generateSecurePassPayload({
-        attendeeId: 'google-wallet',
-        eventId,
-        registrationId,
-        participantName
+      
+      const res = await fetch('/api/wallet/google', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          registrationId, 
+          eventId, 
+          eventTitle, 
+          participantName, 
+          venue, 
+          date, 
+          time 
+        })
       });
-      // In production, the backend returns a Google Wallet save URL
-      await new Promise(resolve => setTimeout(resolve, 600));
-      const fakeSaveUrl = `https://pay.google.com/gp/v/save/fake_signed_jwt_for_demo`;
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || "Failed to prepare wallet pass");
+      }
+
+      const data = await res.json();
       
       toast.dismiss(loadingToast);
       toast.success("Pass ready to save");
-      window.open(fakeSaveUrl, '_blank');
-    } catch {
+      
+      if (data.saveUrl) {
+        window.open(data.saveUrl, '_blank');
+      }
+    } catch (err: any) {
       toast.dismiss();
-      toast.error("Unable to generate secure pass");
+      toast.error(err.message || "Unable to generate Google Wallet pass");
+      console.error("Google Wallet redirect failed:", err);
     }
   };
 

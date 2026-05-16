@@ -106,6 +106,12 @@ export default function ChatbotFab() {
     return () => clearTimeout(id);
   }, [typingIdx, displayedLen, messages]);
 
+  useEffect(() => {
+    const handleOpen = () => setOpen(true);
+    window.addEventListener("socio:openChatbot", handleOpen);
+    return () => window.removeEventListener("socio:openChatbot", handleOpen);
+  }, []);
+
   const handleQuestion = (text: string) => {
     if (!text.trim() || typingIdx !== null) return;
     setMessages((prev) => [...prev, { role: "user", content: text.trim() }]);
@@ -128,18 +134,7 @@ export default function ChatbotFab() {
 
   return (
     <>
-      {/* FAB */}
-      {!open && (
-        <button
-          type="button"
-          onClick={() => setOpen(true)}
-          aria-label="Open help"
-          className="fixed right-4 z-40 h-14 w-14 rounded-[20px] border border-[rgba(255,255,255,0.2)] bg-[#011F7B] text-white shadow-[0_8px_24px_rgba(1,31,123,0.15)] flex items-center justify-center hover:scale-105 active:scale-95 transition-all"
-          style={{ bottom: `calc(var(--bottom-nav) + var(--safe-bottom) + ${fabBottomOffset})` }}
-        >
-          <MessageSquareIcon size={22} strokeWidth={2} />
-        </button>
-      )}
+      {/* FAB REMOVED - NOW ACCESSIBLE VIA QUICK ACTIONS */}
 
       {/* Chat Panel */}
       {open && (

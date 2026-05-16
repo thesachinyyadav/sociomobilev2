@@ -5,7 +5,7 @@ import Link from "next/link";
 import React from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useEvents, type FetchedEvent } from "@/context/EventContext";
-import { CalendarDaysIcon, BellIcon, CompassIcon, ArrowRightIcon, MapPinIcon, Clock3Icon, FlameIcon, TicketIcon, QrCodeIcon, BuildingIcon, UtensilsIcon } from "@/components/icons";
+import { CalendarDaysIcon, BellIcon, CompassIcon, ArrowRightIcon, MapPinIcon, Clock3Icon, FlameIcon, TicketIcon, QrCodeIcon, BuildingIcon, UtensilsIcon, SparklesIcon } from "@/components/icons";
 import { formatDateShort, formatTime, isDeadlinePassed } from "@/lib/dateUtils";
 import { getActiveVolunteerEvents } from "@/lib/volunteerAccess";
 import EventCardSkeleton from "@/components/skeletons/EventCardSkeleton";
@@ -32,7 +32,7 @@ function getEventImage(event: FetchedEvent) {
 }
 
 function getQuickActions(notificationCount: number, volunteerCount: number, isCaterer: boolean) {
-  const baseActions: { href: string; label: string; icon: any; tone: string; badge?: number }[] = [
+  const baseActions: { href: string; label: string; subtitle?: string; icon: any; tone: string; badge?: number }[] = [
     {
       href: "/profile",
       label: "Registrations",
@@ -40,10 +40,11 @@ function getQuickActions(notificationCount: number, volunteerCount: number, isCa
       tone: "bg-[var(--color-primary-light)] text-[var(--color-primary)]",
     },
     {
-      href: "/fests",
-      label: "University\nFests",
-      icon: FlameIcon,
-      tone: "bg-[#fff4cf] text-[#745b00]",
+      href: "#socioassist",
+      label: "SocioAssist",
+      subtitle: "Help & Guidance",
+      icon: SparklesIcon,
+      tone: "bg-[#fffbeb] text-[#92400e] border-[#fef3c7]",
     },
     {
       href: "/clubs",
@@ -282,25 +283,54 @@ export default function HomePage() {
             Quick Actions
           </h2>
           <div className="grid grid-cols-4 gap-2.5">
-            {quickActions.map(({ href, label, icon: Icon, tone, badge }) => (
-              <Link
-                key={href}
-                href={href}
-                className="relative flex h-[110px] min-w-0 flex-col items-center justify-center gap-2 rounded-[18px] border border-white bg-white/86 px-1.5 py-3 text-center shadow-[0_6px_18px_rgba(0,0,0,0.04)] backdrop-blur-sm transition-all hover:bg-white active:scale-[0.98]"
-              >
-                {badge ? (
-                  <span className="absolute top-2 right-2 min-w-[18px] rounded-full bg-[var(--color-primary)] px-1.5 py-0.5 text-[10px] font-bold text-white">
-                    {badge}
-                  </span>
-                ) : null}
-                <div className={`flex h-11 w-11 items-center justify-center rounded-full ${tone}`}>
-                  <Icon size={20} />
-                </div>
-                <span className="flex h-[25px] w-full items-center justify-center whitespace-pre-line text-center text-[9px] font-extrabold leading-[1.15] text-[var(--color-text)]">
-                  {label}
-                </span>
-              </Link>
-            ))}
+            {quickActions.map(({ href, label, subtitle, icon: Icon, tone, badge }) => {
+              const isChatbot = href === "#socioassist";
+              
+              const ActionContent = (
+                <>
+                  {badge ? (
+                    <span className="absolute top-2 right-2 min-w-[18px] rounded-full bg-[var(--color-primary)] px-1.5 py-0.5 text-[10px] font-bold text-white">
+                      {badge}
+                    </span>
+                  ) : null}
+                  <div className={`flex h-11 w-11 items-center justify-center rounded-full ${tone}`}>
+                    <Icon size={20} />
+                  </div>
+                  <div className="flex flex-col items-center justify-center min-h-[32px] w-full px-1">
+                    <span className="whitespace-pre-line text-center text-[9px] font-extrabold leading-[1.15] text-[var(--color-text)]">
+                      {label}
+                    </span>
+                    {subtitle && (
+                      <span className="text-[7.5px] font-medium text-[var(--color-text-muted)] mt-0.5 opacity-80 leading-tight">
+                        {subtitle}
+                      </span>
+                    )}
+                  </div>
+                </>
+              );
+
+              if (isChatbot) {
+                return (
+                  <button
+                    key={href}
+                    onClick={() => window.dispatchEvent(new CustomEvent("socio:openChatbot"))}
+                    className="relative flex h-[110px] min-w-0 flex-col items-center justify-center gap-2 rounded-[18px] border border-white bg-white/86 px-1.5 py-3 text-center shadow-[0_6px_18px_rgba(0,0,0,0.04)] backdrop-blur-sm transition-all hover:bg-white active:scale-[0.98] cursor-pointer"
+                  >
+                    {ActionContent}
+                  </button>
+                );
+              }
+
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  className="relative flex h-[110px] min-w-0 flex-col items-center justify-center gap-2 rounded-[18px] border border-white bg-white/86 px-1.5 py-3 text-center shadow-[0_6px_18px_rgba(0,0,0,0.04)] backdrop-blur-sm transition-all hover:bg-white active:scale-[0.98]"
+                >
+                  {ActionContent}
+                </Link>
+              );
+            })}
           </div>
         </section>
 

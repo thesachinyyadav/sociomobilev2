@@ -228,7 +228,7 @@ export default function NotificationsPage() {
         {/* Content Wrapper */}
         <div className="relative z-10 flex flex-col h-full">
           {/* Top Row - Exact TopBar Design from Image */}
-          <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center justify-between mb-2">
             <button 
               onClick={() => router.back()} 
               className="w-11 h-11 rounded-full bg-white/10 border border-white/5 flex items-center justify-center active:scale-90 transition-transform backdrop-blur-sm text-white"
@@ -241,12 +241,7 @@ export default function NotificationsPage() {
             </div>
 
             <div className="w-11 h-11 flex items-center justify-center text-white relative">
-              <BellIcon size={24} />
-              {unreadCount > 0 && (
-                <div className="absolute top-1 right-1 bg-[#FFBA09] text-[#011F7B] text-[10px] font-bold px-1.5 min-w-[18px] h-[18px] rounded-full flex items-center justify-center border-2 border-[#011F7B]">
-                  {unreadCount > 99 ? '99+' : unreadCount}
-                </div>
-              )}
+              {/* Empty placeholder to maintain title centering */}
             </div>
           </div>
 

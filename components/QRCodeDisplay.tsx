@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import QRCode from "qrcode";
-import { XIcon, AlertCircleIcon, Loader2Icon, CalendarIcon, ClockIcon, MapPinIcon } from "@/components/icons";
+import { XIcon, AlertCircleIcon, Loader2Icon, CalendarIcon, ClockIcon, MapPinIcon, DownloadIcon } from "@/components/icons";
 import { useAuth } from "@/context/AuthContext";
 import { apiRequest } from "@/lib/apiClient";
 import { generateSecurePassPayload } from "@/lib/walletCrypto";
@@ -334,39 +334,39 @@ export default function QRCodeDisplay({
   const dateInfo = formatEventDate(date);
 
   return (
-    <div className="fixed inset-0 z-[999] flex items-center justify-center p-4">
-      {/* Backdrop - Click to close removed to enforce 'X' button usage */}
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center overscroll-none touch-none">
+      {/* Backdrop - High intensity to lock focus */}
       <motion.div 
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="absolute inset-0 bg-[#0F172A]/80 backdrop-blur-[12px]"
+        className="absolute inset-0 bg-[#020617]/95 backdrop-blur-[20px]"
       />
 
-      {/* Modal Container */}
+      {/* Modal Container - Absolutely centered */}
       <motion.div 
-        initial={{ opacity: 0, scale: 0.9, y: 0 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.9, y: 0 }}
-        transition={{ type: "spring", duration: 0.4, bounce: 0.2 }}
-        className="relative w-full max-w-[380px] bg-white rounded-[32px] shadow-[0_40px_80px_rgba(0,0,0,0.4)] border border-white/10 flex flex-col overflow-hidden"
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.9 }}
+        transition={{ type: "spring", duration: 0.45, bounce: 0.25 }}
+        className="relative w-full max-w-[360px] bg-white rounded-[36px] shadow-[0_40px_100px_rgba(0,0,0,0.6)] border border-white/20 flex flex-col overflow-hidden mx-4"
         style={{
-          maxHeight: 'min(90dvh, 680px)',
+          maxHeight: 'min(85dvh, 620px)',
         }}
       >
         {/* Header Section */}
-        <div className="relative h-[120px] shrink-0 rounded-t-[32px] rounded-b-[24px] overflow-hidden flex flex-col p-5 bg-gradient-to-br from-[#011F7B] via-[#011F7B] to-[#1E3FAB] shadow-md">
-          <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.4)_0,transparent_100%)] pointer-events-none" />
+        <div className="relative h-[110px] shrink-0 overflow-hidden flex flex-col p-5 bg-[#011F7B] shadow-inner">
+          <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.6)_0,transparent_100%)] pointer-events-none" />
           
           <div className="flex items-center justify-between relative z-10">
             <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-[#FFBA09] shadow-[0_0_8px_#FFBA09] animate-pulse" />
-              <span className="text-[10px] font-bold tracking-[0.15em] text-white uppercase">Event Pass</span>
+              <div className="w-2 h-2 rounded-full bg-[#FFBA09] shadow-[0_0_10px_#FFBA09] animate-pulse" />
+              <span className="text-[10px] font-black tracking-[0.2em] text-white/90 uppercase">Event Pass</span>
             </div>
             
             <button 
               onClick={onClose} 
-              className="w-10 h-10 rounded-full bg-white/15 flex items-center justify-center border border-white/20 hover:bg-white/25 transition-all active:scale-90 shrink-0 shadow-lg" 
+              className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center border border-white/20 hover:bg-white/20 transition-all active:scale-90 shrink-0" 
               aria-label="Close"
             >
               <XIcon size={18} className="text-white" strokeWidth={3} />
@@ -374,111 +374,88 @@ export default function QRCodeDisplay({
           </div>
 
           <div className="mt-auto relative z-10">
-            <h3 className="text-[22px] font-bold text-white tracking-tight leading-tight mb-0.5 truncate w-full drop-shadow-sm">{eventTitle}</h3>
-            <p className="text-[12px] text-white/80 font-medium truncate w-full uppercase tracking-widest">{participantName}</p>
+            <h3 className="text-[20px] font-black text-white tracking-tight leading-tight mb-0.5 truncate w-full">{eventTitle}</h3>
+            <p className="text-[11px] text-white/60 font-bold truncate w-full uppercase tracking-widest">{participantName}</p>
           </div>
         </div>
 
-        {/* Content Section - Internal scrolling disabled as requested */}
-        <div className="flex-1 overflow-hidden flex flex-col p-6 pt-0">
-          {/* Info Bar */}
-          <div className="w-full grid grid-cols-3 gap-2 bg-[#F8FAFC] border border-[#F1F5F9] rounded-[24px] p-3 -mt-6 relative z-20 shadow-lg backdrop-blur-md shrink-0">
-            <div className="flex flex-col pl-1">
-              <div className="flex items-center gap-1.5 mb-1">
-                <CalendarIcon size={12} className="text-[#FFBA09]" />
-                <span className="text-[9px] text-[#64748B] font-bold uppercase tracking-wider">Date</span>
-              </div>
-              <span className="text-[11px] text-[#0F172A] font-extrabold leading-tight truncate">{dateInfo.main}</span>
+        {/* Content Section - Compact and centered */}
+        <div className="flex-1 overflow-hidden flex flex-col p-6 items-center justify-center gap-6">
+          {/* Info Bar - Inline style */}
+          <div className="w-full flex items-center justify-between bg-[#F8FAFC] rounded-2xl p-4 border border-[#F1F5F9] shrink-0">
+            <div className="flex flex-col">
+              <span className="text-[8px] text-[#64748B] font-black uppercase tracking-wider mb-0.5">Date</span>
+              <span className="text-[11px] text-[#011F7B] font-black">{dateInfo.main}</span>
             </div>
-            <div className="flex flex-col border-l border-[#E2E8F0] pl-3">
-              <div className="flex items-center gap-1.5 mb-1">
-                <ClockIcon size={12} className="text-[#FFBA09]" />
-                <span className="text-[9px] text-[#64748B] font-bold uppercase tracking-wider">Time</span>
-              </div>
-              <span className="text-[11px] text-[#0F172A] font-extrabold leading-tight truncate">{time || "TBA"}</span>
+            <div className="w-px h-6 bg-[#E2E8F0]" />
+            <div className="flex flex-col items-center">
+              <span className="text-[8px] text-[#64748B] font-black uppercase tracking-wider mb-0.5">Time</span>
+              <span className="text-[11px] text-[#011F7B] font-black">{time || "TBA"}</span>
             </div>
-            <div className="flex flex-col border-l border-[#E2E8F0] pl-3">
-              <div className="flex items-center gap-1.5 mb-1">
-                <MapPinIcon size={12} className="text-[#FFBA09]" />
-                <span className="text-[9px] text-[#64748B] font-bold uppercase tracking-wider">Venue</span>
-              </div>
-              <span className="text-[11px] text-[#0F172A] font-extrabold leading-tight truncate" title={venue}>{venue || "TBA"}</span>
+            <div className="w-px h-6 bg-[#E2E8F0]" />
+            <div className="flex flex-col items-end">
+              <span className="text-[8px] text-[#64748B] font-black uppercase tracking-wider mb-0.5">Venue</span>
+              <span className="text-[11px] text-[#011F7B] font-black truncate max-w-[80px]">{venue || "TBA"}</span>
             </div>
           </div>
 
-          <div className="flex flex-col items-center justify-center flex-1 py-6 min-h-[260px]">
+          <div className="flex flex-col items-center justify-center flex-1 w-full">
             {loading ? (
-              <div className="flex flex-col items-center">
-                <div className="relative w-16 h-16 flex items-center justify-center">
-                  <Loader2Icon size={32} className="animate-spin text-[#1E3FAB]" />
-                  <div className="absolute inset-0 rounded-full border-2 border-[#1E3FAB]/10 border-t-[#1E3FAB] animate-spin" />
-                </div>
-                <p className="mt-4 text-[13px] font-bold text-[#64748B] animate-pulse">Initializing Security...</p>
+              <div className="flex flex-col items-center gap-3">
+                <Loader2Icon size={32} className="animate-spin text-[#011F7B]" />
+                <p className="text-[12px] font-black text-[#64748B] tracking-tighter uppercase">Securing...</p>
               </div>
             ) : error ? (
-              <div className="bg-red-50 border border-red-100 rounded-[24px] p-6 flex flex-col items-center text-center w-full">
-                <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center mb-3">
-                  <AlertCircleIcon size={24} className="text-red-500" />
-                </div>
-                <h4 className="text-red-900 font-bold text-[15px] mb-1">Credential Error</h4>
-                <p className="text-[13px] text-red-600/80 font-medium">{error}</p>
+              <div className="flex flex-col items-center text-center gap-2">
+                <AlertCircleIcon size={32} className="text-red-500" />
+                <p className="text-[13px] text-red-600 font-bold leading-tight">{error}</p>
               </div>
             ) : (
-              <>
-                {qrImage && (
-                  <motion.div 
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    className="p-4 bg-white border border-[#EEF2FF] rounded-[28px] shadow-[0_8px_32px_rgba(1,31,123,0.08)] flex items-center justify-center"
-                  >
-                    <img 
-                      src={qrImage} 
-                      alt="QR code" 
-                      className="w-[160px] h-[160px] sm:w-[180px] sm:h-[180px] object-contain" 
-                      style={{ imageRendering: 'pixelated' }} 
-                    />
-                  </motion.div>
-                )}
-
-                <div className="mt-6 w-full flex flex-col gap-2.5">
-                  <button
-                    onClick={downloadAsPDF}
-                    disabled={pdfLoading}
-                    className="w-full h-[54px] bg-[#FFBA09] text-[#011F7B] rounded-[20px] font-bold text-[15px] shadow-[0_12px_24px_rgba(255,186,9,0.3)] flex items-center justify-center gap-2 active:scale-[0.98] transition-all disabled:opacity-50"
-                  >
-                    {pdfLoading ? (
-                      <Loader2Icon size={18} className="animate-spin" />
-                    ) : (
-                      <>
-                        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                        </svg>
-                        Download PDF Pass
-                      </>
-                    )}
-                  </button>
-                </div>
-              </>
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="p-3 bg-white border-2 border-[#F1F5F9] rounded-[32px] shadow-sm flex items-center justify-center shrink-0"
+              >
+                <img 
+                  src={qrImage || ""} 
+                  alt="QR code" 
+                  className="w-[160px] h-[160px] object-contain" 
+                  style={{ imageRendering: 'pixelated' }} 
+                />
+              </motion.div>
             )}
           </div>
 
-          <div className="mt-4 bg-[#FFF9E8] border border-[rgba(255,186,9,0.2)] rounded-[20px] py-3.5 px-4 flex items-center justify-center shrink-0">
-            <p className="text-[11px] font-bold text-[#011F7B] text-center leading-relaxed">
-              Scan this QR code at the event gate.<br/>
-              <span className="opacity-60 text-[10px]">Credential ID: {registrationId}</span>
-            </p>
+          <div className="w-full space-y-4 shrink-0">
+            <button
+              onClick={downloadAsPDF}
+              disabled={pdfLoading || loading}
+              className="w-full h-[56px] bg-[#FFBA09] text-[#011F7B] rounded-2xl font-black text-[15px] shadow-[0_12px_24px_rgba(255,186,9,0.3)] flex items-center justify-center gap-2 active:scale-[0.98] transition-all disabled:opacity-50"
+            >
+              {pdfLoading ? (
+                <Loader2Icon size={20} className="animate-spin" />
+              ) : (
+                <>
+                  <DownloadIcon size={20} strokeWidth={3} />
+                  Download PDF Pass
+                </>
+              )}
+            </button>
+
+            <div className="bg-[#FFF9E8] rounded-2xl py-3 px-4 flex flex-col items-center justify-center">
+              <p className="text-[10px] font-black text-[#011F7B] text-center uppercase tracking-tight">
+                Scan at the gate for entry
+              </p>
+              <span className="text-[8px] text-[#011F7B]/50 font-bold mt-1">
+                ID: {registrationId.slice(0, 8)}...{registrationId.slice(-4)}
+              </span>
+            </div>
           </div>
         </div>
       </motion.div>
 
       <style jsx>{`
-        .hide-scrollbar::-webkit-scrollbar {
-          display: none;
-        }
-        .hide-scrollbar {
-          -ms-overflow-style: none;
-          scrollbar-width: none;
-        }
+        .overscroll-none { overscroll-behavior: none; }
       `}</style>
     </div>
   );

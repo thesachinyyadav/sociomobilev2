@@ -166,26 +166,14 @@ class WebScanner implements IScanner {
     this.isPaused = false;
   }
 
-  async setTorch(enabled: boolean): Promise<void> {
-    if (!this.scanner) return;
-    try {
-      if (enabled) {
-        await this.scanner.turnFlashOn();
-      } else {
-        await this.scanner.turnFlashOff();
-      }
-    } catch (err) {
-      console.warn('[WebScanner] Torch not supported', err);
-    }
+  async setTorch(_enabled: boolean): Promise<void> {
+    // Torch is disabled for WebScanner to maintain "Native-only" policy
+    return;
   }
 
   async isTorchAvailable(): Promise<boolean> {
-    if (!this.scanner) return false;
-    try {
-      return await this.scanner.hasFlash();
-    } catch {
-      return false;
-    }
+    // Torch is disabled for WebScanner to maintain "Native-only" policy
+    return false;
   }
 }
 

@@ -31,7 +31,7 @@ import {
   showErrorToast,
   showInfoToast,
 } from "@/lib/toastUtils";
-import { Haptics, NotificationType } from "@capacitor/haptics";
+import { Haptics, ImpactStyle, NotificationType } from "@capacitor/haptics";
 import { startRecoveryTransition, stopRecoveryTransition } from "@/lib/nativeLaunchState";
 import { logCapacitorPerfAudit, logMemorySnapshot, startPerfSpan, withPerfSpan } from "@/lib/capacitorPerfAudit";
 import ScannerSkeleton from "@/components/skeletons/ScannerSkeleton";
@@ -386,20 +386,23 @@ export default function ScannerClient() {
   }, [isNative, torchEnabled]);
 
   const toggleTorch = useCallback(async () => {
-    if (!scannerRef.current || !torchAvailable) return;
+    if (!scannerRef.current || !torchAvailable || !isNative) return;
     try {
       const newState = !torchEnabled;
       await scannerRef.current.setTorch(newState);
       setTorchEnabled(newState);
-      pushToast({
-        type: "success",
-        name: "Torch",
-        message: newState ? "Torch enabled" : "Torch disabled"
+      
+      // Haptic feedback for professional operational feel
+      await Haptics.impact({ style: ImpactStyle.Light }).catch(() => {});
+
+      showInfoToast({
+        title: "Torch",
+        message: newState ? "Flashlight active" : "Flashlight inactive"
       });
     } catch (err) {
       console.error("[Scanner] Torch toggle failed:", err);
     }
-  }, [torchEnabled, torchAvailable, pushToast]);
+  }, [torchEnabled, torchAvailable, isNative]);
 
   /* ── Core scan processor (backend-authoritative) ── */
   const processScan = useCallback(async (result: ScannerResult) => {
@@ -634,8 +637,12 @@ export default function ScannerClient() {
         // Stable ref-based dispatch — the scanner never sees a new function,
         // so library-internal teardown/setup is never triggered by React renders.
         await scannerRef.current.start(videoRef.current!, (r) => processScanRef.current(r));
-        const available = await scannerRef.current.isTorchAvailable();
-        setTorchAvailable(available);
+        if (isNative) {
+          const available = await scannerRef.current.isTorchAvailable();
+          setTorchAvailable(available);
+        } else {
+          setTorchAvailable(false);
+        }
       }, { isNative });
       setIsScanning(true);
       // Memory snapshot is dev/native diagnostic only — no-op in production web
@@ -1021,21 +1028,25 @@ export default function ScannerClient() {
                 <div className="scan-corner scan-corner-br" />
                 <div className="scan-line" />
 
-                {/* Torch Toggle Button - Right Side */}
-                {torchAvailable && (
+                {/* Torch Toggle Button - Right Side (STRICTLY NATIVE ONLY) */}
+                {isNative && torchAvailable && (
                   <button
                     className={`absolute top-4 right-4 w-[44px] h-[44px] rounded-full flex items-center justify-center z-50 pointer-events-auto active:scale-90 transition-all shadow-lg backdrop-blur-[8px] border border-white/20 ${
                       torchEnabled 
-                        ? "bg-[#FFBA09] text-[#011F7B] animate-pulse shadow-[0_0_15px_rgba(255,186,9,0.5)]" 
-                        : "bg-[#011F7B]/22 text-white"
+                        ? "bg-[#FFBA09] text-[#011F7B] shadow-[0_0_20px_rgba(255,186,9,0.45)] border-[#FFBA09]/40" 
+                        : "bg-[#011F7B]/40 text-white"
                     }`}
                     onClick={(e) => {
                       e.stopPropagation();
                       void toggleTorch();
                     }}
-                    aria-label={torchEnabled ? "Disable torch" : "Enable torch"}
+                    aria-label={torchEnabled ? "Disable flashlight" : "Enable flashlight"}
                   >
-                    <FlashlightIcon size={20} strokeWidth={2.5} />
+                    <FlashlightIcon 
+                      size={20} 
+                      strokeWidth={2.5} 
+                      className={torchEnabled ? "drop-shadow-[0_0_3px_rgba(1,31,123,0.3)]" : ""} 
+                    />
                   </button>
                 )}
 

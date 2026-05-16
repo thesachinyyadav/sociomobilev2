@@ -244,12 +244,7 @@ export default function NotificationsPage() {
             </div>
 
             <div className="w-10 h-10 flex items-center justify-center text-white relative">
-              <BellIcon size={22} />
-              {unreadCount > 0 && (
-                <div className="absolute -top-1 -right-1 w-[18px] h-[18px] bg-[#FFBA09] text-black font-bold text-[10px] flex items-center justify-center rounded-full">
-                  {unreadCount > 99 ? '99+' : unreadCount}
-                </div>
-              )}
+              {/* Bell icon removed */}
             </div>
           </div>
 
@@ -306,7 +301,7 @@ export default function NotificationsPage() {
         ) : groups.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-center px-8 relative">
             <div className="w-24 h-24 rounded-full bg-white shadow-[0_20px_40px_rgba(1,31,123,0.08)] flex items-center justify-center mb-8 relative">
-              <BellIcon size={36} className="text-[#011F7B] opacity-80" />
+              <InfoIcon size={36} className="text-[#011F7B] opacity-80" />
             </div>
             <h2 className="text-[22px] font-black text-[#0F172A] tracking-tight">No new updates</h2>
             <p className="text-[14px] text-[#64748B] mt-2 max-w-[240px] leading-relaxed font-medium">

@@ -64,11 +64,10 @@ export default function NetworkBanner() {
   return (
     <AnimatePresence>
       <motion.div
-        initial={{ opacity: 0, y: -20 }}
+        initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: -20 }}
-        style={{ top: "calc(var(--safe-top) + var(--nav-height))" }}
-        className={`fixed left-0 right-0 z-40 px-4 py-1.5 text-[11px] font-semibold text-white/95 flex items-center justify-center gap-1.5 shadow-sm backdrop-blur-md ${bgClass}`}
+        exit={{ opacity: 0, y: -10 }}
+        className={`absolute left-0 right-0 z-40 px-4 py-1.5 text-[11px] font-bold text-white/95 flex items-center justify-center gap-1.5 shadow-md backdrop-blur-md ${bgClass} border-t border-white/10`}
       >
         <span className="opacity-90 flex items-center justify-center">{icon}</span>
         {text}

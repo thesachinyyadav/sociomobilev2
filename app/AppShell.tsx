@@ -16,7 +16,6 @@ const ChatbotFab = dynamic(() => import("@/components/ChatbotFab"), { ssr: false
 const SmartNotificationPrompt = dynamic(() => import("@/components/SmartNotificationPrompt"), { ssr: false });
 const CampusSelector = dynamic(() => import("@/components/CampusSelector"), { ssr: false });
 const InstallPrompt = dynamic(() => import("@/components/InstallPrompt"), { ssr: false });
-const NetworkBanner = dynamic(() => import("@/components/NetworkBanner"), { ssr: false });
 const OrientationGate = dynamic(() => import("@/components/OrientationGate"), { ssr: false });
 const NotificationDiagnostics = dynamic(() => import("@/components/NotificationDiagnostics"), { ssr: false });
 const NativeLaunchController = dynamic(() => import("@/components/native/NativeLaunchController"), { ssr: false });
@@ -157,7 +156,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex flex-col min-h-dvh overflow-hidden">
       <NativeLaunchController />
-      <NetworkBanner />
       <OrientationGate />
       {!isNative && <DesktopGate />}
       {!hideTop && <TopBar />}

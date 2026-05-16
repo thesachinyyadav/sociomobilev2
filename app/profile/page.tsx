@@ -8,7 +8,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { useEvents } from "@/context/EventContext";
 import Skeleton from "@/components/Skeleton";
-import LoadingScreen from "@/components/LoadingScreen";
+import ProfileSkeleton from "@/components/skeletons/ProfileSkeleton";
 import QRCodeDisplay from "@/components/QRCodeDisplay";
 import {
   HashIcon as Hash,

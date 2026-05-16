@@ -210,11 +210,10 @@ export default function NotificationsPage() {
       <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden" />
 
       {/* Premium Hero Header with Curves */}
-      <div className="relative z-20 w-full overflow-hidden rounded-b-[40px]" style={{
+      <div className="relative z-20 w-full overflow-hidden" style={{
         background: "linear-gradient(135deg, #011F7B 0%, #0c2b8c 50%, #153c9b 100%)",
-        minHeight: "260px",
         paddingTop: "calc(var(--safe-top) + 16px)",
-        paddingBottom: "60px",
+        paddingBottom: "40px",
         paddingLeft: "24px",
         paddingRight: "24px",
         boxShadow: "0 10px 40px rgba(1,31,123,0.15)"
@@ -225,10 +224,17 @@ export default function NotificationsPage() {
           backgroundSize: "30px 30px"
         }} />
 
+        {/* Wavy arch bottom SVG shape */}
+        <div className="absolute bottom-0 left-0 right-0 w-full pointer-events-none translate-y-[1px]">
+          <svg viewBox="0 0 1440 120" fill="none" preserveAspectRatio="none" className="w-full h-[24px]">
+            <path d="M0 120 V 60 Q 720 -20 1440 60 V 120 Z" fill="#F8FAFC" />
+          </svg>
+        </div>
+
         {/* Content Wrapper */}
         <div className="relative z-10 flex flex-col h-full">
           {/* Top Row - Exact TopBar Design from Image */}
-          <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center justify-between mb-1">
             <button 
               onClick={() => router.back()} 
               className="w-11 h-11 rounded-full bg-white/10 border border-white/5 flex items-center justify-center active:scale-90 transition-transform backdrop-blur-sm text-white"
@@ -246,17 +252,17 @@ export default function NotificationsPage() {
           </div>
 
           {/* Title Area */}
-          <div className="flex flex-col gap-2 mt-2">
-            <h1 className="text-[42px] font-black tracking-tight text-white leading-tight">
+          <div className="flex flex-col gap-1">
+            <h1 className="text-[38px] font-black tracking-tight text-white leading-tight">
               Notifications
             </h1>
-            <div className="flex items-center gap-2.5 mt-2">
+            <div className="flex items-center gap-2.5 mt-1">
               <span className="w-3 h-3 rounded-full bg-[#FFBA09] shadow-[0_0_12px_rgba(255,186,9,0.6)]" />
               <span className="text-[15px] font-bold text-white/95 tracking-wide">
                 {unreadCount} unread updates
               </span>
             </div>
-            <div className="flex items-center gap-2 mt-1.5 opacity-60">
+            <div className="flex items-center gap-2 mt-1 opacity-60 mb-6">
               <RefreshCwIcon size={14} className="text-white" />
               <span className="text-[13px] font-semibold text-white tracking-wide uppercase">
                 Last synced just now
@@ -267,7 +273,7 @@ export default function NotificationsPage() {
       </div>
 
       {/* Action Buttons Row - Floating above the curve */}
-      <div className="relative z-30 px-6 flex items-center justify-center gap-4 -mt-7">
+      <div className="relative z-30 px-6 flex items-center justify-center gap-4 -mt-6">
         <button
           onClick={markAllRead}
           className="flex-1 h-[46px] rounded-[16px] bg-white shadow-[0_8px_20px_rgba(1,31,123,0.12)] border border-[#E2E8F0] flex items-center justify-center gap-2 active:scale-95 transition-transform"
@@ -290,7 +296,7 @@ export default function NotificationsPage() {
         {isLoading && notifications.length === 0 ? (
           <div className="space-y-5">
             {[...Array(4)].map((_, i) => (
-              <div key={i} className="h-36 w-full rounded-[24px] bg-white border border-slate-200/50 animate-pulse" />
+              <div key={i} className="h-[120px] w-full rounded-[20px] border border-[var(--color-border)] shadow-[0_4px_16px_rgba(0,0,0,0.03)] skeleton" />
             ))}
           </div>
         ) : groups.length === 0 ? (

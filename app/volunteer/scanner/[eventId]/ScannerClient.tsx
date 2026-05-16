@@ -33,7 +33,7 @@ import {
 import { Haptics, NotificationType } from "@capacitor/haptics";
 import { startRecoveryTransition, stopRecoveryTransition } from "@/lib/nativeLaunchState";
 import { logCapacitorPerfAudit, logMemorySnapshot, startPerfSpan, withPerfSpan } from "@/lib/capacitorPerfAudit";
-import { useLiveQuery } from "dexie-react-hooks";
+import ScannerSkeleton from "@/components/skeletons/ScannerSkeleton";
 import { db, syncEngine } from "@/lib/offline";
 import {
   buildTrustedTimeProvenance,
@@ -808,7 +808,7 @@ export default function ScannerClient() {
 
   /* ── Loading / Error guards ── */
   if (authLoading || isChecking) {
-    return <div className="pwa-page-center bg-[var(--color-bg)]" />;
+    return <ScannerSkeleton />;
   }
 
   if (!event || accessError) {

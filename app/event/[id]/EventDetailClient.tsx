@@ -187,7 +187,64 @@ export default function EventDetailClient({ eventId }: { eventId: string }) {
   const prizes = event ? parseJsonField<string>(event.prizes) : [];
 
   if (loading || ctxLoading) {
-    return <div className="flex items-center justify-center min-h-screen"><Loader2 className="w-8 h-8 animate-spin text-[var(--color-primary)]" /></div>;
+    return (
+      <div className="pwa-page bg-[#F5F7FA] overflow-y-auto !pb-[calc(var(--bottom-nav)+var(--safe-bottom)+140px)]">
+        {/* Hero Skeleton */}
+        <div className="relative w-full overflow-hidden skeleton" style={{ minHeight: "75vw", maxHeight: 460 }}>
+          <div className="absolute bottom-0 left-0 right-0 px-5 pb-16 pt-24 z-10">
+            <div className="w-24 h-3 bg-white/20 rounded mb-3" />
+            <div className="w-3/4 h-8 bg-white/30 rounded" />
+          </div>
+        </div>
+
+        {/* Meta card skeleton */}
+        <div className="mx-4 -mt-10 relative z-20 mb-6 bg-white rounded-3xl overflow-hidden shadow-[0_20px_50px_rgba(1,31,123,0.12)]">
+          <div className="h-[4px] w-full bg-gradient-to-r from-[#011F7B] via-[#4F6EF7] to-[#FFBA09] opacity-90" />
+          <div className="p-5 grid grid-cols-1 gap-4">
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 rounded-2xl skeleton shrink-0" />
+              <div className="flex-1 space-y-2">
+                <div className="w-12 h-2 skeleton rounded" />
+                <div className="w-32 h-4 skeleton rounded" />
+              </div>
+            </div>
+            <div className="h-px bg-gray-100 w-full" />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl skeleton shrink-0" />
+                <div className="flex-1 space-y-2">
+                  <div className="w-10 h-2 skeleton rounded" />
+                  <div className="w-20 h-4 skeleton rounded" />
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl skeleton shrink-0" />
+                <div className="flex-1 space-y-2">
+                  <div className="w-10 h-2 skeleton rounded" />
+                  <div className="w-24 h-4 skeleton rounded" />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="px-4 mb-4 flex flex-wrap gap-1.5">
+          <div className="w-20 h-6 skeleton rounded-full" />
+          <div className="w-24 h-6 skeleton rounded-full" />
+        </div>
+
+        <div className="px-4 space-y-3">
+          <div className="bg-white rounded-2xl p-4 border border-[var(--color-border)] shadow-sm space-y-2">
+            <div className="w-16 h-3 skeleton rounded mb-4" />
+            <div className="w-full h-3 skeleton rounded" />
+            <div className="w-full h-3 skeleton rounded" />
+            <div className="w-3/4 h-3 skeleton rounded" />
+          </div>
+          <div className="bg-white rounded-2xl h-[68px] skeleton border border-[var(--color-border)] shadow-sm" />
+          <div className="bg-white rounded-2xl h-[68px] skeleton border border-[var(--color-border)] shadow-sm" />
+        </div>
+      </div>
+    );
   }
   if (error || !event) {
     return (

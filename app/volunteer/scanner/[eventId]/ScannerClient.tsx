@@ -35,6 +35,7 @@ import { startRecoveryTransition, stopRecoveryTransition } from "@/lib/nativeLau
 import { logCapacitorPerfAudit, logMemorySnapshot, startPerfSpan, withPerfSpan } from "@/lib/capacitorPerfAudit";
 import ScannerSkeleton from "@/components/skeletons/ScannerSkeleton";
 import { db, syncEngine } from "@/lib/offline";
+import { useLiveQuery } from "dexie-react-hooks";
 import {
   buildTrustedTimeProvenance,
   decideOfflineScan,

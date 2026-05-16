@@ -9,6 +9,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useEvents } from "@/context/EventContext";
 import Skeleton from "@/components/Skeleton";
 import ProfileSkeleton from "@/components/skeletons/ProfileSkeleton";
+import LoadingScreen from "@/components/LoadingScreen";
 import QRCodeDisplay from "@/components/QRCodeDisplay";
 import {
   HashIcon as Hash,

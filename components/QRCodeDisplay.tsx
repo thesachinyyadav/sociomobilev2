@@ -98,48 +98,23 @@ export default function QRCodeDisplay({
         setLoading(true);
         setError(null);
 
-        const cacheKey = `socio_credential_${registrationId}`;
-        let token = localStorage.getItem(cacheKey);
+        const cacheKey = `socio_qr_img_${registrationId}`;
+        const cachedImage = localStorage.getItem(cacheKey);
 
-        // Validate existing token expiry
-        if (token) {
-          try {
-            const decoded = JSON.parse(atob(token.split('.')[1]));
-            if (decoded.exp && (decoded.exp * 1000) < Date.now()) {
-              token = null; // Expired, regenerate
-            }
-          } catch {
-            token = null;
-          }
+        if (cachedImage) {
+          setQrImage(cachedImage);
+          setLoading(false);
+          return;
         }
 
-        if (!token) {
-          token = await generateSecurePassPayload({
-            attendeeId: userData?.visitor_id || userData?.register_number || 'unknown',
-            eventId,
-            registrationId,
-            participantName
-          });
-          if (!token) throw new Error("No secure token received");
-          localStorage.setItem(cacheKey, token);
-        }
-
-        // Generate QR code image from the stable JWT token using SVG for perfect crispness
-        const svgString = await QRCode.toString(token, {
-          type: 'svg',
-          margin: 4, // Upgraded quiet zone for scannability
-          errorCorrectionLevel: 'H', // Upgraded error correction to High
-          color: {
-            dark: '#000000', // Maximum contrast for scanners
-            light: '#FFFFFF'
-          }
-        });
+        const data = await apiRequest<any>(`/registrations/${encodeURIComponent(registrationId)}/qr-code`);
         
-        const encodedSvg = typeof window !== 'undefined' 
-          ? window.btoa(unescape(encodeURIComponent(svgString)))
-          : Buffer.from(svgString).toString('base64');
-          
-        setQrImage(`data:image/svg+xml;base64,${encodedSvg}`);
+        if (!data || !data.qrCodeImage) {
+          throw new Error("Invalid QR code received from server");
+        }
+
+        localStorage.setItem(cacheKey, data.qrCodeImage);
+        setQrImage(data.qrCodeImage);
       } catch (err: any) {
         setError(err.message || "Network error while generating secure pass.");
       } finally {

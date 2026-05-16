@@ -75,15 +75,15 @@ function Card({
         style={{
           background: "rgba(255,255,255,1)",
           border: "1px solid rgba(226,232,240,0.8)",
-          borderRadius: "16px",
-          padding: "16px",
+          borderRadius: "20px",
+          padding: "18px",
           ...( !n.read ? { borderLeft: "4px solid #011F7B" } : { borderLeft: "4px solid transparent" } )
         }}
         onClick={onTap}
       >
-        <div className="w-full text-left cursor-pointer flex gap-3">
+        <div className="w-full text-left cursor-pointer flex gap-4">
           {/* Left Icon */}
-          <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${bg}`}>
+          <div className={`w-12 h-12 rounded-full flex items-center justify-center shrink-0 ${bg}`}>
             {icon}
           </div>
           
@@ -100,25 +100,25 @@ function Card({
                 </span>
               </div>
               <div className="flex items-center gap-2 text-[#011F7B]/40">
-                {!n.read && <div className="w-2 h-2 rounded-full bg-[#011F7B]" />}
-                <ChevronRightIcon size={16} />
+                {!n.read && <div className="w-2.5 h-2.5 rounded-full bg-[#011F7B]" />}
+                <ChevronRightIcon size={18} />
               </div>
             </div>
             
-            <h3 className="text-[16px] font-bold text-[#0F172A] mb-1 leading-tight">
+            <h3 className="text-[18px] font-bold text-[#0F172A] mb-1.5 leading-tight">
               {n.title}
             </h3>
             
-            <p className="text-[14px] text-[#64748B] leading-snug font-medium mb-3">
+            <p className="text-[14px] text-[#64748B] leading-relaxed font-medium mb-4">
               {n.message}
             </p>
 
             {(n.eventTitle || !n.read) && (
-              <div className="flex items-center justify-between mt-3">
+              <div className="flex items-center justify-between mt-1">
                 {n.eventTitle ? (
-                  <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#F1F5F9] border border-[#E2E8F0]">
+                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#F1F5F9] border border-[#E2E8F0]">
                     <CalendarIcon size={14} className="text-[#64748B]" />
-                    <span className="text-[12px] font-semibold text-[#475569] truncate">
+                    <span className="text-[12px] font-bold text-[#475569] truncate">
                       {n.eventTitle}
                     </span>
                   </div>
@@ -130,7 +130,7 @@ function Card({
                       e.stopPropagation();
                       onMarkRead();
                     }}
-                    className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-blue-50 text-[#011F7B] hover:bg-blue-100 transition-colors ml-auto"
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#EFF6FF] text-[#011F7B] hover:bg-blue-100 transition-colors ml-auto shadow-sm"
                   >
                     <CheckIcon size={14} />
                     <span className="text-[11px] font-bold uppercase tracking-wider">Mark Read</span>
@@ -206,67 +206,66 @@ export default function NotificationsPage() {
 
   return (
     <div className="min-h-screen relative overflow-x-hidden bg-[#F8FAFC]">
-      {/* Background operational layers */}
-      <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden">
-        {/* Subtle blueprint grid */}
-        <div className="absolute inset-0 opacity-[0.04]" style={{
-          backgroundImage: "linear-gradient(#011F7B 1px, transparent 1px), linear-gradient(90deg, #011F7B 1px, transparent 1px)",
-          backgroundSize: "20px 20px"
-        }} />
-      </div>
+      {/* Background operational layers - Grid removed as per request */}
+      <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden" />
 
-      {/* Premium Hero Header */}
+      {/* Premium Hero Header with Curves */}
       <div className="relative z-20 w-full overflow-visible" style={{
         background: "linear-gradient(135deg, #011F7B 0%, #0c2b8c 50%, #153c9b 100%)",
-        minHeight: "260px",
-        borderBottomLeftRadius: "40px",
-        borderBottomRightRadius: "40px",
+        minHeight: "280px",
         paddingTop: "calc(var(--safe-top) + 16px)",
-        paddingBottom: "48px",
+        paddingBottom: "80px",
         paddingLeft: "24px",
         paddingRight: "24px",
         boxShadow: "0 10px 40px rgba(1,31,123,0.15)"
       }}>
         {/* Background stars / dots */}
-        <div className="absolute inset-0 opacity-[0.4] pointer-events-none" style={{
+        <div className="absolute inset-0 opacity-[0.3] pointer-events-none" style={{
           backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.2) 1px, transparent 1px)",
           backgroundSize: "30px 30px"
         }} />
 
+        {/* Wavy bottom SVG shape */}
+        <div className="absolute bottom-[-1px] left-0 right-0 w-full pointer-events-none">
+          <svg viewBox="0 0 1440 120" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-auto">
+            <path d="M0 0C240 80 480 120 720 120C960 120 1200 80 1440 0V120H0V0Z" fill="#F8FAFC" />
+          </svg>
+        </div>
+
         {/* Content Wrapper */}
-        <div className="relative z-10 flex flex-col h-full min-h-[180px]">
-          {/* Top Row */}
+        <div className="relative z-10 flex flex-col h-full">
+          {/* Top Row - Exact TopBar Design from Image */}
           <div className="flex items-center justify-between mb-8">
             <button 
               onClick={() => router.back()} 
-              className="w-10 h-10 rounded-full bg-white/10 border border-white/20 flex items-center justify-center active:scale-95 transition-transform backdrop-blur-md text-white"
+              className="w-11 h-11 rounded-full bg-white/10 border border-white/5 flex items-center justify-center active:scale-90 transition-transform backdrop-blur-sm text-white"
             >
-              <ArrowLeftIcon size={20} />
+              <ArrowLeftIcon size={20} strokeWidth={2.5} />
             </button>
             
-            <div className="text-[18px] font-black tracking-widest text-white absolute left-1/2 -translate-x-1/2">
+            <div className="text-[20px] font-black tracking-[0.1em] text-white absolute left-1/2 -translate-x-1/2">
               SOCIO
             </div>
 
-            <div className="w-10 h-10 flex items-center justify-center text-white relative">
+            <div className="w-11 h-11 flex items-center justify-center text-white relative">
               {/* Bell icon removed as per request */}
             </div>
           </div>
 
           {/* Title Area */}
-          <div className="flex flex-col gap-1.5 mt-auto">
-            <h1 className="text-[38px] font-black tracking-tight text-white leading-none">
+          <div className="flex flex-col gap-2 mt-2">
+            <h1 className="text-[42px] font-black tracking-tight text-white leading-tight">
               Notifications
             </h1>
-            <div className="flex items-center gap-2 mt-3">
-              <span className="w-2.5 h-2.5 rounded-full bg-[#FFBA09] shadow-[0_0_8px_#FFBA09]" />
-              <span className="text-[14px] font-bold text-white tracking-wide">
+            <div className="flex items-center gap-2.5 mt-2">
+              <span className="w-3 h-3 rounded-full bg-[#FFBA09] shadow-[0_0_12px_rgba(255,186,9,0.6)]" />
+              <span className="text-[15px] font-bold text-white/95 tracking-wide">
                 {unreadCount} unread updates
               </span>
             </div>
-            <div className="flex items-center gap-1.5 mt-1 opacity-70">
-              <RefreshCwIcon size={12} className="text-white" />
-              <span className="text-[12px] font-medium text-white tracking-wide">
+            <div className="flex items-center gap-2 mt-1.5 opacity-60">
+              <RefreshCwIcon size={14} className="text-white" />
+              <span className="text-[13px] font-semibold text-white tracking-wide uppercase">
                 Last synced just now
               </span>
             </div>
@@ -274,57 +273,56 @@ export default function NotificationsPage() {
         </div>
       </div>
 
-      {/* Action Buttons Row - Fixed negative margin overlap */}
-      <div className="relative z-30 px-6 flex items-center justify-center gap-4 -mt-6">
+      {/* Action Buttons Row - Floating above the curve */}
+      <div className="relative z-30 px-6 flex items-center justify-center gap-4 -mt-10">
         <button
           onClick={markAllRead}
-          className="flex-1 h-12 rounded-2xl bg-white shadow-[0_12px_24px_rgba(1,31,123,0.12)] border border-[#E2E8F0]/50 flex items-center justify-center gap-2 active:scale-95 transition-transform"
+          className="flex-1 h-14 rounded-[20px] bg-white shadow-[0_12px_30px_rgba(1,31,123,0.14)] border border-[#E2E8F0]/40 flex items-center justify-center gap-2.5 active:scale-95 transition-transform"
         >
-          <CheckIcon size={16} className="text-[#011F7B]" />
-          <span className="text-[12px] font-bold uppercase tracking-wider text-[#011F7B]">MARK ALL AS READ</span>
+          <CheckIcon size={18} className="text-[#011F7B]" strokeWidth={2.5} />
+          <span className="text-[13px] font-black uppercase tracking-wider text-[#011F7B]">MARK ALL AS READ</span>
         </button>
 
-        {notifications.length > 0 && (
-          <button
-            onClick={() => setShowClearModal(true)}
-            className="flex-1 h-12 rounded-2xl bg-white shadow-[0_12px_24px_rgba(1,31,123,0.12)] border border-[#E2E8F0]/50 flex items-center justify-center gap-2 active:scale-95 transition-transform"
-          >
-            <TrashIcon size={16} className="text-[#EF4444]" />
-            <span className="text-[12px] font-bold uppercase tracking-wider text-[#EF4444]">CLEAR ALL</span>
-          </button>
-        )}
+        <button
+          onClick={() => setShowClearModal(true)}
+          className="flex-1 h-14 rounded-[20px] bg-white shadow-[0_12px_30px_rgba(1,31,123,0.14)] border border-[#E2E8F0]/40 flex items-center justify-center gap-2.5 active:scale-95 transition-transform"
+        >
+          <TrashIcon size={18} className="text-[#EF4444]" strokeWidth={2.5} />
+          <span className="text-[13px] font-black uppercase tracking-wider text-[#EF4444]">CLEAR ALL</span>
+        </button>
       </div>
 
       {/* Main Content */}
-      <div className="relative z-10 px-4 pt-10 pb-28">
+      <div className="relative z-10 px-4 pt-12 pb-32">
         {isLoading && notifications.length === 0 ? (
-          <div className="space-y-4">
+          <div className="space-y-5">
             {[...Array(4)].map((_, i) => (
-              <div key={i} className="h-32 w-full rounded-[16px] bg-white border border-slate-200/50 animate-pulse" />
+              <div key={i} className="h-36 w-full rounded-[24px] bg-white border border-slate-200/50 animate-pulse" />
             ))}
           </div>
         ) : groups.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 text-center px-8 relative">
-            <div className="w-24 h-24 rounded-full bg-white shadow-[0_20px_40px_rgba(1,31,123,0.08)] flex items-center justify-center mb-8 relative">
-              <InfoIcon size={36} className="text-[#011F7B] opacity-80" />
+          <div className="flex flex-col items-center justify-center py-24 text-center px-8 relative">
+            <div className="w-28 h-28 rounded-full bg-white shadow-[0_25px_50px_rgba(1,31,123,0.1)] flex items-center justify-center mb-10 relative border border-white">
+              <div className="absolute inset-0 bg-[#011F7B]/5 rounded-full animate-ping opacity-20" />
+              <InfoIcon size={42} className="text-[#011F7B] opacity-90" />
             </div>
-            <h2 className="text-[22px] font-black text-[#0F172A] tracking-tight">No new updates</h2>
-            <p className="text-[14px] text-[#64748B] mt-2 max-w-[240px] leading-relaxed font-medium">
+            <h2 className="text-[26px] font-black text-[#0F172A] tracking-tight">No new updates</h2>
+            <p className="text-[15px] text-[#64748B] mt-3 max-w-[260px] leading-relaxed font-semibold">
               You're all caught up. We'll alert you when there's operational activity.
             </p>
             <button 
               onClick={() => refresh()}
-              className="mt-8 flex items-center gap-2 px-6 py-3 rounded-full bg-white border border-[#E2E8F0] shadow-sm text-[#011F7B] font-bold text-[13px] active:scale-95 transition-all"
+              className="mt-10 flex items-center gap-2.5 px-8 py-4 rounded-full bg-white border border-[#E2E8F0] shadow-md text-[#011F7B] font-black text-[14px] active:scale-95 transition-all tracking-wider uppercase"
             >
-              <RefreshCwIcon size={14} />
+              <RefreshCwIcon size={16} />
               REFRESH
             </button>
           </div>
         ) : (
-          <div className="space-y-6">
+          <div className="space-y-10">
             {groups.map((group) => (
-              <div key={group.title} className="space-y-3">
-                <h2 className="text-[12px] font-bold uppercase tracking-[0.2em] text-[#7088B6] pl-2 mb-2">
+              <div key={group.title} className="space-y-5">
+                <h2 className="text-[13px] font-black uppercase tracking-[0.25em] text-[#7088B6] pl-3 mb-3">
                   {group.title}
                 </h2>
                 <AnimatePresence>
@@ -342,11 +340,11 @@ export default function NotificationsPage() {
             ))}
 
             {hasMore && (
-              <div className="pt-6 flex justify-center pb-6">
+              <div className="pt-8 flex justify-center pb-8">
                 <button
                   onClick={loadMore}
                   disabled={isLoading}
-                  className="px-8 py-3 rounded-full bg-white/60 backdrop-blur-sm border border-[#E2E8F0] shadow-sm text-[#0F172A] font-black text-[11px] uppercase tracking-[0.15em] active:scale-95 transition-transform"
+                  className="px-10 py-4 rounded-full bg-white shadow-sm border border-[#E2E8F0] text-[#0F172A] font-black text-[12px] uppercase tracking-[0.2em] active:scale-95 transition-transform"
                 >
                   {isLoading ? "Loading..." : "Load Older"}
                 </button>
@@ -364,28 +362,28 @@ export default function NotificationsPage() {
             onClick={() => setShowClearModal(false)}
           />
           <div 
-            className="relative w-full max-w-sm bg-white rounded-[32px] p-6 shadow-[0_20px_60px_rgba(0,0,0,0.15)] transform transition-all scale-100 opacity-100"
-            style={{ animation: "modalEnter 300ms cubic-bezier(0.16, 1, 0.3, 1)" }}
+            className="relative w-full max-w-sm bg-white rounded-[32px] p-8 shadow-[0_25px_70px_rgba(0,0,0,0.2)] transform transition-all scale-100 opacity-100"
+            style={{ animation: "modalEnter 400ms cubic-bezier(0.16, 1, 0.3, 1)" }}
           >
-            <div className="w-14 h-14 rounded-2xl bg-red-50 flex items-center justify-center mb-5 border border-red-100">
-              <TrashIcon size={24} className="text-[#EF4444]" />
+            <div className="w-16 h-16 rounded-[20px] bg-red-50 flex items-center justify-center mb-6 border border-red-100">
+              <TrashIcon size={30} className="text-[#EF4444]" />
             </div>
-            <h3 className="text-[20px] font-black text-[#0F172A] tracking-tight mb-2">
+            <h3 className="text-[22px] font-black text-[#0F172A] tracking-tight mb-3">
               Clear all notifications?
             </h3>
-            <p className="text-[14px] text-[#64748B] font-medium leading-relaxed mb-8">
+            <p className="text-[15px] text-[#64748B] font-semibold leading-relaxed mb-10">
               This action cannot be undone. All your current notifications will be permanently removed.
             </p>
-            <div className="flex gap-3">
+            <div className="flex gap-4">
               <button 
                 onClick={() => setShowClearModal(false)}
-                className="flex-1 py-3.5 rounded-full bg-[#F8FAFC] border border-[#E2E8F0] text-[#0F172A] font-bold text-[14px] active:scale-95 transition-transform"
+                className="flex-1 py-4 rounded-full bg-[#F8FAFC] border border-[#E2E8F0] text-[#0F172A] font-black text-[14px] active:scale-95 transition-transform uppercase tracking-wider"
               >
                 Cancel
               </button>
               <button 
                 onClick={handleDismissAll}
-                className="flex-1 py-3.5 rounded-full bg-[#EF4444] text-white font-bold text-[14px] shadow-[0_8px_20px_rgba(239,68,68,0.25)] active:scale-95 transition-transform"
+                className="flex-1 py-4 rounded-full bg-[#EF4444] text-white font-black text-[14px] shadow-[0_8px_20px_rgba(239,68,68,0.3)] active:scale-95 transition-transform uppercase tracking-wider"
               >
                 Clear All
               </button>
@@ -396,7 +394,7 @@ export default function NotificationsPage() {
 
       <style dangerouslySetInnerHTML={{__html: `
         @keyframes modalEnter {
-          from { opacity: 0; transform: scale(0.95) translateY(10px); }
+          from { opacity: 0; transform: scale(0.9) translateY(20px); }
           to { opacity: 1; transform: scale(1) translateY(0); }
         }
       `}} />

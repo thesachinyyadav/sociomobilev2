@@ -343,14 +343,17 @@ export default function QRCodeDisplay({
   if (!mounted) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center overscroll-none touch-none p-4 pb-[env(safe-area-inset-bottom,20px)]">
-      {/* Backdrop - Elevating the modal with subtle blur */}
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center overscroll-none touch-none p-4">
+      {/* Backdrop - Elevating the modal with increased blur and ambient glow */}
       <AnimatePresence>
         <motion.div 
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="absolute inset-0 bg-[#020617]/68 backdrop-blur-[10px]"
+          className="absolute inset-0 bg-[#020617]/72 backdrop-blur-[14px]"
+          style={{
+            background: 'radial-gradient(circle at top, rgba(30,63,171,0.22), transparent 70%), rgba(2, 6, 23, 0.72)'
+          }}
         />
       </AnimatePresence>
 
@@ -362,26 +365,26 @@ export default function QRCodeDisplay({
         transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
         className="relative w-full max-w-[460px] bg-white rounded-[34px] shadow-[0_30px_80px_rgba(1,31,123,0.18)] flex flex-col overflow-hidden overscroll-contain"
         style={{
-          maxHeight: 'min(92dvh, 760px)',
+          maxHeight: 'min(92dvh, 820px)',
         }}
       >
         {/* Header Section - Operational Navy Gradient with Texture */}
-        <div className="relative shrink-0 overflow-hidden px-6 pt-6 pb-4 bg-gradient-to-br from-[#011F7B] to-[#1E3FAB] rounded-b-[28px]">
+        <div className="relative shrink-0 overflow-hidden px-6 pt-7 pb-[90px] bg-gradient-to-br from-[#011F7B] to-[#1E3FAB] rounded-b-[32px]">
           {/* Subtle Blueprint Texture Overlay */}
           <div className="absolute inset-0 opacity-[0.04] pointer-events-none" 
                style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, white 1px, transparent 0)', backgroundSize: '20px 20px' }} />
           <div className="absolute inset-0 opacity-15 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.7)_0,transparent_100%)] pointer-events-none" />
           
-          <div className="flex items-start justify-between relative z-10 mb-2">
-            <div className="flex flex-col gap-1">
+          <div className="flex items-start justify-between relative z-10 mb-3">
+            <div className="flex flex-col gap-1.5">
               <div className="flex items-center gap-2">
                 <div className="w-1.5 h-1.5 rounded-full bg-[#FFBA09] shadow-[0_0_8px_#FFBA09]" />
                 <span className="text-[10px] font-black tracking-[0.25em] text-white/80 uppercase">Event Pass</span>
               </div>
-              <h3 className="text-[34px] sm:text-[42px] font-black text-white tracking-[-0.03em] leading-[1.02] max-w-[85%] line-clamp-2">
+              <h3 className="text-[clamp(2rem,6vw,2.6rem)] font-black text-white tracking-[-0.03em] leading-[0.95] max-w-[90%] line-clamp-2">
                 {eventTitle}
               </h3>
-              <p className="text-[11px] text-white/50 font-bold tracking-tight mt-1">Your pass to an amazing experience</p>
+              <p className="text-[12px] text-white/50 font-bold tracking-tight mt-1">Your pass to an amazing experience</p>
             </div>
             
             <button 
@@ -392,15 +395,13 @@ export default function QRCodeDisplay({
               <XIcon size={18} className="text-white" strokeWidth={2.5} />
             </button>
           </div>
-
-          <div className="h-6" /> {/* Spacer for overlap */}
         </div>
 
         {/* Content Section - Scrollable with Safe Areas */}
-        <div className="flex-1 flex flex-col items-center min-h-0 overflow-y-auto no-scrollbar scroll-smooth pb-[env(safe-area-inset-bottom,24px)]">
+        <div className="flex-1 flex flex-col items-center min-h-0 overflow-y-auto no-scrollbar scroll-smooth pb-[calc(28px+env(safe-area-inset-bottom,20px))]">
           
-          {/* Floating Info Card - Narrower with breathing room */}
-          <div className="w-[calc(100%-48px)] flex items-stretch bg-white rounded-[26px] p-[20px] shadow-[0_10px_30px_rgba(15,23,42,0.08)] -mt-10 relative z-20 border border-slate-50">
+          {/* Floating Info Card - Reduced Overlap for breathability */}
+          <div className="w-[calc(100%-48px)] flex items-stretch bg-white rounded-[26px] p-[20px] shadow-[0_10px_30px_rgba(15,23,42,0.08)] -mt-12 relative z-20 border border-slate-50">
             {/* Date Section */}
             <div className="flex-1 flex flex-col items-center text-center min-w-0">
               <CalendarIcon size={13} className="text-[#FFBA09] mb-1.5" />
@@ -430,14 +431,14 @@ export default function QRCodeDisplay({
           </div>
 
           <div className="w-full px-[22px] flex flex-col items-center">
-            {/* QR Container - Stronger Elevation */}
+            {/* QR Container - Responsive Sizing */}
             <div className="my-8 flex items-center justify-center">
               {loading ? (
-                <div className="w-[240px] h-[240px] flex items-center justify-center bg-gray-50 rounded-[30px]">
+                <div className="w-[min(240px,68vw)] h-[min(240px,68vw)] flex items-center justify-center bg-gray-50 rounded-[30px]">
                   <Loader2Icon size={32} className="animate-spin text-[#011F7B] opacity-20" />
                 </div>
               ) : error ? (
-                <div className="w-[240px] h-[240px] flex flex-col items-center justify-center p-6 text-center bg-red-50 rounded-[30px] border border-red-100">
+                <div className="w-[min(240px,68vw)] h-[min(240px,68vw)] flex flex-col items-center justify-center p-6 text-center bg-red-50 rounded-[30px] border border-red-100">
                   <AlertCircleIcon size={24} className="text-red-500 mb-2" />
                   <p className="text-[12px] text-red-600 font-bold">{error}</p>
                 </div>
@@ -446,7 +447,7 @@ export default function QRCodeDisplay({
                   <img 
                     src={qrImage || ""} 
                     alt="Secure QR code" 
-                    className="w-[180px] h-[180px] sm:w-[210px] sm:h-[210px] object-contain" 
+                    className="w-[min(180px,52vw)] h-[min(180px,52vw)] sm:w-[210px] sm:h-[210px] object-contain" 
                     style={{ imageRendering: 'pixelated' }} 
                   />
                 </div>
@@ -470,14 +471,14 @@ export default function QRCodeDisplay({
                 )}
               </button>
 
-              {/* Attendance Info Card */}
-              <div className="mt-4 bg-gradient-to-b from-[#FFFDF5] to-[#FFF9E8] rounded-[22px] p-[18px] flex items-center gap-4 border border-[rgba(255,186,9,0.24)]">
+              {/* Attendance Info Card - Polished Spacing */}
+              <div className="mt-4 bg-gradient-to-b from-[#FFFDF5] to-[#FFF9E8] rounded-[22px] p-[20px_22px] flex items-center gap-4 border border-[rgba(255,186,9,0.24)]">
                 <div className="w-10 h-10 rounded-xl bg-[#FFBA09]/10 flex items-center justify-center shrink-0">
                   <QrCodeIcon size={20} className="text-[#FFBA09]" />
                 </div>
-                <div className="flex flex-col min-w-0">
-                  <p className="text-[10px] font-black text-[#011F7B] uppercase tracking-[0.1em]">Event Attendance QR</p>
-                  <span className="text-[9px] text-[#011F7B]/50 font-bold truncate tracking-tight">
+                <div className="flex flex-col min-w-0 justify-center">
+                  <p className="text-[10px] font-black text-[#011F7B] uppercase tracking-[0.1em] leading-none mb-1">Event Attendance QR</p>
+                  <span className="text-[9px] text-[#011F7B]/50 font-bold truncate tracking-tight leading-none">
                     ID: {registrationId}
                   </span>
                 </div>

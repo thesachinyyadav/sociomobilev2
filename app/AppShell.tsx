@@ -20,6 +20,7 @@ const NetworkBanner = dynamic(() => import("@/components/NetworkBanner"), { ssr:
 const OrientationGate = dynamic(() => import("@/components/OrientationGate"), { ssr: false });
 const NotificationDiagnostics = dynamic(() => import("@/components/NotificationDiagnostics"), { ssr: false });
 const NativeLaunchController = dynamic(() => import("@/components/native/NativeLaunchController"), { ssr: false });
+const DesktopGate = dynamic(() => import("@/components/DesktopGate"), { ssr: false });
 
 const NO_BOTTOM_NAV = ["/auth", "/auth/callback", "/offline"];
 const NO_TOP_BAR = ["/auth/callback", "/offline", "/notifications", "/volunteer/scanner"];

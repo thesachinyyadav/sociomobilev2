@@ -334,7 +334,7 @@ export default function QRCodeDisplay({
   const dateInfo = formatEventDate(date);
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center overscroll-none touch-none p-4">
+    <div className="fixed inset-0 z-[9999] flex items-start justify-center overscroll-none touch-none p-3 sm:p-4 pt-[6dvh]">
       {/* Backdrop - High focus blackout */}
       <motion.div 
         initial={{ opacity: 0 }}
@@ -343,12 +343,12 @@ export default function QRCodeDisplay({
         className="absolute inset-0 bg-[#020617]/96 backdrop-blur-[24px]"
       />
 
-      {/* Modal Container - Locked visual center */}
+      {/* Modal Container - Slightly shifted up for better mobile reach/view */}
       <motion.div 
-        initial={{ opacity: 0, scale: 0.85 }}
-        animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.85 }}
-        transition={{ type: "spring", damping: 25, stiffness: 300 }}
+        initial={{ opacity: 0, scale: 0.85, y: 30 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.85, y: 30 }}
+        transition={{ type: "spring", damping: 28, stiffness: 300 }}
         className="relative w-full max-w-[360px] bg-white rounded-[40px] shadow-[0_50px_100px_rgba(0,0,0,0.7)] border border-white/10 flex flex-col overflow-hidden"
         style={{
           maxHeight: 'min(92dvh, 660px)',

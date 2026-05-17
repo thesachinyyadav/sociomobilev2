@@ -357,7 +357,7 @@ export default function QRCodeDisplay({
       >
         {/* Header Section */}
         <div
-          className="pass-header relative z-10 shrink-0 overflow-hidden bg-gradient-to-br from-[#011F7B] to-[#1E3FAB] px-6 pt-3.5 pb-4 rounded-t-[36px]"
+          className="pass-header relative z-10 shrink-0 overflow-hidden bg-gradient-to-br from-[#011F7B] to-[#1E3FAB] px-6 pt-6 pb-10 rounded-t-[36px] min-h-[190px] flex flex-col justify-between"
         >
           {/* Subtle Blueprint Dots */}
           <div className="absolute inset-0 opacity-[0.05] pointer-events-none" 
@@ -375,7 +375,7 @@ export default function QRCodeDisplay({
           <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.28)_0%,transparent_55%)] pointer-events-none" />
           <div className="absolute inset-x-0 top-0 h-28 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.12)_0%,transparent_72%)] pointer-events-none" />
 
-          <div className="relative z-10 pr-12">
+          <div className="relative z-10 pr-12 flex-1 flex flex-col justify-between">
             <div className="flex items-center gap-2">
               <span className="h-2 w-2 rounded-full bg-[#FFBA09] shadow-[0_0_8px_rgba(255,186,9,0.9)]" />
               <div className="flex items-center gap-1.5">
@@ -385,18 +385,20 @@ export default function QRCodeDisplay({
               </div>
             </div>
 
-            <h3 className="pass-title mt-2 max-w-[85%] text-[clamp(18px,5vw,23px)] font-[800] tracking-[-0.04em] text-white leading-[0.95]">
-              {eventTitle}
-            </h3>
+            <div className="mt-4 mb-1">
+              <h3 className="pass-title max-w-full text-[clamp(18px,4.5vw,23px)] font-[800] tracking-[-0.04em] text-white leading-[1.0] pr-4">
+                {eventTitle}
+              </h3>
 
-            <p className="mt-1 text-[11px] font-medium text-white/60">
-              Your pass to an amazing experience
-            </p>
+              <p className="mt-1.5 text-[11px] font-medium text-white/60">
+                Your pass to an amazing experience
+              </p>
+            </div>
           </div>
 
           <button
             onClick={onClose}
-            className="absolute right-5 top-3.5 flex h-9 w-9 items-center justify-center rounded-full border border-white/18 bg-white/12 text-white backdrop-blur-[12px] transition-transform duration-200 hover:bg-white/18 active:scale-95 z-20"
+            className="absolute right-5 top-5 flex h-9 w-9 items-center justify-center rounded-full border border-white/18 bg-white/12 text-white backdrop-blur-[12px] transition-transform duration-200 hover:bg-white/18 active:scale-95 z-20"
             aria-label="Close"
           >
             <XIcon size={15} strokeWidth={2.5} />
@@ -404,7 +406,7 @@ export default function QRCodeDisplay({
         </div>
 
         {/* Main Content Area */}
-        <div className="pass-modal-content flex flex-col items-center justify-between flex-1 min-h-0 relative z-20 -mt-11 pb-4">
+        <div className="pass-modal-content flex flex-col items-center justify-between flex-1 min-h-0 relative z-20 -mt-6 pb-4">
           
           {/* Floating Info Card */}
           <div className="mx-4 bg-white/98 rounded-[24px] p-4 shadow-[0_12px_30px_rgba(15,23,42,0.08)] border border-slate-100/50 backdrop-blur-sm w-[calc(100%-32px)]">
@@ -497,9 +499,9 @@ export default function QRCodeDisplay({
           </div>
 
           {/* Subtle Footer Closure */}
-          <div className="flex flex-col items-center justify-center mt-3 mb-1 opacity-[0.45] gap-0.5">
-            <span className="text-[9px] font-bold uppercase tracking-[0.18em] text-[#0F172A] leading-none">Verified Event Credential</span>
-            <span className="text-[8px] font-semibold text-[#64748B] leading-none">Secured by SOCIO</span>
+          <div className="flex flex-col items-center justify-center mt-7 mb-2 opacity-[0.45] gap-1">
+            <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-[#0F172A] leading-normal text-center">VERIFIED EVENT CREDENTIAL</span>
+            <span className="text-[8px] font-semibold text-[#64748B] leading-normal text-center">Secured by SOCIO</span>
           </div>
 
 
@@ -522,9 +524,9 @@ export default function QRCodeDisplay({
         }
         .pass-title {
           display: -webkit-box;
-          line-height: 0.95;
+          line-height: 1.05;
           -webkit-box-orient: vertical;
-          -webkit-line-clamp: 2;
+          -webkit-line-clamp: 3;
           overflow: hidden;
           text-wrap: balance;
         }

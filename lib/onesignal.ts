@@ -133,13 +133,6 @@ export async function initOneSignal(): Promise<void> {
   console.log("[OneSignal] Initializing...");
 
   try {
-    if (typeof window !== "undefined") {
-      (window as any).OneSignal = (window as any).OneSignal || [];
-      (window as any).OneSignal.SERVICE_WORKER_PATH = 'push/OneSignalSDKWorker.js';
-      (window as any).OneSignal.SERVICE_WORKER_UPDATER_PATH = 'push/OneSignalSDKUpdaterWorker.js';
-      (window as any).OneSignal.SERVICE_WORKER_PARAM = { scope: '/push/' };
-    }
-
     const OneSignal = (await import("react-onesignal")).default;
 
     console.log("[OneSignal] Current origin:", typeof window !== "undefined" ? window.location.origin : "");
@@ -150,6 +143,7 @@ export async function initOneSignal(): Promise<void> {
       appId,
       serviceWorkerPath: "push/OneSignalSDKWorker.js",
       serviceWorkerUpdaterPath: "push/OneSignalSDKUpdaterWorker.js",
+      serviceWorkerParam: { scope: '/push/' },
       notifyButton: {
         enable: false,
       } as any,

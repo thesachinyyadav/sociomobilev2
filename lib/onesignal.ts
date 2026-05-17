@@ -146,54 +146,53 @@ export async function initOneSignal(): Promise<void> {
 
     // ── Transition: initializing → initialized ─────────────────
     state = "initialized";
-    console.log("[OneSignal] Initialized successfully");
+    console.log("[OneSignal] Init success");
 
-    // ── Delivery pipeline diagnostics ─────────────────────────
-    try {
-      if (!OneSignal?.Notifications) {
-        console.warn("[OneSignal] Notifications namespace unavailable");
-        return;
-      }
-      
-      const permission = OneSignal.Notifications.permission;
-      const optedIn    = OneSignal.User?.PushSubscription?.optedIn;
-      const subId      = OneSignal.User?.PushSubscription?.id;
-      const token      = OneSignal.User?.PushSubscription?.token;
+    // ── Diagnostics and Namespace checks ─────────────────────
+    console.log("[OneSignal] SDK:", OneSignal);
+    console.log("[OneSignal] Notifications:", OneSignal?.Notifications);
+    console.log("[OneSignal] User:", OneSignal?.User);
+    console.log("[OneSignal] PushSubscription:", OneSignal?.User?.PushSubscription);
 
-      console.log("[OneSignal] Permission:", permission);
-      console.log("[OneSignal] Subscribed (optedIn):", optedIn);
-      console.log("[OneSignal] Subscription ID:", subId  || "⚠ null — not registered in dashboard yet");
-      console.log("[OneSignal] Push token:      ", token  || "⚠ null — device is NOT fully subscribed");
+    if (OneSignal?.Notifications) {
+      console.log("[OneSignal] Notifications namespace ready");
+    } else {
+      console.error("[OneSignal] Notifications namespace missing");
+    }
 
-      // If permission is granted but device is not opted in, force opt-in.
-      if (permission === true && !optedIn) {
-        console.log("[OneSignal] Permission granted but not opted in — forcing optIn()");
-        await OneSignal.User?.PushSubscription?.optIn?.();
-      }
-    } catch (diagErr) {
-      console.warn("[OneSignal] Subscription diagnostics failed:", diagErr);
+    if (OneSignal?.User?.PushSubscription) {
+      console.log("[OneSignal] Push subscription ready");
+    } else {
+      console.error("[OneSignal] PushSubscription namespace missing");
     }
 
     // ── Safe Event Listeners ──────────────────────────────────
-    if (!OneSignal?.Notifications) {
-      console.warn("[OneSignal] Notifications namespace unavailable");
-      return;
-    }
+    setTimeout(() => {
+      try {
+        if (!OneSignal?.Notifications) {
+          console.error("[OneSignal] Notifications namespace missing — aborting listener registration");
+          return;
+        }
 
-    OneSignal.Notifications.addEventListener(
-      "click",
-      (event: any) => {
-        console.log("Notification clicked:", event);
-      }
-    );
+        OneSignal.Notifications.addEventListener(
+          "click",
+          (event: any) => {
+            console.log("Notification clicked:", event);
+          }
+        );
+        console.log("[OneSignal] Click listener attached");
 
-    OneSignal.Notifications.addEventListener(
-      "permissionChange",
-      (permission: boolean) => {
-        console.log("[OneSignal] Permission changed:", permission);
+        OneSignal.Notifications.addEventListener(
+          "permissionChange",
+          (permission: boolean) => {
+            console.log("[OneSignal] Permission changed:", permission);
+          }
+        );
+        console.log("[OneSignal] Permission listener attached");
+      } catch (listenerErr) {
+        console.warn("[OneSignal] Failed to attach listeners safely:", listenerErr);
       }
-    );
-    console.log("[OneSignal] Permission listener attached");
+    }, 200);
   } catch (err: unknown) {
     // ── Transition: initializing → failed ─────────────────────
     state = "failed";

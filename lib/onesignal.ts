@@ -69,21 +69,59 @@ export async function initOneSignal(): Promise<void> {
     return;
   }
 
-  // ── Reset: Programmatically destroy stale OneSignal IndexedDB/LocalCache ──
+  // ── Reset: Programmatically destroy all stale Service Workers, Caches, DBs, and Storage ──
   try {
-    if (typeof window !== "undefined" && window.indexedDB) {
-      window.indexedDB.deleteDatabase("OneSignalSDK");
-      window.indexedDB.deleteDatabase("OneSignalSDKDatabase");
-      if (typeof window.indexedDB.databases === "function") {
-        window.indexedDB.databases().then((dbs) => {
-          dbs.forEach((db) => {
+    if (typeof window !== "undefined") {
+      // 1. Unregister all service workers
+      if ("serviceWorker" in navigator) {
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        for (const registration of registrations) {
+          console.log("[OneSignal] Unregistering SW:", registration.scope);
+          await registration.unregister();
+        }
+      }
+
+      // 2. Clear all caches
+      if ("caches" in window) {
+        const cacheNames = await caches.keys();
+        for (const cacheName of cacheNames) {
+          console.log("[OneSignal] Deleting cache:", cacheName);
+          await caches.delete(cacheName);
+        }
+      }
+
+      // 3. Clear OneSignal IndexedDB
+      if (window.indexedDB) {
+        window.indexedDB.deleteDatabase("OneSignalSDK");
+        window.indexedDB.deleteDatabase("OneSignalSDKDatabase");
+        window.indexedDB.deleteDatabase("OneSignalSDKDB");
+        window.indexedDB.deleteDatabase("OneSignalDB");
+        if (typeof window.indexedDB.databases === "function") {
+          const dbs = await window.indexedDB.databases();
+          for (const db of dbs) {
             if (db.name && db.name.toLowerCase().includes("onesignal")) {
               window.indexedDB.deleteDatabase(db.name);
             }
-          });
-        });
+          }
+        }
       }
-      console.log("[OneSignal] Cleaned stale IndexedDB cached settings");
+
+      // 4. Clear Local Storage and Session Storage
+      Object.keys(localStorage).forEach((key) => {
+        if (key.toLowerCase().includes("onesignal")) {
+          localStorage.removeItem(key);
+        }
+      });
+      Object.keys(sessionStorage).forEach((key) => {
+        if (key.toLowerCase().includes("onesignal")) {
+          sessionStorage.removeItem(key);
+        }
+      });
+
+      console.log("[OneSignal] Cleaned all stale browser states and databases.");
+
+      // 5. Wait before init
+      await new Promise((resolve) => setTimeout(resolve, 1500));
     }
   } catch (resetErr) {
     console.warn("[OneSignal] Stale cache cleanup failed:", resetErr);

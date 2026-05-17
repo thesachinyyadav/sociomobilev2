@@ -74,6 +74,15 @@ export async function initOneSignal(): Promise<void> {
     if (typeof window !== "undefined" && window.indexedDB) {
       window.indexedDB.deleteDatabase("OneSignalSDK");
       window.indexedDB.deleteDatabase("OneSignalSDKDatabase");
+      if (typeof window.indexedDB.databases === "function") {
+        window.indexedDB.databases().then((dbs) => {
+          dbs.forEach((db) => {
+            if (db.name && db.name.toLowerCase().includes("onesignal")) {
+              window.indexedDB.deleteDatabase(db.name);
+            }
+          });
+        });
+      }
       console.log("[OneSignal] Cleaned stale IndexedDB cached settings");
     }
   } catch (resetErr) {

@@ -357,7 +357,7 @@ export default function QRCodeDisplay({
       >
         {/* Header Section */}
         <div
-          className="pass-header relative z-10 shrink-0 overflow-hidden bg-gradient-to-br from-[#011F7B] to-[#1E3FAB] px-6 pt-5 pb-6 rounded-t-[36px]"
+          className="pass-header relative z-10 shrink-0 overflow-hidden bg-gradient-to-br from-[#011F7B] to-[#1E3FAB] px-6 pt-3.5 pb-4 rounded-t-[36px]"
         >
           {/* Subtle Blueprint Dots */}
           <div className="absolute inset-0 opacity-[0.05] pointer-events-none" 
@@ -385,18 +385,18 @@ export default function QRCodeDisplay({
               </div>
             </div>
 
-            <h3 className="pass-title mt-2.5 max-w-[85%] text-[clamp(18px,5vw,23px)] font-[800] tracking-[-0.04em] text-white leading-[0.95]">
+            <h3 className="pass-title mt-2 max-w-[85%] text-[clamp(18px,5vw,23px)] font-[800] tracking-[-0.04em] text-white leading-[0.95]">
               {eventTitle}
             </h3>
 
-            <p className="mt-1.5 text-[11px] font-medium text-white/60">
+            <p className="mt-1 text-[11px] font-medium text-white/60">
               Your pass to an amazing experience
             </p>
           </div>
 
           <button
             onClick={onClose}
-            className="absolute right-5 top-5 flex h-9 w-9 items-center justify-center rounded-full border border-white/16 bg-white/12 text-white backdrop-blur-[16px] transition-transform duration-200 hover:bg-white/18 active:scale-95 z-20"
+            className="absolute right-5 top-3.5 flex h-9 w-9 items-center justify-center rounded-full border border-white/18 bg-white/12 text-white backdrop-blur-[12px] transition-transform duration-200 hover:bg-white/18 active:scale-95 z-20"
             aria-label="Close"
           >
             <XIcon size={15} strokeWidth={2.5} />
@@ -404,7 +404,7 @@ export default function QRCodeDisplay({
         </div>
 
         {/* Scrollable Content Area */}
-        <div className="pass-modal-content no-scrollbar flex-1 min-h-0 overflow-y-auto overscroll-contain pb-[calc(20px+env(safe-area-inset-bottom,0px))] relative z-20 -mt-8">
+        <div className="pass-modal-content no-scrollbar flex-1 min-h-0 overflow-y-auto overscroll-contain pb-[calc(20px+env(safe-area-inset-bottom,0px))] relative z-20 -mt-11">
           
           {/* Floating Info Card */}
           <div className="mx-4 bg-white/98 rounded-[28px] p-5 shadow-[0_12px_30px_rgba(15,23,42,0.08)] border border-slate-100/50 backdrop-blur-sm">
@@ -497,9 +497,9 @@ export default function QRCodeDisplay({
           </div>
 
           {/* Subtle Footer Closure */}
-          <div className="flex flex-col items-center justify-center mt-6 mb-1 opacity-[0.3]">
-            <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-[#0F172A] leading-none">Secure Event Credential</span>
-            <span className="text-[8px] font-semibold text-[#64748B] mt-1.5">Powered by SOCIO</span>
+          <div className="flex flex-col items-center justify-center mt-6 mb-1.5 opacity-[0.45] gap-0.5">
+            <span className="text-[9px] font-bold uppercase tracking-[0.18em] text-[#0F172A] leading-none">Verified Event Credential</span>
+            <span className="text-[8px] font-semibold text-[#64748B] leading-none">Powered by SOCIO</span>
           </div>
 
 
@@ -512,7 +512,7 @@ export default function QRCodeDisplay({
           overscroll-behavior: none;
         }
         .pass-modal-shell {
-          padding-top: calc(16px + env(safe-area-inset-top, 0px));
+          padding-top: calc(18px + env(safe-area-inset-top, 0px));
           padding-right: 16px;
           padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
           padding-left: 16px;
@@ -538,10 +538,19 @@ export default function QRCodeDisplay({
           -ms-overflow-style: none;
           scrollbar-width: none;
         }
+        @keyframes qrFloat {
+          0%, 100% {
+            transform: translateY(0);
+          }
+          50% {
+            transform: translateY(-2px);
+          }
+        }
         .qr-card-container {
+          animation: qrFloat 4s ease-in-out infinite;
           box-shadow:
-            0 20px 45px rgba(15, 23, 42, 0.08),
-            inset 0 1px 0 rgba(255, 255, 255, 0.8);
+            0 18px 40px rgba(1, 31, 123, 0.08),
+            inset 0 1px 0 rgba(255, 255, 255, 0.85);
           border: 1px solid rgba(226, 232, 240, 0.8);
           background: white;
         }

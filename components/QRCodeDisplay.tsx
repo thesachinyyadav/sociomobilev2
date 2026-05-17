@@ -470,6 +470,13 @@ export default function QRCodeDisplay({
                   <div dangerouslySetInnerHTML={{ __html: SOCIO_SVG }} className="w-[70%] h-auto" />
                 </div>
 
+                {/* Center Logo Emblem */}
+                <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none">
+                  <div className="w-[20%] aspect-[319/94] bg-white rounded-[6px] p-0.5 shadow-[0_2px_10px_rgba(0,0,0,0.12)] border border-slate-100/50 flex items-center justify-center overflow-hidden">
+                    <div dangerouslySetInnerHTML={{ __html: SOCIO_SVG }} className="w-[90%] h-auto" />
+                  </div>
+                </div>
+
                 <img
                   src={qrImage || ""}
                   alt="Secure QR code"

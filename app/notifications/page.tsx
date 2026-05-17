@@ -117,29 +117,14 @@ function Card({
               {n.message}
             </p>
 
-            {(n.eventTitle || !n.read) && (
+            {n.eventTitle && (
               <div className="flex items-center justify-between mt-3 flex-wrap gap-2">
-                {n.eventTitle ? (
-                  <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#F8FAFC] border border-[#E2E8F0]">
-                    <CalendarIcon size={13} className="text-[#5C74A6]" />
-                    <span className="text-[12px] font-bold text-[#334155] truncate max-w-[150px]">
-                      {n.eventTitle}
-                    </span>
-                  </div>
-                ) : <div />}
-
-                {!n.read && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onMarkRead();
-                    }}
-                    className="flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#EEF3FF] border border-[#011F7B]/10 text-[#011F7B] hover:bg-[#011F7B]/5 active:scale-95 transition-all shadow-sm ml-auto"
-                  >
-                    <CheckIcon size={13} strokeWidth={2.5} />
-                    <span className="text-[10px] font-extrabold uppercase tracking-wider">Mark Read</span>
-                  </button>
-                )}
+                <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#F8FAFC] border border-[#E2E8F0]">
+                  <CalendarIcon size={13} className="text-[#5C74A6]" />
+                  <span className="text-[12px] font-bold text-[#334155] truncate max-w-[150px]">
+                    {n.eventTitle}
+                  </span>
+                </div>
               </div>
             )}
           </div>

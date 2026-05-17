@@ -79,10 +79,8 @@ export async function initOneSignal(): Promise<void> {
     await OneSignal.init({
       appId,
       allowLocalhostAsSecureOrigin: true,
-      serviceWorkerPath: window.location.origin + "/OneSignalSDKWorker.js",
-      serviceWorkerUpdaterPath: window.location.origin + "/OneSignalSDKUpdaterWorker.js",
-      serviceWorkerParam: { scope: "/" },
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      serviceWorkerPath: "/OneSignalSDKWorker.js",
+      serviceWorkerUpdaterPath: "/OneSignalSDKUpdaterWorker.js",
       notifyButton: { enable: false } as any,
     });
 

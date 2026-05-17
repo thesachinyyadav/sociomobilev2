@@ -33,24 +33,31 @@ export function getOneSignalState(): InitState {
 export async function nukeServiceWorkers(): Promise<void> {
   if (typeof window === "undefined") return;
 
+  // 1. Only unregister OneSignal or bad service workers
   const registrations = await navigator.serviceWorker.getRegistrations();
   for (const reg of registrations) {
-    console.log("[SW] Unregistering:", reg.scope);
-    await reg.unregister();
+    if (reg.active && (reg.active.scriptURL.includes('onesignalsdkworker') || reg.scope.includes('push'))) {
+      console.log("[SW] Unregistering bad/stale worker scope:", reg.scope);
+      await reg.unregister();
+    }
   }
 
+  // 2. Only delete OneSignal specific caches
   const cacheKeys = await caches.keys();
   for (const key of cacheKeys) {
-    console.log("[SW] Deleting cache:", key);
-    await caches.delete(key);
+    if (key.toLowerCase().includes('onesignal')) {
+      console.log("[SW] Deleting OneSignal cache:", key);
+      await caches.delete(key);
+    }
   }
 
+  // 3. Only delete OneSignal specific IndexedDB databases
   if (window.indexedDB && (window.indexedDB as any).databases) {
     try {
       const dbs = await (window.indexedDB as any).databases();
       for (const db of dbs) {
-        if (db.name) {
-          console.log("[SW] Deleting DB:", db.name);
+        if (db.name && db.name.toLowerCase().includes('onesignal')) {
+          console.log("[SW] Deleting OneSignal DB:", db.name);
           window.indexedDB.deleteDatabase(db.name);
         }
       }
@@ -59,10 +66,15 @@ export async function nukeServiceWorkers(): Promise<void> {
     }
   }
 
-  localStorage.clear();
-  sessionStorage.clear();
+  // 4. Only delete OneSignal specific localStorage keys, never wipe the entire auth/app storage!
+  for (let i = localStorage.length - 1; i >= 0; i--) {
+    const key = localStorage.key(i);
+    if (key && key.toLowerCase().includes('onesignal')) {
+      localStorage.removeItem(key);
+    }
+  }
 
-  console.log("[SW] Full cleanup complete");
+  console.log("[SW] Targeted OneSignal cleanup complete");
 }
 
 export async function initOneSignal(): Promise<void> {

@@ -89,30 +89,41 @@ export async function initOneSignal(): Promise<void> {
     state = "initialized";
     console.log("[OneSignal] Web push initialized successfully");
 
-    // ── Delivery pipeline diagnostics (temp — remove after confirming push delivery) ──
+    // ── Delivery pipeline diagnostics ─────────────────────────
+    // token = raw FCM/WebPush token — null means NOT fully subscribed
     try {
       const permission = OneSignal.Notifications.permission;
-      const optedIn   = OneSignal.User.PushSubscription.optedIn;
-      const subId     = OneSignal.User.PushSubscription.id;
+      const optedIn    = OneSignal.User.PushSubscription.optedIn;
+      const subId      = OneSignal.User.PushSubscription.id;
+      const token      = (OneSignal.User.PushSubscription as any).token;
 
       console.log("[OneSignal] Permission:", permission);
       console.log("[OneSignal] Subscribed (optedIn):", optedIn);
-      console.log("[OneSignal] Subscription ID:", subId || "⚠ Not yet assigned — may appear after permission grant");
+      console.log("[OneSignal] Subscription ID:", subId  || "⚠ null — not registered in dashboard yet");
+      console.log("[OneSignal] Push token:      ", token  || "⚠ null — device is NOT fully subscribed");
+
+      // If permission is granted but device is not opted in, force opt-in.
+      // This handles the edge case where the SDK initialised but never
+      // called optIn() — common after a storage clear or first install.
+      if (permission === true && !optedIn) {
+        console.log("[OneSignal] Permission granted but not opted in — forcing optIn()");
+        await (OneSignal.User.PushSubscription as any).optIn?.();
+      }
     } catch (diagErr) {
       console.warn("[OneSignal] Subscription diagnostics failed:", diagErr);
     }
 
     // ── Foreground notification display ────────────────────────
-    // Chrome suppresses push notifications while the page is in focus.
-    // This listener intercepts and forces display so users see alerts
-    // even when the app is open.
+    // Chrome suppresses push notifications while the tab is in focus.
+    // preventDefault() MUST be called first — it stops OneSignal's own
+    // auto-handling, then display() re-shows the notification manually.
     try {
       OneSignal.Notifications.addEventListener(
         "foregroundWillDisplay",
         (event: any) => {
           console.log("[OneSignal] Foreground notification received:", event?.notification?.title);
-          // Force display even while app is foregrounded
-          event?.notification?.display?.();
+          event?.preventDefault?.();          // ← must come before display()
+          event?.notification?.display?.();   // ← force show even while page is open
         }
       );
     } catch (fgErr) {

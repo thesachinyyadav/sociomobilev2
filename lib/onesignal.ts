@@ -170,46 +170,38 @@ export async function initOneSignal(): Promise<void> {
       console.warn("[OneSignal] Subscription diagnostics failed:", diagErr);
     }
 
-    // ── Foreground notification display ────────────────────────
-    // Chrome suppresses push notifications while the tab is in focus.
-    // preventDefault() MUST be called first — it stops OneSignal's own
-    // auto-handling, then display() re-shows the notification manually.
-    try {
-      OneSignal.Notifications.addEventListener(
-        "foregroundWillDisplay",
-        (event: any) => {
-          console.log("[OneSignal] Foreground notification received:", event?.notification?.title);
-          event?.preventDefault?.();          // ← must come before display()
-          event?.notification?.display?.();   // ← force show even while page is open
-        }
-      );
-    } catch (fgErr) {
-      console.warn("[OneSignal] Foreground listener setup failed:", fgErr);
+    // ── Safe Event Listeners ──────────────────────────────────
+    if (OneSignal?.Notifications) {
+      try {
+        OneSignal.Notifications.addEventListener(
+          "click",
+          (event: any) => {
+            console.log("[OneSignal] Notification clicked:", event?.notification?.title);
+          }
+        );
+        console.log("[OneSignal] Click listener attached");
+      } catch (clickErr) {
+        console.warn("[OneSignal] Click listener setup failed:", clickErr);
+      }
+    } else {
+      console.warn("[OneSignal] Notifications namespace missing");
     }
 
-    // ── Subscription change listener ───────────────────────────
-    try {
-      OneSignal.User.PushSubscription.addEventListener(
-        "change",
-        (event: any) => {
-          const current = event?.current;
-          console.log("[OneSignal] Subscription changed → optedIn:", current?.optedIn, "| id:", current?.id);
-        }
-      );
-    } catch (subErr) {
-      console.warn("[OneSignal] Subscription change listener failed:", subErr);
-    }
-
-    // ── Push receive listener (SW fires this) ──────────────────
-    try {
-      OneSignal.Notifications.addEventListener(
-        "click",
-        (event: any) => {
-          console.log("[OneSignal] Notification clicked:", event?.notification?.title);
-        }
-      );
-    } catch (clickErr) {
-      console.warn("[OneSignal] Click listener setup failed:", clickErr);
+    if (OneSignal?.User?.PushSubscription) {
+      try {
+        OneSignal.User.PushSubscription.addEventListener(
+          "change",
+          (event: any) => {
+            const current = event?.current;
+            console.log("[OneSignal] Subscription changed → optedIn:", current?.optedIn, "| id:", current?.id);
+          }
+        );
+        console.log("[OneSignal] Subscription listener attached");
+      } catch (subErr) {
+        console.warn("[OneSignal] Subscription change listener failed:", subErr);
+      }
+    } else {
+      console.warn("[OneSignal] PushSubscription namespace missing");
     }
   } catch (err: unknown) {
     // ── Transition: initializing → failed ─────────────────────

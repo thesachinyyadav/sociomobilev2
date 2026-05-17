@@ -178,32 +178,57 @@ export async function initOneSignal(): Promise<void> {
       console.error("[OneSignal] PushSubscription namespace missing");
     }
 
-    // ── Safe Event Listeners ──────────────────────────────────
+    // ── Safe, Self-Healing Event Listeners ──────────────────────────────────
     setTimeout(() => {
-      try {
-        if (!OneSignal?.Notifications) {
-          console.error("[OneSignal] Notifications namespace missing — aborting listener registration");
-          return;
+      const attachListenerWithRetry = (eventName: string, handler: (...args: any[]) => void, retriesLeft = 8) => {
+        try {
+          if (!OneSignal?.Notifications) {
+            console.error(`[OneSignal] Notifications namespace missing — aborting ${eventName} registration`);
+            return;
+          }
+          OneSignal.Notifications.addEventListener(eventName as any, handler as any);
+          console.log(`[OneSignal] ${eventName} listener attached successfully`);
+        } catch (err: any) {
+          if (retriesLeft > 0 && err instanceof TypeError && (err.message.includes("'on'") || err.message.includes("undefined"))) {
+            console.warn(`[OneSignal] Internal emitter not ready for ${eventName} — retrying in 500ms (${retriesLeft} retries left)...`);
+            setTimeout(() => attachListenerWithRetry(eventName, handler, retriesLeft - 1), 500);
+          } else {
+            console.error(`[OneSignal] Failed to attach ${eventName} listener:`, err);
+          }
         }
+      };
 
-        OneSignal.Notifications.addEventListener(
-          "click",
-          (event: any) => {
-            console.log("Notification clicked:", event);
+      const attachSubscriptionListenerWithRetry = (retriesLeft = 8) => {
+        try {
+          if (!OneSignal?.User?.PushSubscription) {
+            console.error("[OneSignal] PushSubscription namespace missing — aborting subscription change registration");
+            return;
           }
-        );
-        console.log("[OneSignal] Click listener attached");
+          OneSignal.User.PushSubscription.addEventListener("change" as any, (event: any) => {
+            console.log("[OneSignal] Push subscription changed:", event);
+          });
+          console.log("[OneSignal] Push subscription listener attached successfully");
+        } catch (err: any) {
+          if (retriesLeft > 0 && err instanceof TypeError && (err.message.includes("'on'") || err.message.includes("undefined"))) {
+            console.warn(`[OneSignal] Internal subscription emitter not ready — retrying in 500ms (${retriesLeft} retries left)...`);
+            setTimeout(() => attachSubscriptionListenerWithRetry(retriesLeft - 1), 500);
+          } else {
+            console.error("[OneSignal] Failed to attach push subscription listener:", err);
+          }
+        }
+      };
 
-        OneSignal.Notifications.addEventListener(
-          "permissionChange",
-          (permission: boolean) => {
-            console.log("[OneSignal] Permission changed:", permission);
-          }
-        );
-        console.log("[OneSignal] Permission listener attached");
-      } catch (listenerErr) {
-        console.warn("[OneSignal] Failed to attach listeners safely:", listenerErr);
-      }
+      // Register click and permissionChange events with automatic retries if needed
+      attachListenerWithRetry("click", (event: any) => {
+        console.log("[OneSignal] Notification clicked:", event);
+      });
+
+      attachListenerWithRetry("permissionChange", (permission: boolean) => {
+        console.log("[OneSignal] Permission changed:", permission);
+      });
+
+      // Register push subscription change events
+      attachSubscriptionListenerWithRetry();
     }, 200);
   } catch (err: unknown) {
     // ── Transition: initializing → failed ─────────────────────

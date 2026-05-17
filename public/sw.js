@@ -1,11 +1,14 @@
-importScripts("https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.sw.js");
-
 /* ──────────────────────────────────────────────────────────
    SOCIO PWA — Service Worker v4
    • Cache-first for immutable Next.js bundles (/_next/static/)
    • Network-only for API traffic (backend Valkey is authoritative)
    • Cache-first for core static assets/images/fonts/CSS
    • Network-first for navigations and next data routes
+   ──────────────────────────────────────────────────────────
+   NOTE: OneSignal push is handled by its own dedicated workers:
+     /OneSignalSDKWorker.js
+     /OneSignalSDKUpdaterWorker.js
+   Do NOT add OneSignal importScripts here.
    ────────────────────────────────────────────────────────── */
 
 const CACHE_STATIC = "socio-static-v6";   // Next.js chunks, fonts, CSS

@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "react-hot-toast";
 import { apiRequest } from "@/lib/apiClient";
 import { startPerfSpan } from "@/lib/capacitorPerfAudit";
+import { initOneSignal } from "@/lib/onesignal";
 
 export interface Notification {
   id: string;
@@ -128,53 +129,46 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     updatePromptStatus("shown");
   }, [promptStatus, updatePromptStatus]);
 
-  // 1. OneSignal Initialization (Web & Native)
+  // 1. OneSignal Initialization
+  //    • Web/PWA  → lib/onesignal.ts handles web push (guarded, de-duped)
+  //    • Native   → Cordova plugin handles push; attach listeners only
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    async function initOneSignal() {
-      try {
-        const appId = process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID;
-        if (!appId || appId === "placeholder_onesignal_id_here") return;
-
-        let OS: any;
-
-        if (Capacitor.isNativePlatform()) {
-          OS = (await import("onesignal-cordova-plugin")).default;
-          OS.initialize(appId);
-        } else {
-          OS = (await import("react-onesignal")).default;
-          await OS.init({
-            appId: appId,
-            allowLocalhostAsSecureOrigin: true,
-            notifyButton: { enable: false }
-          });
-        }
-
-        // Attach listeners for both Native and Web
-        if (OS.Notifications) {
-          OS.Notifications.addEventListener("click", (event: any) => {
-            const route = event.notification.additionalData?.route || event.notification.additionalData?.actionUrl;
-            if (route) {
-              router.push(route);
-            } else {
-              router.push("/notifications");
-            }
-          });
-          OS.Notifications.addEventListener("foregroundWillDisplay", (event: any) => {
-            event.preventDefault();
-            const n = event.notification;
-            toast.success(`${n.title}: ${n.body}`, { duration: 5000, position: "top-center" });
-          });
-        }
-        
-        setOneSignal(OS);
-      } catch (e) {
-        console.error("OneSignal init error", e);
-      }
-    }
-    
+    // Web push init — all guards live inside initOneSignal()
     initOneSignal();
+
+    // Native-only: attach Cordova notification listeners
+    if (Capacitor.isNativePlatform()) {
+      (async () => {
+        try {
+          const appId = process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID;
+          if (!appId || appId === "placeholder_onesignal_id_here") return;
+
+          const OS = (await import("onesignal-cordova-plugin")).default;
+          OS.initialize(appId);
+
+          if (OS.Notifications) {
+            OS.Notifications.addEventListener("click", (event: any) => {
+              const route =
+                event.notification.additionalData?.route ||
+                event.notification.additionalData?.actionUrl;
+              router.push(route || "/notifications");
+            });
+            OS.Notifications.addEventListener("foregroundWillDisplay", (event: any) => {
+              event.preventDefault();
+              const n = event.notification;
+              toast.success(`${n.title}: ${n.body}`, { duration: 5000, position: "top-center" });
+            });
+          }
+
+          setOneSignal(OS);
+          console.log("[OneSignal] Native Cordova listeners attached");
+        } catch (e) {
+          console.error("[OneSignal] Native init error", e);
+        }
+      })();
+    }
   }, [router]);
 
   // Sync User Tags (Web & Native)
@@ -199,28 +193,36 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   }, [userData, oneSignal]);
 
   const enablePushNotifications = useCallback(async () => {
-    if (typeof window === "undefined" || !oneSignal) return;
+    if (typeof window === "undefined") return;
 
     try {
       let granted = false;
-      
+
       if (Capacitor.isNativePlatform()) {
+        // Native: use the Cordova OS instance stored in state
+        if (!oneSignal) return;
         granted = await oneSignal.Notifications.requestPermission(true);
       } else {
-        await oneSignal.Notifications.requestPermission();
-        granted = oneSignal.Notifications.permission === true || Notification.permission === "granted";
+        // Web/PWA: use the global OneSignal object exposed by react-onesignal
+        const OS = (await import("react-onesignal")).default;
+        await OS.Notifications.requestPermission();
+        granted =
+          (OS.Notifications as any).permission === true ||
+          Notification.permission === "granted";
+        if (granted) console.log("[OneSignal] Permission granted");
       }
 
       const newStatus = granted ? "granted" : "denied";
       setPushStatus(newStatus);
       localStorage.setItem(LS_PUSH_STATUS_KEY, newStatus);
       updatePromptStatus(granted ? "accepted" : "denied");
-      
+
       if (granted) {
         toast.success("Notifications enabled!");
+        console.log("[OneSignal] Subscription active");
       }
     } catch (e) {
-      console.error("Push enable error", e);
+      console.error("[OneSignal] Push enable error", e);
     }
   }, [oneSignal, updatePromptStatus]);
 

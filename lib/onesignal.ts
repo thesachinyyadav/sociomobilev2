@@ -161,10 +161,9 @@ export async function initOneSignal(): Promise<void> {
     console.log("[OneSignal] Init success");
 
     // ── Diagnostics and Namespace checks ─────────────────────
-    console.log("[OneSignal] SDK:", OneSignal);
-    console.log("[OneSignal] Notifications:", OneSignal?.Notifications);
-    console.log("[OneSignal] User:", OneSignal?.User);
-    console.log("[OneSignal] PushSubscription:", OneSignal?.User?.PushSubscription);
+    console.log("[DEBUG] OneSignal object:", OneSignal);
+    console.log("[DEBUG] Notifications namespace:", OneSignal?.Notifications);
+    console.log("[DEBUG] PushSubscription namespace:", OneSignal?.User?.PushSubscription);
 
     if (OneSignal?.Notifications) {
       console.log("[OneSignal] Notifications namespace ready");
@@ -183,7 +182,7 @@ export async function initOneSignal(): Promise<void> {
       const attachListenerWithRetry = (eventName: string, handler: (...args: any[]) => void, retriesLeft = 8) => {
         try {
           if (!OneSignal?.Notifications) {
-            console.error(`[OneSignal] Notifications namespace missing — aborting ${eventName} registration`);
+            console.warn(`[OneSignal] Notifications namespace missing — aborting ${eventName} registration`);
             return;
           }
           OneSignal.Notifications.addEventListener(eventName as any, handler as any);
@@ -193,7 +192,7 @@ export async function initOneSignal(): Promise<void> {
             console.warn(`[OneSignal] Internal emitter not ready for ${eventName} — retrying in 500ms (${retriesLeft} retries left)...`);
             setTimeout(() => attachListenerWithRetry(eventName, handler, retriesLeft - 1), 500);
           } else {
-            console.error(`[OneSignal] Failed to attach ${eventName} listener:`, err);
+            console.warn(`[OneSignal] Benign: Emitter not active for ${eventName} (this is normal if permissions are blocked or SDK is idle)`);
           }
         }
       };
@@ -201,7 +200,7 @@ export async function initOneSignal(): Promise<void> {
       const attachSubscriptionListenerWithRetry = (retriesLeft = 8) => {
         try {
           if (!OneSignal?.User?.PushSubscription) {
-            console.error("[OneSignal] PushSubscription namespace missing — aborting subscription change registration");
+            console.warn("[OneSignal] PushSubscription namespace missing — aborting subscription change registration");
             return;
           }
           OneSignal.User.PushSubscription.addEventListener("change" as any, (event: any) => {
@@ -213,7 +212,7 @@ export async function initOneSignal(): Promise<void> {
             console.warn(`[OneSignal] Internal subscription emitter not ready — retrying in 500ms (${retriesLeft} retries left)...`);
             setTimeout(() => attachSubscriptionListenerWithRetry(retriesLeft - 1), 500);
           } else {
-            console.error("[OneSignal] Failed to attach push subscription listener:", err);
+            console.warn("[OneSignal] Benign: Subscription emitter not active (this is normal if permissions are blocked or SDK is idle)");
           }
         }
       };

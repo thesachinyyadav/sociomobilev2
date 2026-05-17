@@ -7,7 +7,7 @@ import Image from "next/image";
 import FestCard from "@/components/FestCard";
 import Skeleton from "@/components/Skeleton";
 import EmptyState from "@/components/EmptyState";
-import { SearchIcon, XIcon, SparklesIcon, HeartIcon, CalendarIcon, FlameIcon, ArrowRightIcon, TrendingUpIcon, ShareIcon } from "@/components/icons";
+import { SearchIcon, XIcon, SparklesIcon, CalendarIcon, FlameIcon, ArrowRightIcon, TrendingUpIcon, ShareIcon } from "@/components/icons";
 import { Button } from "@/components/Button";
 import { FilterChip } from "@/components/FilterChip";
 import { apiRequest } from "@/lib/apiClient";
@@ -307,15 +307,6 @@ export default function FestsPage() {
                         }}
                       >
                         <ShareIcon size={20} className="text-white" />
-                      </button>
-                      <button 
-                        className="w-10 h-10 rounded-full bg-black/20 backdrop-blur-md flex items-center justify-center text-white hover:bg-black/40 transition-all active:scale-90"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          // Add favorite logic here if needed
-                        }}
-                      >
-                        <HeartIcon size={20} className="text-white" />
                       </button>
                     </div>
 

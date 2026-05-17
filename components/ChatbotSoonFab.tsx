@@ -12,8 +12,8 @@ export default function ChatbotSoonFab() {
         type="button"
         onClick={() => setShowTooltip(!showTooltip)}
         aria-label="Chatbot coming soon"
-        className="fixed right-3 z-40 w-12 h-12 rounded-full bg-[var(--color-primary)] text-white shadow-[var(--shadow-primary)] flex items-center justify-center hover:scale-110 transition-transform"
-        style={{ bottom: "calc(var(--bottom-nav) + var(--safe-bottom) + 10px)" }}
+        className="fixed right-4 z-40 w-[48px] h-[48px] rounded-full bg-[#011F7B] text-white border border-white/20 shadow-[0_8px_24px_rgba(1,31,123,0.25)] flex items-center justify-center hover:scale-105 active:scale-95 transition-all duration-200"
+        style={{ bottom: "calc(var(--bottom-nav) + var(--safe-bottom) + 12px)" }}
       >
         <MessageSquareIcon size={22} strokeWidth={2} />
       </button>

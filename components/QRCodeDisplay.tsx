@@ -376,10 +376,12 @@ export default function QRCodeDisplay({
           <div className="absolute inset-x-0 top-0 h-28 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.12)_0%,transparent_72%)] pointer-events-none" />
 
           <div className="relative z-10 pr-12 flex-1 flex flex-col justify-between">
-            <div className="flex items-center gap-2">
-              <span className="h-2 w-2 rounded-full bg-[#FFBA09] shadow-[0_0_8px_rgba(255,186,9,0.9)]" />
-              <div className="flex items-center gap-1.5">
-                <span className="text-[10px] font-bold tracking-[0.1em] text-white/50">SOCIO</span>
+            <div className="flex items-center gap-2.5">
+              <span className="h-2 w-2 rounded-full bg-[#FFBA09] shadow-[0_0_8px_rgba(255,186,9,0.9)] shrink-0" />
+              <div className="flex items-center gap-2">
+                <div className="h-5 w-auto aspect-[319/94] rounded-[3px] overflow-hidden flex items-center justify-center bg-white p-[1px] opacity-90 shadow-sm shrink-0">
+                  <div dangerouslySetInnerHTML={{ __html: SOCIO_SVG }} className="h-full w-auto" />
+                </div>
                 <span className="text-white/30 text-[10px]">•</span>
                 <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/90">EVENT PASS</span>
               </div>
@@ -468,13 +470,6 @@ export default function QRCodeDisplay({
                 {/* QR Watermark behind QR */}
                 <div className="absolute inset-0 flex items-center justify-center opacity-[0.04] grayscale pointer-events-none blur-[0.5px]">
                   <div dangerouslySetInnerHTML={{ __html: SOCIO_SVG }} className="w-[70%] h-auto" />
-                </div>
-
-                {/* Center Logo Emblem */}
-                <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none">
-                  <div className="w-[20%] aspect-[319/94] bg-white rounded-[6px] p-0.5 shadow-[0_2px_10px_rgba(0,0,0,0.12)] border border-slate-100/50 flex items-center justify-center overflow-hidden">
-                    <div dangerouslySetInnerHTML={{ __html: SOCIO_SVG }} className="w-[90%] h-auto" />
-                  </div>
                 </div>
 
                 <img

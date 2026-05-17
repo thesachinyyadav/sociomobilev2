@@ -71,88 +71,103 @@ const EventCard = memo(function EventCard({
 
   return (
     <Link href={`/event/${event.event_id}`} className={cardClasses}>
-      {/* Banner */}
-      <div className={`relative ${featured ? "aspect-[16/10]" : "aspect-[16/9]"} bg-gray-100 overflow-hidden`}>
+      {/* Premium Operational Hero Image Container */}
+      <div className="relative overflow-hidden rounded-t-[inherit] h-[210px] md:h-[240px] lg:h-[260px] bg-[#011F7B]">
+        {/* Background Event Image */}
         {event.event_image_url || event.banner_url ? (
           <ShimmerImage
             src={(event.banner_url || event.event_image_url)!}
             alt={event.title}
             fill
-            className="object-cover group-hover:scale-[1.03] transition-transform duration-500 ease-out"
+            className="object-cover object-center group-hover:scale-[1.03] transition-transform duration-500 ease-out"
             sizes="(max-width:480px) 100vw, 50vw"
           />
         ) : (
-          <div className="w-full h-full bg-gradient-to-br from-[var(--color-primary)] to-[var(--color-accent)] flex items-center justify-center">
-            <span className="text-white/50 text-4xl font-black">
-              {event.title.charAt(0)}
-            </span>
-          </div>
+          <div className="w-full h-full bg-gradient-to-br from-[#011F7B] to-[#020617]" />
         )}
 
-        <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
-
-        {/* Top Badges */}
-        <div className="absolute top-3 left-3 flex flex-col items-start gap-2 z-[1]">
-          {isTrending && (
-            <div className="bg-black/50 backdrop-blur-md rounded-full px-2 py-1 flex items-center gap-1 shadow-sm border border-white/10">
-              <TrendingUpIcon className="w-3.5 h-3.5 text-orange-400 animate-badge-pulse" />
-              <span className="text-white text-[10px] font-medium tracking-wide">Trending</span>
-            </div>
-          )}
-          
-          {!closed && (
-            isFree ? (
-              <span className="tag rounded-md bg-white/95 text-emerald-700 font-bold px-2 py-1 shadow-sm uppercase">
-                FREE
-              </span>
-            ) : (
-              <span className="tag rounded-md bg-white/95 text-amber-700 font-bold px-2 py-1 shadow-sm">
-                ₹{event.registration_fee}
-              </span>
-            )
-          )}
-        </div>
-
-        {/* Share Button */}
-        <button
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            void shareEvent({
-              title: event.title,
-              text: `Check out this event: ${event.title}`,
-              url: `/event/${event.event_id}`,
-            });
-
+        {/* Cinematic Gradient Overlay */}
+        <div 
+          className="absolute inset-0 z-[1]" 
+          style={{
+            background: "linear-gradient(180deg, rgba(1, 31, 123, 0.08) 0%, rgba(1, 31, 123, 0.45) 55%, rgba(2, 6, 23, 0.82) 100%)"
           }}
-          className="absolute top-3 right-3 z-[1] w-8 h-8 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center text-[var(--color-primary)] shadow-sm border border-white/20 active:scale-90 transition-transform"
-          aria-label="Share Event"
-        >
-          <ShareIcon size={16} />
-        </button>
+        />
+
+        {/* Safe Content Area */}
+        <div className="absolute inset-0 z-10 flex flex-col justify-between p-4 sm:p-5 md:p-6">
+          {/* Top Row: Price Badge & Share Button */}
+          <div className="flex justify-between items-start w-full">
+            {/* Operational Price Badge */}
+            <div>
+              {!closed && (
+                isFree ? (
+                  <span className="inline-flex items-center rounded-full bg-[#FFF9E6] text-[#745B00] font-bold px-3 py-1 text-[11px] shadow-sm uppercase tracking-wider border border-[#FFE599]/30">
+                    FREE
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center rounded-full bg-[#FFF9E6] text-[#745B00] font-bold px-3 py-1 text-[11px] shadow-sm border border-[#FFE599]/30">
+                    ₹{event.registration_fee}
+                  </span>
+                )
+              )}
+            </div>
+
+            {/* Share Button with Glassmorphism */}
+            <button
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                void shareEvent({
+                  title: event.title,
+                  text: `Check out this event: ${event.title}`,
+                  url: `/event/${event.event_id}`,
+                });
+              }}
+              className="w-8 h-8 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center text-white shadow-sm border border-white/20 active:scale-90 hover:bg-white/20 transition-all"
+              aria-label="Share Event"
+            >
+              <ShareIcon size={14} />
+            </button>
+          </div>
+
+          {/* Bottom Column: Title & Optional Subtitle */}
+          <div className="flex flex-col gap-1 mt-auto max-w-[calc(100%-8px)]">
+            {/* Optional Subtitle */}
+            {event.category && (
+              <span className="text-[10px] font-bold tracking-widest text-amber-300 uppercase">
+                {event.category}
+              </span>
+            )}
+
+            {/* Event Title */}
+            <h3 
+              className="text-white font-extrabold line-clamp-2 overflow-hidden text-ellipsis max-w-full"
+              style={{
+                fontWeight: 800,
+                lineHeight: 1.05,
+                letterSpacing: "-0.03em",
+                fontSize: "clamp(1.25rem, 4.5vw, 2.25rem)",
+                wordBreak: "break-word"
+              }}
+            >
+              {event.title}
+            </h3>
+          </div>
+        </div>
       </div>
 
-      {/* Body */}
+      {/* Details Section */}
       <div className={featured ? "p-5" : "p-4"}>
         {/* Date / Time */}
-        <p className="text-[10px] font-bold tracking-widest text-[var(--color-text-light)] uppercase flex items-center gap-1 mb-1.5">
+        <p className="text-[10px] font-bold tracking-widest text-[var(--color-text-light)] uppercase flex items-center gap-1 mb-2.5">
           <ClockIcon size={10} />
           {formatDateShort(event.event_date)}
           {event.event_time && ` • ${formatTime(event.event_time)}`}
         </p>
 
-        {/* Title */}
-        <h3 className={featured ? "text-[22px] font-extrabold leading-tight line-clamp-2" : "text-[16px] font-extrabold leading-snug line-clamp-2"}>
-          {event.title}
-        </h3>
-
         {/* Tags */}
-        <div className="mt-2 flex flex-wrap items-center gap-2">
-          {event.category && (
-            <span className="chip bg-[#fff4cf] text-[#745b00] text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-sm">
-              {event.category}
-            </span>
-          )}
+        <div className="flex flex-wrap items-center gap-2">
           {(event.organizing_dept || event.fest) && (
             <span className="chip bg-gray-100 text-[var(--color-text-muted)] text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-sm">
               {event.organizing_dept || event.fest}

@@ -30,6 +30,41 @@ export function getOneSignalState(): InitState {
   return state;
 }
 
+export async function nukeServiceWorkers(): Promise<void> {
+  if (typeof window === "undefined") return;
+
+  const registrations = await navigator.serviceWorker.getRegistrations();
+  for (const reg of registrations) {
+    console.log("[SW] Unregistering:", reg.scope);
+    await reg.unregister();
+  }
+
+  const cacheKeys = await caches.keys();
+  for (const key of cacheKeys) {
+    console.log("[SW] Deleting cache:", key);
+    await caches.delete(key);
+  }
+
+  if (window.indexedDB && (window.indexedDB as any).databases) {
+    try {
+      const dbs = await (window.indexedDB as any).databases();
+      for (const db of dbs) {
+        if (db.name) {
+          console.log("[SW] Deleting DB:", db.name);
+          window.indexedDB.deleteDatabase(db.name);
+        }
+      }
+    } catch (dbErr) {
+      console.warn("[SW] DB lookup failed:", dbErr);
+    }
+  }
+
+  localStorage.clear();
+  sessionStorage.clear();
+
+  console.log("[SW] Full cleanup complete");
+}
+
 export async function initOneSignal(): Promise<void> {
   // ── Guard 1: SSR ───────────────────────────────────────────────
   if (typeof window === "undefined") return;
@@ -72,54 +107,8 @@ export async function initOneSignal(): Promise<void> {
   // ── Reset: Programmatically destroy all stale Service Workers, Caches, DBs, and Storage ──
   try {
     if (typeof window !== "undefined") {
-      // 1. Unregister all service workers
-      if ("serviceWorker" in navigator) {
-        const registrations = await navigator.serviceWorker.getRegistrations();
-        for (const registration of registrations) {
-          console.log("[OneSignal] Unregistering SW:", registration.scope);
-          await registration.unregister();
-        }
-      }
-
-      // 2. Clear all caches
-      if ("caches" in window) {
-        const cacheNames = await caches.keys();
-        for (const cacheName of cacheNames) {
-          console.log("[OneSignal] Deleting cache:", cacheName);
-          await caches.delete(cacheName);
-        }
-      }
-
-      // 3. Clear OneSignal IndexedDB
-      if (window.indexedDB) {
-        window.indexedDB.deleteDatabase("OneSignalSDK");
-        window.indexedDB.deleteDatabase("OneSignalSDKDatabase");
-        window.indexedDB.deleteDatabase("OneSignalSDKDB");
-        window.indexedDB.deleteDatabase("OneSignalDB");
-        if (typeof window.indexedDB.databases === "function") {
-          const dbs = await window.indexedDB.databases();
-          for (const db of dbs) {
-            if (db.name && db.name.toLowerCase().includes("onesignal")) {
-              window.indexedDB.deleteDatabase(db.name);
-            }
-          }
-        }
-      }
-
-      // 4. Clear Local Storage and Session Storage
-      Object.keys(localStorage).forEach((key) => {
-        if (key.toLowerCase().includes("onesignal")) {
-          localStorage.removeItem(key);
-        }
-      });
-      Object.keys(sessionStorage).forEach((key) => {
-        if (key.toLowerCase().includes("onesignal")) {
-          sessionStorage.removeItem(key);
-        }
-      });
-
+      await nukeServiceWorkers();
       console.log("[OneSignal] Cleaned all stale browser states and databases.");
-
       // 5. Wait before init
       await new Promise((resolve) => setTimeout(resolve, 1500));
     }
@@ -135,14 +124,17 @@ export async function initOneSignal(): Promise<void> {
     const OneSignal = (await import("react-onesignal")).default;
 
     console.log("[OneSignal] Current origin:", window.location.origin);
-    console.log("[OneSignal] Worker path:", "OneSignalSDKWorker.js");
-    console.log("[OneSignal] Updater path:", "OneSignalSDKUpdaterWorker.js");
+    console.log("[OneSignal] Worker path:", "push/OneSignalSDKWorker.js");
+    console.log("[OneSignal] Updater path:", "push/OneSignalSDKUpdaterWorker.js");
 
     await OneSignal.init({
       appId,
       allowLocalhostAsSecureOrigin: true,
-      serviceWorkerPath: "OneSignalSDKWorker.js",
-      serviceWorkerUpdaterPath: "OneSignalSDKUpdaterWorker.js",
+      serviceWorkerPath: "push/OneSignalSDKWorker.js",
+      serviceWorkerUpdaterPath: "push/OneSignalSDKUpdaterWorker.js",
+      serviceWorkerParam: {
+        scope: "/push/"
+      },
       notifyButton: { enable: false } as any,
     });
 

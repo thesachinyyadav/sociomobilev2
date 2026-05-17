@@ -105,20 +105,20 @@ export default async function RootLayout({
                   return;
                 }
 
-                window.addEventListener('load', async () => {
-                  try {
-                    const registration = await navigator.serviceWorker.register('/sw.js');
-                    if (registration.waiting) {
-                      registration.waiting.postMessage('SKIP_WAITING');
-                    }
-
-                    navigator.serviceWorker.ready.then(() => {
-                      if (navigator.serviceWorker.controller) {
-                        navigator.serviceWorker.controller.postMessage('WARM_CACHE');
-                      }
-                    });
-                  } catch {}
-                });
+                // window.addEventListener('load', async () => {
+                //   try {
+                //     const registration = await navigator.serviceWorker.register('/sw.js');
+                //     if (registration.waiting) {
+                //       registration.waiting.postMessage('SKIP_WAITING');
+                //     }
+                // 
+                //     navigator.serviceWorker.ready.then(() => {
+                //       if (navigator.serviceWorker.controller) {
+                //         navigator.serviceWorker.controller.postMessage('WARM_CACHE');
+                //       }
+                //     });
+                //   } catch {}
+                // });
               })();
             `,
           }}

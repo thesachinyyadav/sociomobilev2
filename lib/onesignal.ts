@@ -88,6 +88,61 @@ export async function initOneSignal(): Promise<void> {
     // ── Transition: initializing → initialized ─────────────────
     state = "initialized";
     console.log("[OneSignal] Web push initialized successfully");
+
+    // ── Delivery pipeline diagnostics (temp — remove after confirming push delivery) ──
+    try {
+      const permission = OneSignal.Notifications.permission;
+      const optedIn   = OneSignal.User.PushSubscription.optedIn;
+      const subId     = OneSignal.User.PushSubscription.id;
+
+      console.log("[OneSignal] Permission:", permission);
+      console.log("[OneSignal] Subscribed (optedIn):", optedIn);
+      console.log("[OneSignal] Subscription ID:", subId || "⚠ Not yet assigned — may appear after permission grant");
+    } catch (diagErr) {
+      console.warn("[OneSignal] Subscription diagnostics failed:", diagErr);
+    }
+
+    // ── Foreground notification display ────────────────────────
+    // Chrome suppresses push notifications while the page is in focus.
+    // This listener intercepts and forces display so users see alerts
+    // even when the app is open.
+    try {
+      OneSignal.Notifications.addEventListener(
+        "foregroundWillDisplay",
+        (event: any) => {
+          console.log("[OneSignal] Foreground notification received:", event?.notification?.title);
+          // Force display even while app is foregrounded
+          event?.notification?.display?.();
+        }
+      );
+    } catch (fgErr) {
+      console.warn("[OneSignal] Foreground listener setup failed:", fgErr);
+    }
+
+    // ── Subscription change listener ───────────────────────────
+    try {
+      OneSignal.User.PushSubscription.addEventListener(
+        "change",
+        (event: any) => {
+          const current = event?.current;
+          console.log("[OneSignal] Subscription changed → optedIn:", current?.optedIn, "| id:", current?.id);
+        }
+      );
+    } catch (subErr) {
+      console.warn("[OneSignal] Subscription change listener failed:", subErr);
+    }
+
+    // ── Push receive listener (SW fires this) ──────────────────
+    try {
+      OneSignal.Notifications.addEventListener(
+        "click",
+        (event: any) => {
+          console.log("[OneSignal] Notification clicked:", event?.notification?.title);
+        }
+      );
+    } catch (clickErr) {
+      console.warn("[OneSignal] Click listener setup failed:", clickErr);
+    }
   } catch (err: unknown) {
     // ── Transition: initializing → failed ─────────────────────
     state = "failed";

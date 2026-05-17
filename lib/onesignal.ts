@@ -79,8 +79,6 @@ export async function initOneSignal(): Promise<void> {
     await OneSignal.init({
       appId,
       allowLocalhostAsSecureOrigin: true,
-      serviceWorkerPath: "/OneSignalSDKWorker.js",
-      serviceWorkerUpdaterPath: "/OneSignalSDKUpdaterWorker.js",
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       notifyButton: { enable: false } as any,
     });

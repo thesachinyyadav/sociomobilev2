@@ -69,6 +69,17 @@ export async function initOneSignal(): Promise<void> {
     return;
   }
 
+  // ── Reset: Programmatically destroy stale OneSignal IndexedDB/LocalCache ──
+  try {
+    if (typeof window !== "undefined" && window.indexedDB) {
+      window.indexedDB.deleteDatabase("OneSignalSDK");
+      window.indexedDB.deleteDatabase("OneSignalSDKDatabase");
+      console.log("[OneSignal] Cleaned stale IndexedDB cached settings");
+    }
+  } catch (resetErr) {
+    console.warn("[OneSignal] Stale cache cleanup failed:", resetErr);
+  }
+
   // ── Transition: idle → initializing ───────────────────────────
   state = "initializing";
   console.log("[OneSignal] Initializing...");

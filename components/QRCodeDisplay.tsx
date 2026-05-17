@@ -2,7 +2,6 @@
 import { createPortal } from "react-dom";
 
 import { useEffect, useState } from "react";
-import QRCode from "qrcode";
 import { XIcon, AlertCircleIcon, Loader2Icon, CalendarIcon, ClockIcon, MapPinIcon, DownloadIcon, ShieldCheckIcon } from "@/components/icons";
 import { useAuth } from "@/context/AuthContext";
 import { apiRequest } from "@/lib/apiClient";
@@ -10,19 +9,13 @@ import { generateSecurePassPayload } from "@/lib/walletCrypto";
 import toast from "react-hot-toast";
 import { motion, AnimatePresence } from "framer-motion";
 
-// Inline SOCIO SVG so it doesn't need a public URL
 const SOCIO_SVG = `<svg width="319" height="94" viewBox="0 0 319 94" fill="none" xmlns="http://www.w3.org/2000/svg">
-<path d="M32.6035 80.4229C23.5462 80.4229 16.1087 78.2719 10.291 73.9646C4.4681 69.6625 1.3431 63.4959 0.916016 55.4646H23.9785C24.1973 58.1886 25.0098 60.1834 26.416 61.4438C27.8171 62.6938 29.6243 63.3188 31.8327 63.3188C33.8171 63.3188 35.4473 62.8188 36.7285 61.8188C38.0202 60.8188 38.666 59.4386 38.666 57.6729C38.666 55.3969 37.5931 53.6313 35.4577 52.3813C33.3327 51.1313 29.8743 49.7302 25.0827 48.1729C20.0098 46.4959 15.9056 44.8604 12.7702 43.2771C9.64518 41.6938 6.92122 39.3761 4.60352 36.3188C2.2806 33.2667 1.12435 29.2719 1.12435 24.3396C1.12435 19.3292 2.37435 15.0375 4.87435 11.4646C7.38477 7.89689 10.8535 5.19377 15.2702 3.36043C19.6868 1.51668 24.6868 0.5896 30.2702 0.5896C39.3223 0.5896 46.5514 2.70939 51.9577 6.94377C57.3744 11.1834 60.2702 17.1261 60.6452 24.7771H37.1244C37.0514 22.4177 36.3379 20.6521 34.9785 19.4854C33.6139 18.3084 31.8639 17.7146 29.7285 17.7146C28.1035 17.7146 26.7754 18.1938 25.7493 19.1521C24.7181 20.1 24.2077 21.4594 24.2077 23.2354C24.2077 24.7094 24.7754 25.9802 25.916 27.0479C27.0514 28.1052 28.4681 29.0219 30.166 29.7979C31.8587 30.5792 34.3587 31.5479 37.666 32.7146C42.6087 34.4125 46.6764 36.0896 49.8744 37.7563C53.0827 39.4125 55.8431 41.7302 58.166 44.7146C60.4837 47.6886 61.6452 51.4594 61.6452 56.0271C61.6452 60.6677 60.4837 64.8292 58.166 68.5063C55.8431 72.1886 52.4889 75.1 48.1035 77.2354C43.7285 79.3604 38.5619 80.4229 32.6035 80.4229Z" fill="#154CB3"/>
-<path d="M100.38 80.4229C93.099 80.4229 86.4063 78.7146 80.2969 75.2979C74.1823 71.8709 69.3437 67.1209 65.776 61.0479C62.2031 54.9802 60.4219 48.1104 60.4219 40.4438C60.4219 32.7927 62.2031 25.9334 65.776 19.8604C69.3437 13.7927 74.1823 9.06356 80.2969 5.67293C86.4063 2.28752 93.099 0.5896 100.38 0.5896C107.74 0.5896 114.453 2.28752 120.526 5.67293C126.609 9.06356 131.411 13.7927 134.943 19.8604C138.484 25.9334 140.255 32.7927 140.255 40.4438C140.255 48.1104 138.484 54.9802 134.943 61.0479C131.411 67.1209 126.594 71.8709 120.484 75.2979C114.37 78.7146 107.672 80.4229 100.38 80.4229ZM100.38 60.3188C105.906 60.3188 110.266 58.5219 113.464 54.9229C116.672 51.3136 118.276 46.4854 118.276 40.4438C118.276 34.2667 116.672 29.3917 113.464 25.8188C110.266 22.2511 105.906 20.4646 100.38 20.4646C94.7813 20.4646 90.401 22.2511 87.2344 25.8188C84.0781 29.3917 82.5052 34.2667 82.5052 40.4438C82.5052 46.5584 84.0781 51.3969 87.2344 54.9646C90.401 58.5375 94.7813 60.3188 100.38 60.3188Z" fill="#154CB3"/>
-<path d="M138.699 40.5688C138.699 32.9177 140.293 26.0896 143.491 20.0896C146.699 14.0896 151.246 9.41773 157.137 6.06877C163.022 2.70939 169.793 1.0271 177.449 1.0271C187.168 1.0271 195.345 3.62606 201.97 8.81877C208.595 14.0167 212.855 21.0636 214.762 29.9646H191.47C190.064 27.0219 188.126 24.7771 185.658 23.2354C183.199 21.6834 180.35 20.9021 177.116 20.9021C172.116 20.9021 168.121 22.6886 165.137 26.2563C162.147 29.8292 160.658 34.6 160.658 40.5688C160.658 46.6 162.147 51.3969 165.137 54.9646C168.121 58.5375 172.116 60.3188 177.116 60.3188C180.35 60.3188 183.199 59.5479 185.658 58.0063C188.126 56.4646 190.064 54.225 191.47 51.2771H214.762C212.855 60.1834 208.595 67.2302 201.97 72.4229C195.345 77.6209 187.168 80.2146 177.449 80.2146C169.793 80.2146 163.022 78.5427 157.137 75.1938C151.246 71.8344 146.699 67.1521 143.491 61.1521C140.293 55.1521 138.699 48.2927 138.699 40.5688Z" fill="#154CB3"/>
-<path d="M238 5V76H216V5H238Z" fill="#154CB3"/>
-<path d="M279.124 80.4229C271.843 80.4229 265.15 78.7146 259.041 75.2979C252.926 71.8709 248.088 67.1209 244.52 61.0479C240.947 54.9802 239.166 48.1104 239.166 40.4438C239.166 32.7927 240.947 25.9334 244.52 19.8604C248.088 13.7927 252.926 9.06356 259.041 5.67293C265.15 2.28752 271.843 0.5896 279.124 0.5896C286.484 0.5896 293.197 2.28752 299.27 5.67293C305.354 9.06356 310.156 13.7927 313.687 19.8604C317.229 25.9334 318.999 32.7927 318.999 40.4438C318.999 48.1104 317.229 54.9802 313.687 61.0479C310.156 67.1209 305.338 71.8709 299.229 75.2979C293.114 78.7146 286.416 80.4229 279.124 80.4229ZM279.124 60.3188C284.65 60.3188 289.01 58.5219 292.208 54.9229C295.416 51.3136 297.02 46.4854 297.02 40.4438C297.02 34.2667 295.416 29.3917 292.208 25.8188C289.01 22.2511 284.65 20.4646 279.124 20.4646C273.525 20.4646 269.145 22.2511 265.979 25.8188C262.822 29.3917 261.249 34.2667 261.249 40.4438C261.249 46.5584 262.822 51.3969 265.979 54.9646C269.145 58.5375 273.525 60.3188 279.124 60.3188Z" fill="#154CB3"/>
-<mask id="mask0_482_185" style="mask-type:luminance" maskUnits="userSpaceOnUse" x="104" y="18" width="74" height="76">
-<path d="M104.381 18.1562H177.381V93.1563H104.381V18.1562Z" fill="white"/>
-</mask>
-<g mask="url(#mask0_482_185)">
-<path d="M177.385 55.0625H166.62C148.188 51.0729 144.089 46.9583 140.099 28.5V18.1562H138.74V28.6094C134.76 46.9792 130.641 51.0833 112.245 55.0625H104.391V56.4219H112.245C130.641 60.4063 134.76 64.5104 138.74 82.875V93.1354H140.099V82.9844C144.089 64.526 148.188 60.4115 166.62 56.4219H177.385V55.0625Z" fill="white"/>
-</g>
+<rect width="319" height="94" rx="16" fill="white"/>
+<path d="M28 74.5C20.3 74.5 13.9 72.7 8.8 69.1C3.7 65.5 1 60.4 0.7 53.8H20.8C21 56 21.7 57.6 23 58.6C24.2 59.6 25.9 60.1 28 60.1C29.9 60.1 31.4 59.7 32.6 58.8C33.8 57.9 34.4 56.7 34.4 55C34.4 52.8 33.5 51.2 31.7 50.1C29.9 49 26.8 47.9 22.4 46.6C17.8 45.2 14.1 43.8 11.3 42.4C8.5 41 6.1 39 4.1 36.4C2.1 33.8 1.1 30.4 1.1 26.1C1.1 21.7 2.2 18 4.4 14.8C6.7 11.6 9.8 9.2 13.7 7.6C17.6 5.9 22.1 5.1 27.1 5.1C35.2 5.1 41.7 7.1 46.5 11.1C51.4 15.1 54 20.6 54.3 27.7H35.2C35.2 25.5 34.6 23.9 33.4 22.8C32.3 21.7 30.7 21.2 28.7 21.2C27.2 21.2 26 21.6 25.1 22.4C24.2 23.2 23.7 24.3 23.7 25.8C23.7 27.1 24.2 28.2 25.2 29.1C26.2 30 27.5 30.8 29.1 31.4C30.7 32.1 33 32.8 36 33.9C40.5 35.4 44.2 36.9 47.1 38.2C50 39.6 52.5 41.5 54.5 44C56.6 46.5 57.6 49.7 57.6 53.5C57.6 57.5 56.6 61.1 54.5 64.2C52.4 67.3 49.4 69.8 45.4 71.7C41.5 73.6 36.9 74.5 28 74.5Z" fill="#154CB3"/>
+<path d="M93.8 74.5C87 74.5 80.7 72.9 75 69.7C69.2 66.5 64.7 62 61.3 56.3C58 50.6 56.3 44.1 56.3 36.8C56.3 29.6 58 23.1 61.3 17.4C64.7 11.7 69.2 7.2 75 4C80.7 0.8 87 0 93.8 0C100.7 0 106.9 0.8 112.5 4C118.2 7.2 122.6 11.7 125.8 17.4C129.1 23.1 130.7 29.6 130.7 36.8C130.7 44.1 129.1 50.6 125.8 56.3C122.6 62 118.2 66.5 112.5 69.7C106.9 72.9 100.7 74.5 93.8 74.5ZM93.8 56.5C98.8 56.5 102.8 54.9 105.8 51.7C108.8 48.4 110.3 44.1 110.3 38.7C110.3 33.2 108.8 28.8 105.8 25.7C102.8 22.5 98.8 20.9 93.8 20.9C88.8 20.9 84.9 22.5 81.9 25.7C79 28.8 77.5 33.2 77.5 38.7C77.5 44.1 79 48.4 81.9 51.7C84.9 54.9 88.8 56.5 93.8 56.5Z" fill="#154CB3"/>
+<path d="M130 37C130 29.8 131.5 23.4 134.5 17.8C137.5 12.2 141.8 7.9 147.3 4.8C152.9 1.6 159.3 0 166.7 0C176.1 0 184 2.4 190.4 7.2C196.8 12 200.9 18.5 202.7 26.7H180.8C179.5 23.9 177.6 21.8 175.1 20.4C172.7 19 169.9 18.2 166.8 18.2C162 18.2 158.2 19.8 155.4 23.1C152.6 26.4 151.2 30.6 151.2 35.9C151.2 41.2 152.6 45.5 155.4 48.8C158.2 52.1 162 53.8 166.8 53.8C169.9 53.8 172.7 53 175.1 51.6C177.6 50.2 179.5 48.1 180.8 45.3H202.7C200.9 53.5 196.8 60 190.4 64.8C184 69.6 176.1 72 166.7 72C159.3 72 152.9 70.4 147.3 67.2C141.8 64.1 137.5 59.8 134.5 54.2C131.5 48.6 130 42.2 130 37Z" fill="#154CB3"/>
+<path d="M216 6V68H196V6H216Z" fill="#154CB3"/>
+<path d="M258.5 74.5C251.6 74.5 245.3 72.9 239.6 69.7C233.8 66.5 229.3 62 226 56.3C222.6 50.6 221 44.1 221 36.8C221 29.6 222.6 23.1 226 17.4C229.3 11.7 233.8 7.2 239.6 4C245.3 0.8 251.6 0 258.5 0C265.3 0 271.6 0.8 277.3 4C283.1 7.2 287.6 11.7 290.9 17.4C294.2 23.1 295.9 29.6 295.9 36.8C295.9 44.1 294.2 50.6 290.9 56.3C287.6 62 283.1 66.5 277.3 69.7C271.6 72.9 265.3 74.5 258.5 74.5ZM258.5 56.5C263.5 56.5 267.5 54.9 270.5 51.7C273.5 48.4 275 44.1 275 38.7C275 33.2 273.5 28.8 270.5 25.7C267.5 22.5 263.5 20.9 258.5 20.9C253.5 20.9 249.6 22.5 246.6 25.7C243.6 28.8 242.1 33.2 242.1 38.7C242.1 44.1 243.6 48.4 246.6 51.7C249.6 54.9 253.5 56.5 258.5 56.5Z" fill="#154CB3"/>
 </svg>`;
 
 function svgToPng(svgString: string, naturalW: number, naturalH: number, scale = 3): Promise<string> {
@@ -109,42 +102,34 @@ export default function QRCodeDisplay({
           return;
         }
 
-        const data = await apiRequest<any>(`/registrations/${encodeURIComponent(registrationId)}/qr-code`);
-        
+        const data = await apiRequest<{ qrCodeImage?: string }>(`/registrations/${encodeURIComponent(registrationId)}/qr-code`);
+
         if (!data || !data.qrCodeImage) {
           throw new Error("Invalid QR code received from server");
         }
 
         localStorage.setItem(cacheKey, data.qrCodeImage);
         setQrImage(data.qrCodeImage);
-      } catch (err: any) {
-        setError(err.message || "Network error while generating secure pass.");
+      } catch (err: unknown) {
+        setError(err instanceof Error ? err.message : "Network error while generating secure pass.");
       } finally {
         setLoading(false);
       }
     };
 
     fetchQRCode();
-  }, [registrationId, eventId, session?.access_token, userData, participantName]);
-
-  // Scroll Lock
-  useEffect(() => {
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = "unset";
-    };
-  }, []);
+  }, [registrationId, session?.access_token]);
 
   const addToAppleWallet = async () => {
     try {
       const loadingToast = toast.loading("Preparing secure credential...");
       await generateSecurePassPayload({
-        attendeeId: 'apple-wallet',
+        attendeeId: "apple-wallet",
         eventId,
         registrationId,
-        participantName: participantName || 'Attendee',
+        participantName: participantName || "Attendee",
       });
-      await new Promise(resolve => setTimeout(resolve, 600));
+      await new Promise((resolve) => setTimeout(resolve, 600));
       toast.dismiss(loadingToast);
       toast.success("Pass added successfully");
     } catch {
@@ -153,21 +138,23 @@ export default function QRCodeDisplay({
     }
   };
 
+  void addToAppleWallet;
+
   const addToGoogleWallet = async () => {
     try {
       const loadingToast = toast.loading("Preparing secure credential...");
-      const res = await fetch('/api/wallet/google', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          registrationId, 
-          eventId, 
-          eventTitle, 
-          participantName, 
-          venue, 
-          date, 
-          time 
-        })
+      const res = await fetch("/api/wallet/google", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          registrationId,
+          eventId,
+          eventTitle,
+          participantName,
+          venue,
+          date,
+          time,
+        }),
       });
 
       if (!res.ok) {
@@ -179,14 +166,17 @@ export default function QRCodeDisplay({
       toast.dismiss(loadingToast);
       toast.success("Pass ready to save");
       if (data.saveUrl) {
-        window.open(data.saveUrl, '_blank');
+        window.open(data.saveUrl, "_blank");
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast.dismiss();
-      toast.error(err.message || "Unable to generate Google Wallet pass");
+      const message = err instanceof Error ? err.message : "Unable to generate Google Wallet pass";
+      toast.error(message);
       console.error("Google Wallet redirect failed:", err);
     }
   };
+
+  void addToGoogleWallet;
 
   const downloadAsPDF = async () => {
     if (!qrImage || pdfLoading) return;
@@ -216,32 +206,30 @@ export default function QRCodeDisplay({
       const logoRowH = Math.max(socioH, christH, 16);
 
       let y = 12;
-
-      const yLogoTop    = y;
+      const yLogoTop = y;
       y += logoRowH + 7;
-      const yRule       = y;
+      const yRule = y;
       y += 13;
-      const yGated      = y;
+      const yGated = y;
       y += 9;
-      const ySubtitle   = y;
+      const ySubtitle = y;
       y += 12;
-      const yQrTop      = y;
-      const QR          = 108;
+      const yQrTop = y;
+      const QR = 108;
       y += QR + 10;
-      const yTitle      = y;
+      const yTitle = y;
       y += titleLines.length * 6 + 4;
       const yParticipant = y;
       y += 6;
-      const yRegId      = y;
+      const yRegId = y;
       y += 10;
-      const yDashed     = y;
+      const yDashed = y;
       y += 7;
-      const yFooter     = y;
+      const yFooter = y;
       if (isOutsider) y += 5.5;
       y += 13;
 
       const pageH = Math.ceil(y);
-
       const doc = new jsPDF({ unit: "mm", format: [PW, pageH] });
 
       doc.setFillColor(255, 255, 255);
@@ -271,7 +259,6 @@ export default function QRCodeDisplay({
 
       const qrX = (PW - QR) / 2;
       const qrPad = 5;
-
       doc.setFillColor(248, 250, 252);
       doc.setDrawColor(226, 232, 240);
       doc.setLineWidth(0.35);
@@ -279,12 +266,7 @@ export default function QRCodeDisplay({
 
       doc.setFillColor(255, 255, 255);
       doc.roundedRect(qrX + 1, yQrTop + 1, QR - 2, QR - 2, 2, 2, "F");
-
-      doc.addImage(
-        qrImage, "PNG",
-        qrX + qrPad, yQrTop + qrPad,
-        QR - qrPad * 2, QR - qrPad * 2
-      );
+      doc.addImage(qrImage, "PNG", qrX + qrPad, yQrTop + qrPad, QR - qrPad * 2, QR - qrPad * 2);
 
       doc.setFont("helvetica", "bold");
       doc.setFontSize(12);
@@ -315,7 +297,7 @@ export default function QRCodeDisplay({
       }
 
       doc.save(`GatedPass ${eventTitle}.pdf`);
-    } catch (err) {
+    } catch (err: unknown) {
       console.error("PDF generation failed:", err);
     } finally {
       setPdfLoading(false);
@@ -328,7 +310,7 @@ export default function QRCodeDisplay({
     if (Number.isNaN(d.getTime())) return { main: "TBA", sub: "" };
     return {
       main: d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
-      sub: d.toLocaleDateString("en-US", { weekday: "long" })
+      sub: d.toLocaleDateString("en-US", { weekday: "long" }),
     };
   };
 
@@ -344,185 +326,189 @@ export default function QRCodeDisplay({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[9999] flex items-center justify-center overscroll-none touch-none"
-      style={{
-        paddingTop: "calc(8px + env(safe-area-inset-top, 0px))",
-        paddingBottom: "calc(8px + env(safe-area-inset-bottom, 0px))",
-        paddingLeft: "12px",
-        paddingRight: "12px",
-      }}
+      className="pass-modal-shell fixed inset-0 z-[9999] flex items-center justify-center overscroll-none touch-none"
     >
-      {/* Backdrop - Elevating the modal with increased blur and ambient glow */}
       <AnimatePresence>
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="absolute inset-0 bg-[#020617]/72 backdrop-blur-[14px]"
-          style={{
-            background: 'radial-gradient(circle at top, rgba(30,63,171,0.22), transparent 70%), rgba(2, 6, 23, 0.72)'
-          }}
+          className="pass-backdrop absolute inset-0 bg-[#020617]/72 backdrop-blur-[14px]"
         />
       </AnimatePresence>
 
-      {/* Modal Container - Premium Fintech Surface */}
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, scale: 0.96, y: 10 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.96, y: 10 }}
         transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-        className="relative w-full max-w-[420px] bg-white rounded-[28px] shadow-[0_30px_80px_rgba(1,31,123,0.18)] flex flex-col overflow-hidden overscroll-contain"
-        style={{
-          maxHeight: "calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 16px)",
-        }}
+        className="pass-panel relative w-[calc(100vw-32px)] max-w-[420px] bg-white rounded-[36px] shadow-[0_30px_80px_rgba(1,31,123,0.22)] flex flex-col overflow-hidden overscroll-contain"
       >
-        {/* Header Section - Operational Navy Gradient with Texture */}
-        <div className="relative shrink-0 overflow-hidden px-6 pt-4 pb-[50px] bg-gradient-to-br from-[#011F7B] to-[#1E3FAB] rounded-b-[28px]">
-          {/* Subtle Blueprint Texture Overlay */}
-          <div className="absolute inset-0 opacity-[0.04] pointer-events-none" 
-               style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, white 1px, transparent 0)', backgroundSize: '20px 20px' }} />
-          <div className="absolute inset-0 opacity-15 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.7)_0,transparent_100%)] pointer-events-none" />
-          
-          <div className="flex items-start justify-between relative z-10">
-            <div className="flex flex-col gap-0.5 min-w-0 flex-1">
-              <div className="flex items-center gap-1.5">
-                <div className="w-1.5 h-1.5 rounded-full bg-[#FFBA09] shadow-[0_0_8px_#FFBA09]" />
-                <span className="text-[9px] font-black tracking-[0.25em] text-white/80 uppercase">Event Pass</span>
-              </div>
-              <h3 className="text-[clamp(1.3rem,4.5vw,1.75rem)] font-black text-white tracking-[-0.03em] leading-[1.05] line-clamp-2 pr-2">
-                {eventTitle}
-              </h3>
-              <p className="text-[10px] text-white/50 font-bold tracking-tight mt-0.5">Your pass to an amazing experience</p>
+        <div
+          className="pass-header relative shrink-0 overflow-hidden bg-gradient-to-br from-[#011F7B] to-[#1E3FAB] px-6 pt-6 pb-5"
+        >
+          <div
+            className="pointer-events-none absolute inset-0 opacity-[0.05]"
+          />
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.28)_0%,transparent_55%)]" />
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-28 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.12)_0%,transparent_72%)]" />
+
+          <div className="relative z-10 pr-20">
+            <div className="flex items-center gap-2">
+              <span className="h-2.5 w-2.5 rounded-full bg-[#FFBA09] shadow-[0_0_12px_rgba(255,186,9,0.75)]" />
+              <span className="text-[13px] font-medium uppercase tracking-[0.28em] text-white/90">EVENT PASS</span>
             </div>
-            
-            <button 
-              onClick={onClose} 
-              className="w-[36px] h-[36px] rounded-full bg-white/12 flex items-center justify-center border border-white/18 backdrop-blur-[8px] hover:bg-white/20 transition-all active:scale-90 shrink-0" 
-              aria-label="Close"
-            >
-              <XIcon size={16} className="text-white" strokeWidth={2.5} />
-            </button>
+
+            <h3 className="pass-title mt-[18px] max-w-full text-[clamp(1.75rem,5vw,2.75rem)] font-[800] tracking-[-0.045em] text-white">
+              {eventTitle}
+            </h3>
+
+            <p className="mt-4 max-w-[28ch] text-[clamp(0.875rem,2.2vw,1rem)] font-medium leading-snug text-white/60">
+              Your pass to an amazing experience
+            </p>
           </div>
+
+          <button
+            onClick={onClose}
+            className="absolute right-6 top-6 flex h-16 w-16 items-center justify-center rounded-full border border-white/16 bg-white/12 text-white backdrop-blur-[16px] transition-transform duration-200 hover:bg-white/18 active:scale-95"
+            aria-label="Close"
+          >
+            <XIcon size={22} strokeWidth={2.5} />
+          </button>
         </div>
 
-        {/* Content Section - Compact, no-scroll layout */}
-        <div className="pass-modal-content flex-1 flex flex-col items-center min-h-0 overflow-hidden pb-[calc(14px+env(safe-area-inset-bottom,0px))]">
-          
-          {/* Floating Info Card - Reduced Overlap for breathability */}
-          <div className="w-[calc(100%-32px)] flex items-stretch bg-white rounded-[20px] p-3 shadow-[0_10px_25px_rgba(15,23,42,0.06)] -mt-7 relative z-20 border border-slate-100">
-            {/* Date Section */}
-            <div className="flex-1 flex flex-col items-center text-center min-w-0">
-              <CalendarIcon size={12} className="text-[#FFBA09] mb-0.5" />
-              <span className="text-[7.5px] text-[#94A3B8] font-bold uppercase tracking-wider mb-0.5">Date</span>
-              <span className="text-[10.5px] text-[#0F172A] font-black leading-tight truncate w-full px-0.5">{dateInfo.main}</span>
-              <span className="text-[7.5px] text-[#94A3B8] font-bold mt-0.5">{dateInfo.sub}</span>
-            </div>
+        <div className="pass-modal-content no-scrollbar flex-1 min-h-0 overflow-y-auto overscroll-contain">
+          <div className="px-4 pb-[calc(16px+env(safe-area-inset-bottom,0px))] pt-0 sm:px-5">
+            <div className="-mt-7 relative z-20 rounded-[28px] border border-white/70 bg-[rgba(255,255,255,0.98)] p-5 shadow-[0_12px_30px_rgba(15,23,42,0.08)] backdrop-blur-sm sm:-mt-8">
+              <div className="grid grid-cols-3 divide-x divide-slate-100">
+                <div className="flex min-w-0 flex-col items-center px-2 text-center">
+                  <CalendarIcon size={14} className="mb-2 text-[#FFBA09]" />
+                  <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#94A3B8]">Date</span>
+                  <span className="mt-2 w-full text-[clamp(0.95rem,2.1vw,1.05rem)] font-[800] leading-snug text-[#0F172A]">{dateInfo.main}</span>
+                  <span className="mt-1 text-[10px] font-medium text-[#64748B]">{dateInfo.sub}</span>
+                </div>
 
-            <div className="w-px bg-[#F1F5F9] mx-0.5" />
+                <div className="flex min-w-0 flex-col items-center px-2 text-center">
+                  <ClockIcon size={14} className="mb-2 text-[#FFBA09]" />
+                  <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#94A3B8]">Time</span>
+                  <span className="mt-2 w-full text-[clamp(0.95rem,2.1vw,1.05rem)] font-[800] leading-snug text-[#0F172A]">{time || "12:00 PM"}</span>
+                  <span className="mt-1 text-[10px] font-medium text-[#64748B]">IST</span>
+                </div>
 
-            {/* Time Section */}
-            <div className="flex-1 flex flex-col items-center text-center min-w-0">
-              <ClockIcon size={12} className="text-[#FFBA09] mb-0.5" />
-              <span className="text-[7.5px] text-[#94A3B8] font-bold uppercase tracking-wider mb-0.5">Time</span>
-              <span className="text-[10.5px] text-[#0F172A] font-black leading-tight truncate w-full px-0.5">{time || "12:00 PM"}</span>
-              <span className="text-[7.5px] text-[#94A3B8] font-bold mt-0.5">IST</span>
-            </div>
-
-            <div className="w-px bg-[#F1F5F9] mx-0.5" />
-
-            {/* Venue Section */}
-            <div className="flex-1 flex flex-col items-center text-center min-w-0">
-              <MapPinIcon size={12} className="text-[#FFBA09] mb-0.5" />
-              <span className="text-[7.5px] text-[#94A3B8] font-bold uppercase tracking-wider mb-0.5">Venue</span>
-              <span className="text-[10.5px] text-[#0F172A] font-black leading-tight truncate w-full px-1" title={venue}>{venue || "TBA"}</span>
-              <span className="text-[7.5px] text-[#94A3B8] font-bold mt-0.5">Location</span>
-            </div>
-          </div>
-
-          <div className="w-full flex-1 px-5 pt-3 flex flex-col items-center min-h-0">
-            <div className="w-full flex-1 flex flex-col items-center justify-between min-h-0 gap-3">
-              {/* QR Container - Responsive and scan-safe */}
-              <div className="flex-1 w-full flex items-center justify-center min-h-0 py-1">
-                {loading ? (
-                  <div 
-                    className="flex items-center justify-center bg-slate-50/50 rounded-[24px] border border-slate-100"
-                    style={{
-                      width: "min(210px, 58vw)",
-                      height: "min(210px, 58vw)",
-                    }}
-                  >
-                    <Loader2Icon size={26} className="animate-spin text-[#011F7B] opacity-35" />
-                  </div>
-                ) : error ? (
-                  <div 
-                    className="flex flex-col items-center justify-center p-4 text-center bg-red-50 rounded-[24px] border border-red-100"
-                    style={{
-                      width: "min(210px, 58vw)",
-                      height: "min(210px, 58vw)",
-                    }}
-                  >
-                    <AlertCircleIcon size={20} className="text-red-500 mb-1.5" />
-                    <p className="text-[11px] text-red-600 font-bold leading-tight">{error}</p>
-                  </div>
-                ) : (
-                  <div 
-                    className="p-3.5 bg-white rounded-[24px] shadow-[0_12px_32px_rgba(15,23,42,0.06),0_2px_8px_rgba(15,23,42,0.02)] border border-slate-100/90 flex items-center justify-center"
-                    style={{
-                      width: "min(210px, 58vw)",
-                      height: "min(210px, 58vw)",
-                    }}
-                  >
-                    <img
-                      src={qrImage || ""}
-                      alt="Secure QR code"
-                      className="w-full h-full object-contain"
-                      style={{ imageRendering: 'pixelated' }}
-                    />
-                  </div>
-                )}
+                <div className="flex min-w-0 flex-col items-center px-2 text-center">
+                  <MapPinIcon size={14} className="mb-2 text-[#FFBA09]" />
+                  <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#94A3B8]">Venue</span>
+                  <span className="pass-venue mt-2 w-full text-[clamp(0.95rem,2.1vw,1.05rem)] font-[800] leading-snug text-[#0F172A]" title={venue}>
+                    {venue || "TBA"}
+                  </span>
+                  <span className="mt-1 text-[10px] font-medium text-[#64748B]">Location</span>
+                </div>
               </div>
 
-              {/* Actions */}
-              <div className="w-full flex flex-col gap-2.5">
-                <button
-                  onClick={downloadAsPDF}
-                  disabled={pdfLoading || loading}
-                  className="w-full h-[58px] bg-[#FFBA09] text-[#011F7B] rounded-[18px] font-black text-[14.5px] shadow-[0_6px_18px_rgba(255,186,9,0.18)] flex items-center justify-center gap-2.5 active:scale-[0.98] transition-all disabled:opacity-50 select-none cursor-pointer"
-                >
-                  {pdfLoading ? (
-                    <Loader2Icon size={18} className="animate-spin" />
+              <div className="mt-5 flex flex-col items-center gap-4">
+                <div className="flex w-full justify-center">
+                  {loading ? (
+                    <div
+                      className="pass-state-shell flex aspect-square w-full items-center justify-center rounded-[32px] border border-slate-100 bg-slate-50/60 shadow-[0_10px_30px_rgba(15,23,42,0.05)]"
+                    >
+                      <Loader2Icon size={28} className="animate-spin text-[#011F7B] opacity-35" />
+                    </div>
+                  ) : error ? (
+                    <div
+                      className="pass-state-shell flex aspect-square w-full flex-col items-center justify-center rounded-[32px] border border-red-100 bg-red-50 p-6 text-center shadow-[0_10px_30px_rgba(15,23,42,0.05)]"
+                    >
+                      <AlertCircleIcon size={22} className="mb-2 text-red-500" />
+                      <p className="text-[clamp(0.9rem,2vw,1rem)] font-semibold leading-snug text-red-600">{error}</p>
+                    </div>
                   ) : (
-                    <>
-                      <DownloadIcon size={20} strokeWidth={3} />
-                      Download Pass (PDF)
-                    </>
+                    <div
+                      className="pass-qr-shell flex aspect-square w-full items-center justify-center rounded-[32px] border border-slate-100 bg-white p-6 shadow-[0_10px_30px_rgba(15,23,42,0.05)]"
+                    >
+                      <img src={qrImage || ""} alt="Secure QR code" className="pass-qr-image h-full w-full object-contain" />
+                    </div>
                   )}
-                </button>
+                </div>
 
-                <div className="w-full rounded-[18px] border border-[rgba(226,232,240,0.8)] bg-[rgba(248,250,252,0.9)] p-[12px_14px] flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-emerald-50 border border-emerald-100 flex items-center justify-center shrink-0">
-                    <ShieldCheckIcon size={16} className="text-emerald-600" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-[12px] text-[#0F172A] font-bold leading-tight">Show this QR at entry</p>
-                    <p className="text-[10.5px] text-[#64748B] font-medium mt-0.5">You will be scanned for attendance</p>
+                <div className="w-full space-y-3">
+                  <button
+                    onClick={downloadAsPDF}
+                    disabled={pdfLoading || loading}
+                    className="flex h-16 w-full items-center justify-center gap-2.5 rounded-[22px] bg-[#FFBA09] text-[#011F7B] shadow-[0_12px_30px_rgba(255,186,9,0.26)] transition-transform duration-200 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {pdfLoading ? (
+                      <Loader2Icon size={18} className="animate-spin" />
+                    ) : (
+                      <>
+                        <DownloadIcon size={20} strokeWidth={3} />
+                        <span className="text-[15px] font-bold">Download Pass (PDF)</span>
+                      </>
+                    )}
+                  </button>
+
+                  <div className="flex items-center gap-3 rounded-[24px] border border-[#E2E8F0] bg-[#F8FAFC] p-[18px]">
+                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[#E2E8F0] bg-white text-[#011F7B] shadow-[0_6px_16px_rgba(15,23,42,0.05)]">
+                      <ShieldCheckIcon size={18} />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[clamp(0.95rem,2.1vw,1rem)] font-bold leading-snug text-[#0F172A]">Show this QR at entry</p>
+                      <p className="mt-1 text-[clamp(0.82rem,1.8vw,0.92rem)] font-medium leading-snug text-[#64748B]">You will be scanned for attendance</p>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
           </div>
-
         </div>
       </motion.div>
 
       <style jsx>{`
-        .overscroll-none { overscroll-behavior: none; }
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        @media (max-height: 560px) {
-          .pass-modal-content {
-            overflow-y: auto;
-          }
+        .overscroll-none {
+          overscroll-behavior: none;
+        }
+        .pass-modal-shell {
+          padding-top: calc(16px + env(safe-area-inset-top, 0px));
+          padding-right: 16px;
+          padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+          padding-left: 16px;
+        }
+        .pass-backdrop {
+          background: radial-gradient(circle at top, rgba(30,63,171,0.24), transparent 62%), rgba(2, 6, 23, 0.72);
+        }
+        .pass-panel {
+          max-height: calc(90dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+        }
+        .pass-header {
+          min-height: clamp(200px, 46vw, 240px);
+        }
+        .pass-title {
+          display: -webkit-box;
+          line-height: 0.95;
+          -webkit-box-orient: vertical;
+          -webkit-line-clamp: 2;
+          overflow: hidden;
+        }
+        .pass-modal-content {
+          -webkit-overflow-scrolling: touch;
+        }
+        .pass-venue {
+          display: -webkit-box;
+          -webkit-box-orient: vertical;
+          -webkit-line-clamp: 2;
+          overflow: hidden;
+        }
+        .pass-state-shell,
+        .pass-qr-shell {
+          width: min(100%, clamp(220px, 68vw, 320px));
+        }
+        .pass-qr-image {
+          image-rendering: pixelated;
+        }
+        .no-scrollbar::-webkit-scrollbar {
+          display: none;
+        }
+        .no-scrollbar {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
         }
       `}</style>
     </div>,

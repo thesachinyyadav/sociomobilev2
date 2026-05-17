@@ -87,8 +87,9 @@ export async function initOneSignal(): Promise<void> {
   try {
     const OneSignal = (await import("react-onesignal")).default;
 
-    console.log("[OneSignal] Worker path: /OneSignalSDKWorker.js");
-    console.log("[OneSignal] Updater path: /OneSignalSDKUpdaterWorker.js");
+    console.log("[OneSignal] Current origin:", window.location.origin);
+    console.log("[OneSignal] Worker path:", "/OneSignalSDKWorker.js");
+    console.log("[OneSignal] Updater path:", "/OneSignalSDKUpdaterWorker.js");
 
     await OneSignal.init({
       appId,
@@ -100,7 +101,7 @@ export async function initOneSignal(): Promise<void> {
 
     // ── Transition: initializing → initialized ─────────────────
     state = "initialized";
-    console.log("[OneSignal] Web push initialized successfully");
+    console.log("[OneSignal] Initialized successfully");
 
     // ── Delivery pipeline diagnostics ─────────────────────────
     // token = raw FCM/WebPush token — null means NOT fully subscribed

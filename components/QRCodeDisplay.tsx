@@ -350,9 +350,9 @@ export default function QRCodeDisplay({
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.96, y: 10 }}
         transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-        className="pass-panel relative w-[calc(100vw-32px)] max-w-[420px] bg-[#F8FAFC] rounded-[36px] shadow-[0_30px_80px_rgba(1,31,123,0.22)] flex flex-col overflow-hidden overscroll-contain"
+        className="pass-panel relative w-[calc(100vw-32px)] max-w-[420px] bg-[#F8FAFC] rounded-[36px] shadow-[0_30px_80px_rgba(1,31,123,0.22)] flex flex-col overflow-hidden"
         style={{
-          maxHeight: "90dvh",
+          maxHeight: "calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 24px)",
         }}
       >
         {/* Header Section */}
@@ -403,36 +403,36 @@ export default function QRCodeDisplay({
           </button>
         </div>
 
-        {/* Scrollable Content Area */}
-        <div className="pass-modal-content no-scrollbar flex-1 min-h-0 overflow-y-auto overscroll-contain pb-[calc(20px+env(safe-area-inset-bottom,0px))] relative z-20 -mt-11">
+        {/* Main Content Area */}
+        <div className="pass-modal-content flex flex-col items-center justify-between flex-1 min-h-0 relative z-20 -mt-11 pb-4">
           
           {/* Floating Info Card */}
-          <div className="mx-4 bg-white/98 rounded-[28px] p-5 shadow-[0_12px_30px_rgba(15,23,42,0.08)] border border-slate-100/50 backdrop-blur-sm">
+          <div className="mx-4 bg-white/98 rounded-[24px] p-4 shadow-[0_12px_30px_rgba(15,23,42,0.08)] border border-slate-100/50 backdrop-blur-sm w-[calc(100%-32px)]">
             <div className="grid grid-cols-3 divide-x divide-slate-100">
               {/* Date Column */}
               <div className="flex flex-col items-center text-center px-1 min-w-0">
-                <CalendarIcon size={14} className="text-[#FFBA09] mb-1.5" />
-                <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#94A3B8]">Date</span>
-                <span className="mt-2 text-[12px] font-extrabold text-[#0F172A] leading-tight w-full break-words">{dateInfo.main}</span>
-                <span className="text-[10px] font-medium text-[#64748B] mt-0.5">{dateInfo.sub}</span>
+                <CalendarIcon size={13} className="text-[#FFBA09] mb-1" />
+                <span className="text-[9px] font-bold uppercase tracking-[0.15em] text-[#94A3B8]">Date</span>
+                <span className="mt-1 text-[11px] font-extrabold text-[#0F172A] leading-tight w-full break-words">{dateInfo.main}</span>
+                <span className="text-[9px] font-medium text-[#64748B] mt-0.5">{dateInfo.sub}</span>
               </div>
 
               {/* Time Column */}
               <div className="flex flex-col items-center text-center px-1 min-w-0">
-                <ClockIcon size={14} className="text-[#FFBA09] mb-1.5" />
-                <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#94A3B8]">Time</span>
-                <span className="mt-2 text-[12px] font-extrabold text-[#0F172A] leading-tight w-full break-words">{time || "12:00 PM"}</span>
-                <span className="text-[10px] font-medium text-[#64748B] mt-0.5">IST</span>
+                <ClockIcon size={13} className="text-[#FFBA09] mb-1" />
+                <span className="text-[9px] font-bold uppercase tracking-[0.15em] text-[#94A3B8]">Time</span>
+                <span className="mt-1 text-[11px] font-extrabold text-[#0F172A] leading-tight w-full break-words">{time || "12:00 PM"}</span>
+                <span className="text-[9px] font-medium text-[#64748B] mt-0.5">IST</span>
               </div>
 
               {/* Venue Column */}
               <div className="flex flex-col items-center text-center px-1 min-w-0">
-                <MapPinIcon size={14} className="text-[#FFBA09] mb-1.5" />
-                <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#94A3B8]">Venue</span>
-                <span className="mt-2 text-[12px] font-extrabold text-[#0F172A] leading-tight w-full line-clamp-2 break-words" title={venue}>
+                <MapPinIcon size={13} className="text-[#FFBA09] mb-1" />
+                <span className="text-[9px] font-bold uppercase tracking-[0.15em] text-[#94A3B8]">Venue</span>
+                <span className="mt-1 text-[11px] font-extrabold text-[#0F172A] leading-tight w-full line-clamp-2 break-words" title={venue}>
                   {venueInfo.main}
                 </span>
-                <span className="text-[10px] font-medium text-[#64748B] mt-0.5 truncate w-full" title={venueInfo.sub}>
+                <span className="text-[9px] font-medium text-[#64748B] mt-0.5 truncate w-full" title={venueInfo.sub}>
                   {venueInfo.sub}
                 </span>
               </div>
@@ -440,18 +440,18 @@ export default function QRCodeDisplay({
           </div>
 
           {/* QR Code Container */}
-          <div className="flex justify-center mt-5 px-4">
+          <div className="flex justify-center w-full mt-3 px-4">
             {loading ? (
-              <div className="flex aspect-square w-full max-w-[260px] min-w-[210px] items-center justify-center rounded-[32px] border border-slate-100 bg-white p-6 shadow-[0_10px_30px_rgba(15,23,42,0.05)]">
+              <div className="flex aspect-square w-full max-w-[clamp(190px,26dvh,240px)] items-center justify-center rounded-[28px] border border-slate-100 bg-white p-6 shadow-[0_10px_30px_rgba(15,23,42,0.05)]">
                 <Loader2Icon size={28} className="animate-spin text-[#011F7B] opacity-35" />
               </div>
             ) : error ? (
-              <div className="flex aspect-square w-full max-w-[260px] min-w-[210px] flex-col items-center justify-center rounded-[32px] border border-red-100 bg-red-50 p-6 text-center shadow-[0_10px_30px_rgba(15,23,42,0.05)]">
+              <div className="flex aspect-square w-full max-w-[clamp(190px,26dvh,240px)] flex-col items-center justify-center rounded-[28px] border border-red-100 bg-red-50 p-6 text-center shadow-[0_10px_30px_rgba(15,23,42,0.05)]">
                 <AlertCircleIcon size={22} className="mb-2 text-red-500" />
                 <p className="text-[12px] font-semibold text-red-600 leading-snug">{error}</p>
               </div>
             ) : (
-              <div className="relative flex aspect-square w-full max-w-[260px] min-w-[210px] items-center justify-center rounded-[32px] p-5 overflow-hidden qr-card-container">
+              <div className="relative flex aspect-square w-full max-w-[clamp(190px,26dvh,240px)] items-center justify-center rounded-[28px] p-5 overflow-hidden qr-card-container">
                 {/* Luxury Scanner Corners */}
                 <div className="absolute top-5 left-5 w-3.5 h-3.5 border-t-2 border-l-2 border-[#011F7B]/16 rounded-tl-[6px]" />
                 <div className="absolute top-5 right-5 w-3.5 h-3.5 border-t-2 border-r-2 border-[#011F7B]/16 rounded-tr-[6px]" />
@@ -479,11 +479,11 @@ export default function QRCodeDisplay({
           </div>
 
           {/* Download Button */}
-          <div className="px-4 mt-[28px]">
+          <div className="w-full px-4 mt-3">
             <button
               onClick={downloadAsPDF}
               disabled={pdfLoading || loading}
-              className="flex h-16 w-full items-center justify-center gap-2.5 rounded-[22px] bg-[#FFBA09] text-[#011F7B] font-bold text-[15px] shadow-[0_8px_24px_rgba(255,186,9,0.3)] transition-all duration-200 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 hover:brightness-105"
+              className="flex h-14 w-full items-center justify-center gap-2.5 rounded-[20px] bg-[#FFBA09] text-[#011F7B] font-bold text-[14px] shadow-[0_8px_24px_rgba(255,186,9,0.25)] transition-all duration-200 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 hover:brightness-105"
             >
               {pdfLoading ? (
                 <Loader2Icon size={18} className="animate-spin" />
@@ -497,9 +497,9 @@ export default function QRCodeDisplay({
           </div>
 
           {/* Subtle Footer Closure */}
-          <div className="flex flex-col items-center justify-center mt-6 mb-1.5 opacity-[0.45] gap-0.5">
+          <div className="flex flex-col items-center justify-center mt-3 mb-1 opacity-[0.45] gap-0.5">
             <span className="text-[9px] font-bold uppercase tracking-[0.18em] text-[#0F172A] leading-none">Verified Event Credential</span>
-            <span className="text-[8px] font-semibold text-[#64748B] leading-none">Powered by SOCIO</span>
+            <span className="text-[8px] font-semibold text-[#64748B] leading-none">Secured by SOCIO</span>
           </div>
 
 

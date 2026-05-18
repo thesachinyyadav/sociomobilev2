@@ -3,7 +3,7 @@
 /**
  * lib/onesignal.ts
  * ─────────────────────────────────────────────────────────────────
- * Safe OneSignal Web Push initializer for SOCIO PWA.
+ * Safe, production-grade OneSignal Web Push initializer for SOCIO PWA.
  * ─────────────────────────────────────────────────────────────────
  */
 
@@ -19,200 +19,205 @@ export function _resetOneSignalState(): void {
   initialized = false;
 }
 
-export async function initOneSignal(): Promise<void> {
-  // ── Guard 1: SSR ───────────────────────────────────────────────
+/**
+ * Manual targeted cleanup for debugging/diagnostics.
+ * Wipes out service workers, caches, IndexedDB, and localStorage keys.
+ * Only run manually in debug mode, never automatically on startup.
+ */
+export async function nukeServiceWorkers(): Promise<void> {
   if (typeof window === "undefined") return;
 
-  // ── Guard 2: Prevent concurrent or duplicate initialization ───
-  if (initialized) {
-    console.log("[OneSignal] Already initialized");
-    return;
-  }
-
-  // Set the guard immediately to prevent double-invocation under React StrictMode
-  initialized = true;
-
-  // ── Guard 3: Capacitor native platform check ───────────────────
-  if (Capacitor.isNativePlatform()) {
-    console.log("[OneSignal] Native platform detected — skipping web push init");
-    return;
-  }
-
-  // ── Guard 4: Browser Notification API availability ────────────
-  if (!("Notification" in window)) {
-    console.log("[OneSignal] Notifications unsupported in this browser");
-    return;
-  }
-
-  // ── Guard 5: App ID existence check ────────────────────────────
-  const appId = process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID;
-  if (!appId || appId === "placeholder_onesignal_id_here") {
-    console.warn("[OneSignal] Missing app ID — skipping init");
-    return;
-  }
-
-  // ── STEP 8: Clear all cached states and bad worker registrations ──
   try {
-    console.log("[OneSignal] Starting aggressive cleanup of stale states...");
+    console.log("[OneSignal Cleanup] Starting manual targeted cleanup...");
     
-    // Unregister all existing service workers
-    const registrations = await navigator.serviceWorker.getRegistrations();
-    for (const reg of registrations) {
-      console.log("[OneSignal] Removing SW:", reg.scope);
-      await reg.unregister();
+    // 1. Unregister active service workers
+    if ("serviceWorker" in navigator) {
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      for (const reg of registrations) {
+        if (reg.active && (reg.active.scriptURL.includes('onesignalsdkworker') || reg.scope.includes('push'))) {
+          console.log("[OneSignal Cleanup] Unregistering bad/stale worker scope:", reg.scope);
+          await reg.unregister();
+        }
+      }
     }
 
-    // Delete known OneSignal IndexedDB databases
-    indexedDB.deleteDatabase("ONE_SIGNAL_SDK_DB");
-    indexedDB.deleteDatabase("OneSignalSDKDatabase");
-
-    // Clear caches that contain "onesignal"
+    // 2. Clear OneSignal caches
     const cacheKeys = await caches.keys();
     for (const key of cacheKeys) {
-      if (key.toLowerCase().includes("onesignal")) {
-        console.log("[OneSignal] Deleting cache:", key);
+      if (key.toLowerCase().includes('onesignal')) {
+        console.log("[OneSignal Cleanup] Deleting cache:", key);
         await caches.delete(key);
       }
     }
 
-    // Clear local storage keys containing "onesignal"
+    // 3. Clear OneSignal IndexedDB databases
+    if (window.indexedDB && (window.indexedDB as any).databases) {
+      const dbs = await (window.indexedDB as any).databases();
+      for (const db of dbs) {
+        if (db.name && db.name.toLowerCase().includes('onesignal')) {
+          console.log("[OneSignal Cleanup] Deleting IndexedDB:", db.name);
+          window.indexedDB.deleteDatabase(db.name);
+        }
+      }
+    }
+
+    // 4. Delete local storage keys
     for (let i = localStorage.length - 1; i >= 0; i--) {
       const key = localStorage.key(i);
-      if (key && key.toLowerCase().includes("onesignal")) {
+      if (key && key.toLowerCase().includes('onesignal')) {
         localStorage.removeItem(key);
       }
     }
 
-    console.log("[OneSignal] Aggressive cleanup complete.");
-    
-    // Pause briefly to let the browser commit unregister/delete transactions
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-  } catch (cleanupErr) {
-    console.warn("[OneSignal] Pre-init cleanup warning:", cleanupErr);
+    console.log("[OneSignal Cleanup] Manual targeted cleanup complete.");
+  } catch (err) {
+    console.warn("[OneSignal Cleanup] Manual cleanup failed:", err);
   }
+}
 
-  // ── STEP 9: Final Initialization ──
-  try {
-    const OneSignal = (await import("react-onesignal")).default;
+export function initOneSignal(): void {
+  // ── Guard 1: SSR check ─────────────────────────────────────────
+  if (typeof window === "undefined") return;
+
+  // ── STEP 7: Guard duplicate initialization ────────────────────
+  if (initialized) {
+    console.log("[OneSignal] Already initialized");
+    return;
+  }
+  initialized = true;
+
+  // Actual initialization routine
+  const runInit = async () => {
+    // ── STEP 5: Browser capability checks ────────────────────────
+    if (!("serviceWorker" in navigator)) {
+      console.log("[OneSignal] Skipping init: Service Workers not supported");
+      initialized = false;
+      return;
+    }
+    if (!("Notification" in window)) {
+      console.log("[OneSignal] Skipping init: Notifications not supported");
+      initialized = false;
+      return;
+    }
+    if (!window.isSecureContext) {
+      console.log("[OneSignal] Skipping init: Page not in a secure context");
+      initialized = false;
+      return;
+    }
+
+    // Capacitor platform check
+    if (Capacitor.isNativePlatform()) {
+      console.log("[OneSignal] Native platform detected — skipping web push init");
+      return;
+    }
+
+    // App ID Check
+    const appId = process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID;
+    if (!appId || appId === "placeholder_onesignal_id_here") {
+      console.warn("[OneSignal] Missing app ID — skipping init");
+      initialized = false;
+      return;
+    }
+
+    // ── STEP 6: Add explicit permission diagnostics ──────────────
+    console.log("[OneSignal] Running pre-init diagnostics:");
+    console.log("  • Notification.permission:", Notification.permission);
+    console.log("  • navigator.serviceWorker:", !!navigator.serviceWorker);
+    console.log("  • navigator.userAgent:", navigator.userAgent);
+    console.log("  • window.location.origin:", window.location.origin);
 
     console.log("[OneSignal] Initializing...");
 
-    await OneSignal.init({
-      appId: process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID!,
-      serviceWorkerPath: "/push/OneSignalSDKWorker.js",
-      serviceWorkerUpdaterPath: "/push/OneSignalSDKUpdaterWorker.js",
-      serviceWorkerParam: {
-        scope: "/push/",
-      },
-      notifyButton: {
-        enable: false,
-      } as any,
-    });
+    // ── STEP 1: Wrap init in try/catch with detailed logs ────────
+    try {
+      const OneSignal = (await import("react-onesignal")).default;
 
-    console.log("[OneSignal] Init success");
+      // ── STEP 2: Add timeout protection ─────────────────────────
+      const initPromise = OneSignal.init({
+        appId: appId,
+        serviceWorkerPath: "/push/OneSignalSDKWorker.js",
+        serviceWorkerUpdaterPath: "/push/OneSignalSDKUpdaterWorker.js",
+        serviceWorkerParam: {
+          scope: "/push/",
+        },
+        notifyButton: {
+          enable: false,
+        } as any,
+      });
 
-    // ── Diagnostic namespace logs ──
-    console.log("[DEBUG] OneSignal object:", OneSignal);
-    console.log("[DEBUG] Notifications namespace:", OneSignal?.Notifications);
-    console.log("[DEBUG] PushSubscription namespace:", OneSignal?.User?.PushSubscription);
+      const timeoutPromise = new Promise<void>((_, reject) =>
+        setTimeout(() => reject(new Error("OneSignal init timeout (10s)")), 10000)
+      );
 
-    // ── Safe, Self-Healing Event Listeners ──
-    setTimeout(() => {
-      const attachListenerWithRetry = (
-        eventName: string,
-        handler: (...args: any[]) => void,
-        retriesLeft = 8
-      ) => {
-        try {
-          if (!OneSignal?.Notifications) {
-            console.warn(
-              `[OneSignal] Notifications namespace missing — aborting ${eventName} registration`
-            );
-            return;
-          }
-          OneSignal.Notifications.addEventListener(eventName as any, handler as any);
-          console.log(`[OneSignal] ${eventName} listener attached successfully`);
-        } catch (err: any) {
-          if (
-            retriesLeft > 0 &&
-            err instanceof TypeError &&
-            (err.message.includes("'on'") || err.message.includes("undefined"))
-          ) {
-            console.warn(
-              `[OneSignal] Internal emitter not ready for ${eventName} — retrying in 500ms (${retriesLeft} retries left)...`
-            );
-            setTimeout(
-              () => attachListenerWithRetry(eventName, handler, retriesLeft - 1),
-              500
-            );
-          } else {
-            console.warn(
-              `[OneSignal] Benign: Emitter not active for ${eventName} (this is normal if permissions are blocked or SDK is idle)`
-            );
-          }
+      // Race initialization against the timeout limit
+      await Promise.race([initPromise, timeoutPromise]);
+
+      // ── STEP 8: Move listener registration AFTER successful init 
+      console.log("[OneSignal] SDK initialized successfully. Attaching event listeners...");
+
+      // click listener
+      try {
+        if (OneSignal.Notifications) {
+          OneSignal.Notifications.addEventListener("click", (event: any) => {
+            console.log("[OneSignal] Notification clicked:", event);
+          });
+          console.log("[OneSignal] 'click' listener attached successfully");
         }
-      };
+      } catch (clickErr) {
+        console.warn("[OneSignal] Failed to attach click listener:", clickErr);
+      }
 
-      const attachSubscriptionListenerWithRetry = (retriesLeft = 8) => {
-        try {
-          if (!OneSignal?.User?.PushSubscription) {
-            console.warn(
-              "[OneSignal] PushSubscription namespace missing — aborting subscription change registration"
-            );
-            return;
-          }
-          OneSignal.User.PushSubscription.addEventListener("change" as any, (event: any) => {
+      // permissionChange listener
+      try {
+        if (OneSignal.Notifications) {
+          OneSignal.Notifications.addEventListener("permissionChange", (permission: boolean) => {
+            console.log("[OneSignal] Permission changed:", permission);
+          });
+          console.log("[OneSignal] 'permissionChange' listener attached successfully");
+        }
+      } catch (permErr) {
+        console.warn("[OneSignal] Failed to attach permission listener:", permErr);
+      }
+
+      // subscription change listener
+      try {
+        if (OneSignal.User && OneSignal.User.PushSubscription) {
+          OneSignal.User.PushSubscription.addEventListener("change", (event: any) => {
             console.log("[OneSignal] Push subscription changed:", event);
           });
-          console.log("[OneSignal] Push subscription listener attached successfully");
-        } catch (err: any) {
-          if (
-            retriesLeft > 0 &&
-            err instanceof TypeError &&
-            (err.message.includes("'on'") || err.message.includes("undefined"))
-          ) {
-            console.warn(
-              `[OneSignal] Internal subscription emitter not ready — retrying in 500ms (${retriesLeft} retries left)...`
-            );
-            setTimeout(() => attachSubscriptionListenerWithRetry(retriesLeft - 1), 500);
-          } else {
-            console.warn(
-              "[OneSignal] Benign: Subscription emitter not active (this is normal if permissions are blocked or SDK is idle)"
-            );
-          }
+          console.log("[OneSignal] Push subscription change listener attached successfully");
         }
-      };
-
-      // Register click and permissionChange events with automatic retries if needed
-      attachListenerWithRetry("click", (event: any) => {
-        console.log("[OneSignal] Notification clicked:", event);
-      });
-
-      attachListenerWithRetry("permissionChange", (permission: boolean) => {
-        console.log("[OneSignal] Permission changed:", permission);
-      });
-
-      // Register push subscription change events
-      attachSubscriptionListenerWithRetry();
-    }, 200);
-  } catch (err: unknown) {
-    initialized = false; // Reset guard so retry can be attempted later
-    
-    if (err instanceof Error) {
-      const msg = err.message ?? "";
-      if (msg.includes("permission") || msg.toLowerCase().includes("denied")) {
-        console.warn("[OneSignal] Permission denied:", msg);
-      } else if (
-        msg.includes("serviceWorker") ||
-        msg.includes("service worker") ||
-        msg.includes("registration")
-      ) {
-        console.error("[OneSignal] Service worker registration failure:", msg);
-      } else {
-        console.error("[OneSignal] Init failed:", msg);
+      } catch (subErr) {
+        console.warn("[OneSignal] Failed to attach subscription listener:", subErr);
       }
-    } else {
-      console.error("[OneSignal] Init failed with unknown error");
+
+      // ── STEP 10: Verify subscription state ──────────────────────
+      try {
+        if (OneSignal.User && OneSignal.User.PushSubscription) {
+          const optedIn = OneSignal.User.PushSubscription.optedIn;
+          console.log("[OneSignal] optedIn:", optedIn);
+          console.log("[OneSignal] pushToken:", OneSignal.User.PushSubscription.token || "none");
+          console.log("[OneSignal] id:", OneSignal.User.PushSubscription.id || "none");
+        }
+      } catch (stateErr) {
+        console.warn("[OneSignal] Failed to verify subscription state:", stateErr);
+      }
+
+      // ── STEP 9: Add final success log ───────────────────────────
+      console.log("[OneSignal] Init success");
+
+    } catch (err: any) {
+      initialized = false; // Reset state so a retry can be attempted later
+      console.error("[OneSignal] Initialization error:", err.message || err);
     }
+  };
+
+  // ── STEP 4: Delay OneSignal initialization ────────────────────
+  if ("requestIdleCallback" in window) {
+    window.requestIdleCallback(() => {
+      runInit();
+    });
+  } else {
+    setTimeout(runInit, 2000);
   }
 }

@@ -10,13 +10,19 @@
 import { Capacitor } from "@capacitor/core";
 
 let initialized = false;
+let onesignalFullyInitialized = false;
 
 export function getOneSignalState(): "idle" | "initialized" {
   return initialized ? "initialized" : "idle";
 }
 
+export function isOneSignalFullyInitialized(): boolean {
+  return onesignalFullyInitialized;
+}
+
 export function _resetOneSignalState(): void {
   initialized = false;
+  onesignalFullyInitialized = false;
 }
 
 /**
@@ -127,6 +133,7 @@ export function initOneSignal(): void {
     console.log("  • window.location.origin:", window.location.origin);
 
     console.log("[OneSignal] Initializing...");
+    const t0 = performance.now();
 
     // ── STEP 1: Wrap init in try/catch with detailed logs ────────
     try {
@@ -155,10 +162,17 @@ export function initOneSignal(): void {
       // Race initialization against the timeout limit without throwing
       await Promise.race([initPromise, timeoutPromise]);
 
+      function runPostNotificationBootstrapTasks() {
+        console.log("[OneSignal] Running post-notification bootstrap tasks...");
+        onesignalFullyInitialized = true;
+        window.dispatchEvent(new CustomEvent("socio:onesignalFullyInitialized"));
+      }
+
       // Continue waiting silently in background for full initialization
       initPromise
         .then(() => {
-          console.log("[OneSignal] SDK fully initialized");
+          const duration = (performance.now() - t0).toFixed(2);
+          console.log(`[OneSignal] SDK fully initialized (took ${duration}ms)`);
 
           // click listener
           try {
@@ -253,6 +267,13 @@ export function initOneSignal(): void {
           }
 
           console.log("[OneSignal] Init success");
+
+          // Schedule post-init queue via requestIdleCallback / setTimeout
+          if ("requestIdleCallback" in window) {
+            (window as any).requestIdleCallback(() => runPostNotificationBootstrapTasks(), { timeout: 3000 });
+          } else {
+            setTimeout(runPostNotificationBootstrapTasks, 3000);
+          }
         })
         .catch((err) => {
           console.error("[OneSignal] Background init failed:", err);

@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "react-hot-toast";
 import { apiRequest } from "@/lib/apiClient";
 import { startPerfSpan } from "@/lib/capacitorPerfAudit";
-import { initOneSignal } from "@/lib/onesignal";
+import { initOneSignal, isOneSignalFullyInitialized } from "@/lib/onesignal";
 import { trackNotificationEvent } from "@/lib/notificationAnalytics";
 
 export interface Notification {
@@ -100,6 +100,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   const [pushStatus, setPushStatus] = useState<PushStatus>("not_requested");
   const [promptStatus, setPromptStatus] = useState<NotificationPromptStatus>("not_shown");
   const [oneSignal, setOneSignal] = useState<any>(null);
+  const [isPushReady, setIsPushReady] = useState(false);
   const router = useRouter();
 
   const LS_PROMPT_STATUS_KEY = "socio_notification_prompt_status";
@@ -135,6 +136,17 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   //    • Native   → Cordova plugin handles push; attach listeners only
   useEffect(() => {
     if (typeof window === "undefined") return;
+
+    const handlePushReady = () => {
+      console.log("[Notifications] OneSignal fully initialized event received. Enabling hydration...");
+      setIsPushReady(true);
+    };
+
+    if (isOneSignalFullyInitialized()) {
+      setIsPushReady(true);
+    } else {
+      window.addEventListener("socio:onesignalFullyInitialized", handlePushReady);
+    }
 
     // Web push init — all guards live inside initOneSignal()
     initOneSignal();
@@ -188,6 +200,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
           setOneSignal(OS);
           console.log("[OneSignal] Native Cordova listeners attached");
+          setIsPushReady(true);
         } catch (e) {
           console.error("[OneSignal] Native init error", e);
         }
@@ -195,6 +208,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     }
 
     return () => {
+      window.removeEventListener("socio:onesignalFullyInitialized", handlePushReady);
       window.removeEventListener("socio:notificationClick", handleNotificationClick);
     };
   }, [router]);
@@ -327,17 +341,26 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   }, [fetchNotifications]);
 
   /* ── Polling effect ───────────────────────────────────────────────────
-   * Only re-runs when the user's email/token changes (login/logout).
+   * Only re-runs when the user's email/token changes (login/logout) AND OneSignal is fully ready.
    * The interval is set once and calls fetchRef.current, which always
    * points to the latest callback. This eliminates the previous bug where
    * the interval was recreated on every fetch cycle.
    * ─────────────────────────────────────────────────────────────────── */
   useEffect(() => {
-    if (!isAuthReady || !userData?.email) return;
-    fetchRef.current();
+    if (!isAuthReady || !userData?.email || !isPushReady) return;
+    
+    console.log("[Notifications] Starting hydration...");
+    
+    const initialTimer = setTimeout(() => {
+      fetchRef.current();
+    }, 1500);
+
     const timer = setInterval(() => fetchRef.current(), 60000);
-    return () => clearInterval(timer);
-  }, [userData?.email]);
+    return () => {
+      clearTimeout(initialTimer);
+      clearInterval(timer);
+    };
+  }, [userData?.email, isAuthReady, isPushReady]);
 
   const loadMore = useCallback(() => {
     if (!isLoading && hasMore) {

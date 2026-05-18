@@ -3,6 +3,8 @@
  * ─────────────────────────────────────────────────────────────────
  * Lightweight interaction analytics helper for SOCIO notifications.
  * Tracks delivery, read, swipe-dismiss, clicks, and CTA interactions.
+ * Uses batched queueing, debounced persistence, and idle-time flushing
+ * to prevent main thread starvation during app bootstrap.
  * ─────────────────────────────────────────────────────────────────
  */
 
@@ -22,6 +24,9 @@ export interface NotificationInteractionEvent {
 
 const LS_ANALYTICS_KEY = "socio_notification_analytics_v1";
 
+let analyticsBatchQueue: NotificationInteractionEvent[] = [];
+let flushTimeoutId: any = null;
+
 function getLocalAnalyticsLogs(): NotificationInteractionEvent[] {
   if (typeof window === "undefined") return [];
   try {
@@ -35,12 +40,27 @@ function getLocalAnalyticsLogs(): NotificationInteractionEvent[] {
 function saveLocalAnalyticsLogs(logs: NotificationInteractionEvent[]) {
   if (typeof window === "undefined") return;
   try {
-    // Keep max 150 log entries to prevent local storage bloated consumption
     const trimmed = logs.slice(-150);
     localStorage.setItem(LS_ANALYTICS_KEY, JSON.stringify(trimmed));
   } catch (err) {
     console.warn("[Analytics] LocalStorage write failed", err);
   }
+}
+
+function flushAnalyticsBatch() {
+  if (typeof window === "undefined" || analyticsBatchQueue.length === 0) return;
+
+  const t0 = performance.now();
+  const batch = [...analyticsBatchQueue];
+  analyticsBatchQueue = [];
+  flushTimeoutId = null;
+
+  const currentLogs = getLocalAnalyticsLogs();
+  currentLogs.push(...batch);
+  saveLocalAnalyticsLogs(currentLogs);
+
+  const duration = (performance.now() - t0).toFixed(2);
+  console.log(`[Analytics] Batch sync complete (${batch.length} events persisted in ${duration}ms)`);
 }
 
 export function trackNotificationEvent(
@@ -50,6 +70,7 @@ export function trackNotificationEvent(
 ) {
   if (typeof window === "undefined") return;
 
+  const t0 = performance.now();
   const platform = Capacitor.getPlatform() !== "web" ? "native" : "web";
 
   const event: NotificationInteractionEvent = {
@@ -62,14 +83,21 @@ export function trackNotificationEvent(
     }
   };
 
-  console.log(`[Analytics] Tracked: [${action.toUpperCase()}] for notif: ${notificationId}`, event);
+  analyticsBatchQueue.push(event);
 
-  const currentLogs = getLocalAnalyticsLogs();
-  currentLogs.push(event);
-  saveLocalAnalyticsLogs(currentLogs);
+  const duration = (performance.now() - t0).toFixed(2);
+  console.log(`[Analytics] Queued: [${action.toUpperCase()}] for notif: ${notificationId} (${duration}ms)`);
 
-  // Optional: If an API endpoint exists, sync best-effort in the background
-  // apiRequest("/analytics/notifications", { method: "POST", body: JSON.stringify(event) }).catch(() => {});
+  // Schedule debounced idle flush
+  if (!flushTimeoutId) {
+    if ("requestIdleCallback" in window) {
+      flushTimeoutId = setTimeout(() => {
+        (window as any).requestIdleCallback(() => flushAnalyticsBatch(), { timeout: 2000 });
+      }, 1000);
+    } else {
+      flushTimeoutId = setTimeout(flushAnalyticsBatch, 2000);
+    }
+  }
 }
 
 export function getNotificationAnalyticsSummary() {

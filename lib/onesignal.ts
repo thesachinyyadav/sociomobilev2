@@ -160,11 +160,60 @@ export function initOneSignal(): void {
         if (OneSignal.Notifications) {
           OneSignal.Notifications.addEventListener("click", (event: any) => {
             console.log("[OneSignal] Notification clicked:", event);
+            const n = event.notification;
+            window.dispatchEvent(
+              new CustomEvent("socio:notificationClick", {
+                detail: {
+                  route: n.additionalData?.route,
+                  actionUrl: n.additionalData?.actionUrl,
+                  eventId: n.additionalData?.eventId,
+                  festId: n.additionalData?.festId
+                }
+              })
+            );
           });
           console.log("[OneSignal] 'click' listener attached successfully");
         }
       } catch (clickErr) {
         console.warn("[OneSignal] Failed to attach click listener:", clickErr);
+      }
+
+      // foregroundWillDisplay listener
+      try {
+        if (OneSignal.Notifications) {
+          OneSignal.Notifications.addEventListener("foregroundWillDisplay", (event: any) => {
+            console.log("[OneSignal] Foreground notification arrived:", event);
+            
+            // Prevent default system popup
+            event.preventDefault();
+            
+            const n = event.notification;
+            
+            // Extract custom metadata payload
+            const payloadType = n.additionalData?.type || "event";
+            const payloadBadge = n.additionalData?.badge || "UPDATE";
+            const payloadCtaText = n.additionalData?.ctaText || "View Event";
+            const payloadCtaRoute = n.additionalData?.route || n.additionalData?.actionUrl || "/notifications";
+            
+            // Trigger in-app premium toast
+            window.dispatchEvent(
+              new CustomEvent("socio:foregroundNotification", {
+                detail: {
+                  title: n.title,
+                  body: n.body,
+                  type: payloadType,
+                  badge: payloadBadge,
+                  ctaText: payloadCtaText,
+                  ctaRoute: payloadCtaRoute,
+                  icon: n.icon
+                }
+              })
+            );
+          });
+          console.log("[OneSignal] 'foregroundWillDisplay' listener attached successfully");
+        }
+      } catch (fgErr) {
+        console.warn("[OneSignal] Failed to attach foreground listener:", fgErr);
       }
 
       // permissionChange listener

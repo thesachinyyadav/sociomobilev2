@@ -3,38 +3,75 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNotifications, type Notification } from "@/context/NotificationContext";
 import { useRouter } from "next/navigation";
-import { BellIcon, CalendarIcon, InfoIcon, ArrowLeftIcon, XIcon, CheckIcon, TrashIcon, RefreshCwIcon, ChevronRightIcon, AlertCircleIcon } from "@/components/icons";
+import { 
+  ArrowLeft, 
+  Trash2, 
+  CheckCheck, 
+  RefreshCw, 
+  ChevronRight, 
+  Sparkles,
+  AlertOctagon,
+  Info,
+  CheckCircle,
+  Calendar,
+  Archive,
+  Inbox
+} from "lucide-react";
 import { timeAgo } from "@/lib/dateUtils";
 import { motion, AnimatePresence } from "framer-motion";
+import { trackNotificationEvent } from "@/lib/notificationAnalytics";
 
-function typeStyle(type: string) {
-  if (type === "success" || type === "event_reminder") {
-    return { 
-      icon: <CheckIcon size={18} color="#10B981" strokeWidth={2.5} />, 
-      bg: "bg-[#ECFDF5] border border-[#D1FAE5]", 
-      label: "SYSTEM"
-    };
-  } else if (type === "error") {
-    return { 
-      icon: <XIcon size={18} color="#EF4444" strokeWidth={2.5} />, 
-      bg: "bg-[#FEF2F2] border border-[#FEE2E2]", 
-      label: "SYSTEM"
-    };
-  } else if (type === "broadcast" || type === "warning") {
-    return { 
-      icon: <AlertCircleIcon size={18} color="#F59E0B" strokeWidth={2.5} />, 
-      bg: "bg-[#FFFBEB] border border-[#FEF3C7]", 
-      label: "SYSTEM"
-    };
-  } else {
-    // Info / default
-    return { 
-      icon: <InfoIcon size={18} color="#2563EB" strokeWidth={2.5} />, 
-      bg: "bg-[#EFF6FF] border border-[#DBEAFE]", 
-      label: "SYSTEM"
-    };
+const FILTER_ITEMS = [
+  { value: "all", label: "All Feed" },
+  { value: "alerts", label: "Alerts" },
+  { value: "events", label: "Events" },
+  { value: "systems", label: "Systems" }
+] as const;
+
+const TYPE_THEMES = {
+  success: {
+    icon: <CheckCircle size={14} className="text-emerald-400" />,
+    badge: "SYSTEM",
+    border: "border-emerald-500/20",
+    glow: "shadow-[0_8px_32px_rgba(16,185,129,0.06)]",
+    pulse: "bg-emerald-400 shadow-[0_0_8px_#10b981]"
+  },
+  error: {
+    icon: <AlertOctagon size={14} className="text-red-400" />,
+    badge: "SYSTEM",
+    border: "border-red-500/20",
+    glow: "shadow-[0_8px_32px_rgba(239,68,68,0.06)]",
+    pulse: "bg-red-400 shadow-[0_0_8px_#ef4444]"
+  },
+  warning: {
+    icon: <AlertOctagon size={14} className="text-amber-400" />,
+    badge: "ALERT",
+    border: "border-amber-500/20",
+    glow: "shadow-[0_8px_32px_rgba(245,158,11,0.06)]",
+    pulse: "bg-amber-400 shadow-[0_0_8px_#f59e0b]"
+  },
+  broadcast: {
+    icon: <AlertOctagon size={14} className="text-amber-400" />,
+    badge: "BROADCAST",
+    border: "border-amber-500/20",
+    glow: "shadow-[0_8px_32px_rgba(245,158,11,0.06)]",
+    pulse: "bg-amber-400 shadow-[0_0_8px_#f59e0b]"
+  },
+  event_reminder: {
+    icon: <Sparkles size={14} className="text-purple-400" />,
+    badge: "EVENT",
+    border: "border-purple-500/20",
+    glow: "shadow-[0_8px_32px_rgba(124,58,237,0.08)]",
+    pulse: "bg-purple-400 shadow-[0_0_8px_#7c3aed]"
+  },
+  info: {
+    icon: <Info size={14} className="text-blue-400" />,
+    badge: "INFO",
+    border: "border-blue-500/20",
+    glow: "shadow-[0_8px_32px_rgba(37,99,235,0.06)]",
+    pulse: "bg-blue-400 shadow-[0_0_8px_#2563eb]"
   }
-}
+};
 
 function Card({
   n,
@@ -47,76 +84,92 @@ function Card({
   onClear: () => void;
   onMarkRead: () => void;
 }) {
-  const { icon, bg, label } = typeStyle(n.type);
+  const theme = TYPE_THEMES[n.type as keyof typeof TYPE_THEMES] || TYPE_THEMES.info;
 
   return (
     <motion.div
       layout
-      initial={{ opacity: 0, y: 6 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, scale: 0.97 }}
-      transition={{ duration: 0.14 }}
       drag="x"
-      dragConstraints={{ left: -80, right: 0 }}
-      dragElastic={0.1}
+      dragConstraints={{ left: -100, right: 100 }}
+      dragElastic={{ left: 0.15, right: 0.15 }}
       onDragEnd={(e, info) => {
-        if (info.offset.x < -40) onClear();
+        if (info.offset.x < -65) {
+          // Swipe left to Archive / Clear
+          onClear();
+        } else if (info.offset.x > 65) {
+          // Swipe right to Mark as Read
+          onMarkRead();
+        }
       }}
-      className="relative mb-2 group"
+      initial={{ opacity: 0, y: 8, scale: 0.98 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.95, x: -100 }}
+      transition={{ type: "spring", stiffness: 450, damping: 30 }}
+      className="relative mb-3 group touch-pan-y"
     >
+      {/* Behind Gestures Visual Guides */}
+      <div className="absolute inset-0 rounded-[20px] bg-gradient-to-r from-emerald-500/20 via-transparent to-red-500/20 flex items-center justify-between px-6 pointer-events-none -z-10 border border-white/5">
+        <div className="flex items-center gap-2 text-emerald-400 text-[10px] font-black uppercase tracking-wider">
+          <CheckCheck size={14} />
+          Read
+        </div>
+        <div className="flex items-center gap-2 text-red-400 text-[10px] font-black uppercase tracking-wider">
+          <Archive size={14} />
+          Archive
+        </div>
+      </div>
+
       <div
-        className={`relative overflow-hidden transition-all active:scale-[0.99] duration-150 cursor-pointer ${
-          !n.read
-            ? "shadow-[0_4px_14px_rgba(1,31,123,0.08)]"
-            : "opacity-88 shadow-[0_2px_6px_rgba(0,0,0,0.03)]"
+        className={`relative overflow-hidden transition-all duration-300 active:scale-[0.99] cursor-pointer rounded-[20px] p-4 border bg-white/70 backdrop-blur-[14px] ${
+          !n.read 
+            ? `${theme.glow} ${theme.border} border-l-[4px]` 
+            : "opacity-75 border-slate-200/50 shadow-sm"
         }`}
         style={{
-          background: "rgba(255, 255, 255, 0.94)",
-          backdropFilter: "blur(12px)",
-          WebkitBackdropFilter: "blur(12px)",
-          border: "1px solid rgba(226, 232, 240, 0.8)",
-          borderLeft: !n.read ? "3px solid #011F7B" : "3px solid transparent",
-          borderRadius: "14px",
-          padding: "12px 14px",
+          borderLeftColor: !n.read ? undefined : "transparent"
         }}
         onClick={onTap}
       >
-        <div className="w-full text-left flex gap-3">
-          {/* Icon */}
-          <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${bg}`}>
-            <div className="[&>svg]:w-[14px] [&>svg]:h-[14px]">{icon}</div>
+        <div className="flex gap-3">
+          {/* Circular Glassmorphic Icon Wrapper */}
+          <div className="shrink-0 flex items-center justify-center">
+            <div className="w-9 h-9 rounded-[14px] bg-slate-100 border border-slate-200/50 flex items-center justify-center shadow-inner group-hover:scale-105 transition-transform duration-200">
+              {theme.icon}
+            </div>
           </div>
 
-          {/* Content */}
+          {/* Core Content */}
           <div className="flex-1 min-w-0">
-            <div className="flex items-center justify-between mb-0.5">
-              <div className="flex items-center gap-1">
-                <span className="text-[9px] font-bold uppercase tracking-widest text-[#011F7B]">
-                  {label}
+            <div className="flex items-center justify-between mb-1">
+              <div className="flex items-center gap-1.5">
+                <span className="text-[9px] font-black uppercase tracking-widest text-[#011F7B]/80 bg-[#011F7B]/5 px-2 py-0.5 rounded-full border border-[#011F7B]/10">
+                  {theme.badge}
                 </span>
-                <span className="text-[9px] text-slate-300">·</span>
-                <span className="text-[9px] text-slate-400">
+                <span className="text-[9px] text-slate-400 font-semibold">
                   {timeAgo(n.createdAt)}
                 </span>
               </div>
-              <div className="flex items-center gap-1">
-                {!n.read && <div className="w-1.5 h-1.5 rounded-full bg-[#011F7B]" />}
-                <ChevronRightIcon size={12} className="text-[#011F7B]/25" />
+              <div className="flex items-center gap-1.5">
+                {!n.read && (
+                  <span className={`w-1.5 h-1.5 rounded-full ${theme.pulse}`} />
+                )}
+                <ChevronRight size={12} className="text-slate-300 group-hover:text-slate-500 transition-colors" />
               </div>
             </div>
 
-            <h3 className="text-[13px] font-bold text-[#0F172A] leading-snug tracking-tight">
+            <h3 className={`text-[13px] font-black leading-snug tracking-tight ${!n.read ? "text-slate-900" : "text-slate-700"}`}>
               {n.title}
             </h3>
 
-            <p className="text-[11px] text-[#64748B] leading-relaxed mt-0.5 line-clamp-2">
+            <p className="text-[11.5px] text-slate-500 leading-relaxed mt-0.5 tracking-wide line-clamp-2">
               {n.message}
             </p>
 
+            {/* Event Tag Context / action button */}
             {n.eventTitle && (
-              <div className="inline-flex items-center gap-1 mt-1.5 px-2 py-0.5 rounded-full bg-[#F8FAFC] border border-[#E2E8F0]">
-                <CalendarIcon size={10} className="text-[#64748B]" />
-                <span className="text-[10px] font-medium text-[#334155] truncate max-w-[130px]">
+              <div className="inline-flex items-center gap-1.5 mt-2.5 px-2.5 py-1 rounded-full bg-slate-50 border border-slate-200/40">
+                <Calendar size={10} className="text-slate-400" />
+                <span className="text-[10px] font-bold text-slate-500 truncate max-w-[150px]">
                   {n.eventTitle}
                 </span>
               </div>
@@ -146,6 +199,7 @@ export default function NotificationsPage() {
   const router = useRouter();
 
   const [showClearModal, setShowClearModal] = useState(false);
+  const [activeFilter, setActiveFilter] = useState<"all" | "alerts" | "events" | "systems">("all");
 
   useEffect(() => {
     if (pushStatus === "not_requested") {
@@ -153,23 +207,40 @@ export default function NotificationsPage() {
     }
   }, [pushStatus, triggerPrompt]);
 
-  // Group notifications
-  const groups = useMemo(() => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+  // Apply filters
+  const filteredNotifications = useMemo(() => {
+    return notifications.filter(n => {
+      if (activeFilter === "all") return true;
+      if (activeFilter === "alerts") return ["warning", "error", "broadcast"].includes(n.type) || n.isBroadcast;
+      if (activeFilter === "events") return n.eventId || n.type === "event_reminder";
+      if (activeFilter === "systems") return ["success", "info"].includes(n.type) && !n.eventId;
+      return true;
+    });
+  }, [notifications, activeFilter]);
 
-    const sorted = [...notifications].sort((a, b) => 
+  // Group notifications into Today, This Week, Earlier
+  const groups = useMemo(() => {
+    const now = new Date();
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const startOfThisWeek = new Date(startOfToday.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+    const sorted = [...filteredNotifications].sort((a, b) => 
       new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     );
 
-    const todayItems = sorted.filter(n => new Date(n.createdAt) >= today);
-    const earlierItems = sorted.filter(n => new Date(n.createdAt) < today);
+    const todayItems = sorted.filter(n => new Date(n.createdAt) >= startOfToday);
+    const thisWeekItems = sorted.filter(n => {
+      const d = new Date(n.createdAt);
+      return d >= startOfThisWeek && d < startOfToday;
+    });
+    const earlierItems = sorted.filter(n => new Date(n.createdAt) < startOfThisWeek);
 
     return [
       { title: "Today", items: todayItems },
+      { title: "This Week", items: thisWeekItems },
       { title: "Earlier", items: earlierItems },
     ].filter(g => g.items.length > 0);
-  }, [notifications]);
+  }, [filteredNotifications]);
 
   const handleDismissAll = async () => {
     setShowClearModal(false);
@@ -178,8 +249,14 @@ export default function NotificationsPage() {
 
   const handleTap = (n: Notification) => {
     if (!n.read) markRead(n.id);
-    if (n.eventId) router.push(`/event/${n.eventId}`);
-    else if (n.actionUrl) router.push(n.actionUrl);
+    const route = n.actionUrl || (n.eventId ? `/event/${n.eventId}` : null);
+    
+    // Track click interaction analytics
+    trackNotificationEvent(n.id, "clicked", { route: route || "/notifications" });
+    
+    if (route) {
+      router.push(route);
+    }
   };
 
   const handleClearOne = (n: Notification) => {
@@ -196,146 +273,151 @@ export default function NotificationsPage() {
     >
       {/* Blueprint Grid Overlay */}
       <div 
-        className="absolute inset-0 pointer-events-none z-0 opacity-[0.35]"
+        className="absolute inset-0 pointer-events-none z-0 opacity-[0.25]"
         style={{
           backgroundImage: `
-            linear-gradient(rgba(1, 31, 123, 0.035) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(1, 31, 123, 0.035) 1px, transparent 1px)
+            linear-gradient(rgba(1, 31, 123, 0.03) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(1, 31, 123, 0.03) 1px, transparent 1px)
           `,
-          backgroundSize: "24px 24px"
+          backgroundSize: "20px 20px"
         }}
       />
-      {/* Subtle radial glow */}
-      <div 
-        className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[350px] h-[350px] rounded-full pointer-events-none blur-[120px] opacity-10"
-        style={{
-          background: "radial-gradient(circle, #011F7B 0%, transparent 70%)"
-        }}
-      />
-
-      {/* Background Operational Dots */}
-      <div className="absolute top-[320px] left-[10%] w-1.5 h-1.5 rounded-full bg-[#011F7B]/10 pointer-events-none" />
-      <div className="absolute top-[580px] right-[8%] w-2 h-2 rounded-full bg-[#011F7B]/8 pointer-events-none" />
-      <div className="absolute top-[800px] left-[15%] w-1.5 h-1.5 rounded-full bg-[#011F7B]/8 pointer-events-none" />
 
       {/* Hero Header */}
       <div
         className="relative z-20 w-full overflow-hidden flex flex-col justify-between"
         style={{
           background: "linear-gradient(135deg, #011F7B 0%, #1E3FAB 100%)",
-          height: "180px",
-          paddingTop: "calc(var(--safe-top) + 10px)",
+          height: "185px",
+          paddingTop: "calc(var(--safe-top) + 12px)",
           paddingBottom: "18px",
           paddingLeft: "20px",
           paddingRight: "20px",
           borderBottomLeftRadius: "28px",
           borderBottomRightRadius: "28px",
-          boxShadow: "0 8px 24px rgba(1,31,123,0.16)",
+          boxShadow: "0 8px 32px rgba(1,31,123,0.18)",
         }}
       >
-        {/* Blueprint grid overlay */}
+        {/* Blueprint grids inside header */}
         <div
-          className="absolute inset-0 opacity-[0.35] pointer-events-none"
+          className="absolute inset-0 opacity-[0.18] pointer-events-none"
           style={{
             backgroundImage: `linear-gradient(rgba(255,255,255,0.05) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.05) 1px,transparent 1px)`,
             backgroundSize: "20px 20px",
           }}
         />
-        <div className="absolute top-[60px] right-[22%] w-1 h-1 rounded-full bg-[#FFBA09] shadow-[0_0_6px_#FFBA09] opacity-60 animate-pulse pointer-events-none" />
-        <div className="absolute top-[130px] right-[8%] w-1 h-1 rounded-full bg-[#FFBA09] shadow-[0_0_6px_#FFBA09] opacity-45 animate-pulse pointer-events-none" style={{ animationDelay: "1.5s" }} />
 
         <div className="relative z-10 flex flex-col h-full justify-between w-full">
-          {/* Top row */}
+          {/* Navigation top row */}
           <div className="flex items-center justify-between w-full relative">
             <button
               onClick={() => router.back()}
-              className="w-8 h-8 rounded-xl bg-black/30 border border-white/15 flex items-center justify-center active:scale-95 transition-all text-white"
+              className="w-8.5 h-8.5 rounded-xl bg-white/10 hover:bg-white/15 border border-white/10 flex items-center justify-center active:scale-95 transition-all text-white cursor-pointer"
             >
-              <ArrowLeftIcon size={15} strokeWidth={2.5} />
+              <ArrowLeft size={16} />
             </button>
-            <div className="text-[15px] font-black tracking-[0.12em] text-white absolute left-1/2 -translate-x-1/2">
-              SOCIO
+            <div className="text-[12px] font-black tracking-[0.2em] text-white/50 absolute left-1/2 -translate-x-1/2 uppercase">
+              Realtime Feed
             </div>
-            <div className="w-8 h-8" />
+            <button
+              onClick={() => refresh()}
+              disabled={isLoading}
+              className="w-8.5 h-8.5 rounded-xl bg-white/10 hover:bg-white/15 border border-white/10 flex items-center justify-center active:scale-95 transition-all text-white cursor-pointer"
+            >
+              <RefreshCw size={14} className={isLoading ? "animate-spin" : ""} />
+            </button>
           </div>
 
-          {/* Title + actions row */}
+          {/* Title and stats bottom row */}
           <div className="flex items-end justify-between">
             <div>
-              <h1 className="text-[26px] font-extrabold tracking-tight text-white leading-none">
+              <h1 className="text-[26px] font-black tracking-tight text-white leading-none">
                 Notifications
               </h1>
-              <div className="flex items-center gap-1.5 mt-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#FFBA09] shadow-[0_0_5px_#FFBA09]" />
-                <span className="text-[11px] font-medium text-white/80">
-                  {unreadCount} unread
+              <div className="flex items-center gap-1.5 mt-2">
+                <span className="w-2 h-2 rounded-full bg-[#FFBA09] shadow-[0_0_8px_#FFBA09]" />
+                <span className="text-[11px] font-extrabold text-white/80 uppercase tracking-wider">
+                  {unreadCount} unread cards
                 </span>
               </div>
             </div>
             <div className="flex items-center gap-3 pb-0.5">
               <button
                 onClick={markAllRead}
-                className="text-[11px] font-semibold text-white/70 active:text-white transition-colors"
+                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-white/10 border border-white/5 text-[10px] font-black tracking-wide text-white hover:bg-white/15 transition-all uppercase cursor-pointer"
               >
+                <CheckCheck size={11} />
                 Mark read
               </button>
-              <span className="w-px h-3 bg-white/20" />
               <button
                 onClick={() => setShowClearModal(true)}
-                className="text-[11px] font-semibold text-white/70 active:text-white transition-colors"
+                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-red-500/20 border border-red-500/10 text-[10px] font-black tracking-wide text-red-300 hover:bg-red-500/30 transition-all uppercase cursor-pointer"
               >
-                Clear all
+                <Trash2 size={11} />
+                Clear
               </button>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="relative z-10 px-4 pt-5 pb-40">
-        {isLoading && notifications.length === 0 ? (
-          <div className="space-y-2.5">
+      {/* Category Filter Bar */}
+      <div className="relative z-20 px-4 mt-4 overflow-x-auto scrollbar-none">
+        <div className="flex gap-2 min-w-max pb-1">
+          {FILTER_ITEMS.map((item) => (
+            <button
+              key={item.value}
+              onClick={() => setActiveFilter(item.value)}
+              className={`px-4 py-2 rounded-full text-[11px] font-black tracking-wider uppercase transition-all duration-200 border cursor-pointer ${
+                activeFilter === item.value
+                  ? "bg-[#011F7B] text-white border-[#011F7B] shadow-md shadow-[#011F7B]/15"
+                  : "bg-white/70 backdrop-blur-sm text-slate-500 border-slate-200/50 hover:bg-white"
+              }`}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Main Content Feed */}
+      <div className="relative z-10 px-4 pt-4 pb-40">
+        {isLoading && filteredNotifications.length === 0 ? (
+          <div className="space-y-3">
             {[...Array(5)].map((_, i) => (
               <div
                 key={i}
-                className="h-[72px] w-full border border-slate-200/60 skeleton"
+                className="h-[80px] w-full border border-slate-200/40 skeleton"
                 style={{
-                  background: "rgba(255,255,255,0.6)",
+                  background: "rgba(255,255,255,0.7)",
                   backdropFilter: "blur(12px)",
-                  borderRadius: "14px",
+                  borderRadius: "20px",
                 }}
               />
             ))}
           </div>
         ) : groups.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-14 text-center px-6 relative overflow-hidden">
-            <div className="absolute w-[220px] h-[220px] rounded-full border border-dashed border-[#011F7B]/5 animate-[spin_120s_linear_infinite] pointer-events-none" />
-            <div className="absolute w-[160px] h-[160px] rounded-full border border-dashed border-[#011F7B]/8 animate-[spin_60s_linear_infinite] pointer-events-none" style={{ animationDirection: "reverse" }} />
-            <div className="w-16 h-16 rounded-full bg-white border border-[#E2E8F0] shadow-[0_8px_24px_rgba(1,31,123,0.10)] flex items-center justify-center mb-5 relative z-10">
-              <InfoIcon size={22} className="text-[#011F7B] opacity-80" />
+          <div className="flex flex-col items-center justify-center py-20 text-center px-6 relative overflow-hidden">
+            <div className="absolute w-[240px] h-[240px] rounded-full border border-dashed border-[#011F7B]/5 animate-[spin_120s_linear_infinite] pointer-events-none" />
+            <div className="absolute w-[180px] h-[180px] rounded-full border border-dashed border-[#011F7B]/8 animate-[spin_60s_linear_infinite] pointer-events-none" style={{ animationDirection: "reverse" }} />
+            <div className="w-16 h-16 rounded-full bg-white border border-slate-200/50 shadow-md flex items-center justify-center mb-5 relative z-10">
+              <Inbox size={22} className="text-[#011F7B] opacity-75" />
             </div>
-            <h2 className="text-[18px] font-bold text-[#011F7B] tracking-tight relative z-10">
+            <h2 className="text-[17px] font-black text-[#011F7B] tracking-tight relative z-10 uppercase">
               All caught up
             </h2>
-            <p className="text-[12px] text-[#5C74A6] mt-2 max-w-[220px] leading-relaxed relative z-10">
-              We&apos;ll alert you when there&apos;s new activity.
+            <p className="text-[12px] text-slate-500 mt-2 max-w-[240px] leading-relaxed relative z-10">
+              No matching notifications in this category. We&apos;ll ping you when there&apos;s new activity!
             </p>
-            <button
-              onClick={() => refresh()}
-              className="mt-6 flex items-center gap-1.5 px-5 py-2 rounded-full bg-white border border-[#011F7B]/20 shadow-sm text-[#011F7B] font-semibold text-[11px] tracking-wider uppercase active:scale-95 transition-all relative z-10"
-            >
-              <RefreshCwIcon size={11} className="animate-spin-slow" />
-              Refresh
-            </button>
           </div>
         ) : (
-          <div className="space-y-5">
+          <div className="space-y-6">
             {groups.map((group) => (
-              <div key={group.title}>
-                <h2 className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#94A3B8] pl-1 mb-2">
+              <div key={group.title} className="space-y-2">
+                <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 pl-1">
                   {group.title}
                 </h2>
-                <AnimatePresence>
+                <AnimatePresence mode="popLayout">
                   {group.items.map((n) => (
                     <Card
                       key={n.id}
@@ -354,9 +436,9 @@ export default function NotificationsPage() {
                 <button
                   onClick={loadMore}
                   disabled={isLoading}
-                  className="px-7 py-2.5 rounded-full bg-white/80 backdrop-blur-md shadow-sm border border-[#E2E8F0] text-[#0F172A] font-semibold text-[11px] uppercase tracking-[0.15em] active:scale-95 transition-transform"
+                  className="px-6 py-2.5 rounded-full bg-[#011F7B]/5 hover:bg-[#011F7B]/10 backdrop-blur-md border border-[#011F7B]/15 text-[#011F7B] font-black text-[10px] uppercase tracking-[0.15em] transition-all cursor-pointer"
                 >
-                  {isLoading ? "Loading…" : "Load older"}
+                  {isLoading ? "Syncing Feed…" : "Load older"}
                 </button>
               </div>
             )}
@@ -368,32 +450,32 @@ export default function NotificationsPage() {
       {showClearModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center px-5">
           <div 
-            className="absolute inset-0 bg-[#0F172A]/40 backdrop-blur-md transition-opacity" 
+            className="absolute inset-0 bg-slate-900/40 backdrop-blur-md transition-opacity" 
             onClick={() => setShowClearModal(false)}
           />
           <div 
-            className="relative w-full max-w-sm bg-white/95 backdrop-blur-md rounded-[28px] p-7 shadow-[0_24px_60px_rgba(1,31,123,0.18)] border border-white/50 transform transition-all scale-100 opacity-100"
+            className="relative w-full max-w-sm bg-white/95 backdrop-blur-[24px] rounded-[28px] p-6 shadow-[0_24px_60px_rgba(1,31,123,0.18)] border border-white/50 transform transition-all scale-100 opacity-100"
             style={{ animation: "modalEnter 400ms cubic-bezier(0.16, 1, 0.3, 1)" }}
           >
-            <div className="w-14 h-14 rounded-full bg-[#FEF2F2] border border-[#FEE2E2] flex items-center justify-center mb-5">
-              <TrashIcon size={24} className="text-[#EF4444]" />
+            <div className="w-12 h-12 rounded-[16px] bg-red-500/10 border border-red-500/10 flex items-center justify-center mb-4">
+              <Trash2 size={22} className="text-[#EF4444]" />
             </div>
-            <h3 className="text-[20px] font-extrabold text-[#0F172A] tracking-tight mb-2">
+            <h3 className="text-[19px] font-black text-slate-900 tracking-tight mb-2">
               Clear all notifications?
             </h3>
-            <p className="text-[14px] text-[#5C74A6] font-medium leading-relaxed mb-8">
-              This action cannot be undone. All your current notifications will be permanently removed.
+            <p className="text-[13px] text-slate-500 leading-relaxed mb-6 font-medium">
+              This action cannot be undone. All notifications will be permanently removed from your feed.
             </p>
             <div className="flex gap-3">
               <button 
                 onClick={() => setShowClearModal(false)}
-                className="flex-1 py-3.5 rounded-full bg-[#F8FAFC] border border-[#E2E8F0] text-[#475569] font-bold text-[13px] active:scale-95 transition-all uppercase tracking-wider"
+                className="flex-1 py-3 rounded-full bg-slate-100 border border-slate-200/50 text-slate-600 font-black text-[11px] hover:bg-slate-200 transition-all uppercase tracking-wider cursor-pointer"
               >
                 Cancel
               </button>
               <button 
                 onClick={handleDismissAll}
-                className="flex-1 py-3.5 rounded-full bg-[#EF4444] text-white font-bold text-[13px] shadow-[0_8px_20px_rgba(239,68,68,0.25)] active:scale-95 transition-all uppercase tracking-wider"
+                className="flex-1 py-3 rounded-full bg-red-500 hover:bg-red-600 text-white font-black text-[11px] shadow-[0_8px_20px_rgba(239,68,68,0.25)] transition-all uppercase tracking-wider cursor-pointer"
               >
                 Clear All
               </button>
@@ -404,11 +486,15 @@ export default function NotificationsPage() {
 
       <style dangerouslySetInnerHTML={{__html: `
         @keyframes modalEnter {
-          from { opacity: 0; transform: scale(0.9) translateY(20px); }
+          from { opacity: 0; transform: scale(0.92) translateY(15px); }
           to { opacity: 1; transform: scale(1) translateY(0); }
         }
-        .animate-spin-slow {
-          animation: spin 3s linear infinite;
+        .scrollbar-none::-webkit-scrollbar {
+          display: none;
+        }
+        .scrollbar-none {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
         }
       `}} />
     </div>

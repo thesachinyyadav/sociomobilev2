@@ -20,6 +20,7 @@ const OrientationGate = dynamic(() => import("@/components/OrientationGate"), { 
 const NotificationDiagnostics = dynamic(() => import("@/components/NotificationDiagnostics"), { ssr: false });
 const NativeLaunchController = dynamic(() => import("@/components/native/NativeLaunchController"), { ssr: false });
 const DesktopGate = dynamic(() => import("@/components/DesktopGate"), { ssr: false });
+const RealtimeToastContainer = dynamic(() => import("@/components/toast/RealtimeToastContainer"), { ssr: false });
 
 const NO_BOTTOM_NAV = ["/auth", "/auth/callback", "/offline"];
 const NO_TOP_BAR = ["/auth/callback", "/offline", "/notifications", "/volunteer/scanner"];
@@ -155,6 +156,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex flex-col min-h-dvh overflow-hidden">
+      <RealtimeToastContainer />
       <NativeLaunchController />
       <OrientationGate />
       {!isNative && <DesktopGate />}

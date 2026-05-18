@@ -8,6 +8,7 @@ import { toast } from "react-hot-toast";
 import { apiRequest } from "@/lib/apiClient";
 import { startPerfSpan } from "@/lib/capacitorPerfAudit";
 import { initOneSignal } from "@/lib/onesignal";
+import { trackNotificationEvent } from "@/lib/notificationAnalytics";
 
 export interface Notification {
   id: string;
@@ -138,6 +139,17 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     // Web push init — all guards live inside initOneSignal()
     initOneSignal();
 
+    const handleNotificationClick = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (!detail) return;
+      const route = detail.route || detail.actionUrl || (detail.eventId ? `/event/${detail.eventId}` : null);
+      if (route) {
+        console.log("[Notification Router] SPA routing deep-link to:", route);
+        router.push(route);
+      }
+    };
+    window.addEventListener("socio:notificationClick", handleNotificationClick);
+
     // Native-only: attach Cordova notification listeners
     if (Capacitor.isNativePlatform()) {
       (async () => {
@@ -158,7 +170,19 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
             OS.Notifications.addEventListener("foregroundWillDisplay", (event: any) => {
               event.preventDefault();
               const n = event.notification;
-              toast.success(`${n.title}: ${n.body}`, { duration: 5000, position: "top-center" });
+              window.dispatchEvent(
+                new CustomEvent("socio:foregroundNotification", {
+                  detail: {
+                    title: n.title,
+                    body: n.body,
+                    type: n.additionalData?.type || "event",
+                    badge: n.additionalData?.badge || "UPDATE",
+                    ctaText: n.additionalData?.ctaText || "View Detail",
+                    ctaRoute: n.additionalData?.route || n.additionalData?.actionUrl || "/notifications",
+                    icon: n.icon
+                  }
+                })
+              );
             });
           }
 
@@ -169,6 +193,10 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         }
       })();
     }
+
+    return () => {
+      window.removeEventListener("socio:notificationClick", handleNotificationClick);
+    };
   }, [router]);
 
   // Sync User Tags (Web & Native)
@@ -265,6 +293,11 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
             read: n.read || readSet.has(n.id)
           }));
 
+        // Track delivery analytics for newly fetched notifications
+        processed.forEach(n => {
+          trackNotificationEvent(n.id, "delivered", { title: n.title });
+        });
+
         if (isLoadMore) {
           setNotifications(prev => [...prev, ...processed]);
           pageRef.current = targetPage;
@@ -321,6 +354,9 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     set.add(id);
     saveLocalSet(LS_READ_KEY, set);
 
+    // Track analytics event
+    trackNotificationEvent(id, "opened");
+
     // Backend sync (best effort)
     if (userData?.email) {
       apiRequest(`/notifications/${id}/read`, {
@@ -354,6 +390,9 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     const set = getLocalSet(LS_DISMISSED_KEY);
     set.add(id);
     saveLocalSet(LS_DISMISSED_KEY, set);
+
+    // Track analytics event
+    trackNotificationEvent(id, "dismissed");
 
     if (userData?.email) {
       apiRequest(`/notifications/${encodeURIComponent(id)}?email=${encodeURIComponent(userData.email)}`, {

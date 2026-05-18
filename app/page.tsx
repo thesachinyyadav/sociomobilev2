@@ -160,10 +160,22 @@ export default function HomePage() {
   const { user, userData, isLoading: authLoading, isAuthenticated, isAuthReady } = useAuth();
   const { allEvents, isLoading: eventsLoading } = useEvents();
   const [isHydrated, setIsHydrated] = React.useState(false);
+  const [greetingText, setGreetingText] = React.useState("Welcome");
 
   React.useEffect(() => {
     setIsHydrated(true);
-  }, []);
+
+    const currentHour = new Date().getHours();
+    let greeting = "Good morning";
+    if (currentHour >= 12 && currentHour < 17) greeting = "Good afternoon";
+    else if (currentHour >= 17) greeting = "Good evening";
+
+    const isVisitorUser = userData?.organization_type === "outsider" || userData?.name?.split(" ")?.[0] === "Visitor";
+    if (isVisitorUser) {
+      greeting = "Welcome";
+    }
+    setGreetingText(greeting);
+  }, [userData]);
 
   React.useEffect(() => {
     if (isHydrated) {
@@ -194,15 +206,6 @@ export default function HomePage() {
   const activeVolunteerEvents = getActiveVolunteerEvents(userData?.volunteerEvents);
   const isCaterer = !!(userData?.roles?.catering || userData?.is_masteradmin || (userData?.caters?.length ?? 0) > 0);
   const quickActions = getQuickActions(notificationCount, activeVolunteerEvents.length, isCaterer);
-
-  const currentHour = new Date().getHours();
-  let greetingText = "Good morning";
-  if (currentHour >= 12 && currentHour < 17) greetingText = "Good afternoon";
-  else if (currentHour >= 17) greetingText = "Good evening";
-
-  if (firstName === "Visitor") {
-    greetingText = "Welcome";
-  }
 
   return (
     <div className="pwa-page relative overflow-hidden px-5 pt-2 pb-[calc(var(--bottom-nav)+var(--safe-bottom)+96px)]">

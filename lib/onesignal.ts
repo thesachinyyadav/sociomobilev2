@@ -99,11 +99,8 @@ export async function initOneSignal(): Promise<void> {
 
     await OneSignal.init({
       appId: process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID!,
-      serviceWorkerPath: "/push/OneSignalSDKWorker.js",
-      serviceWorkerUpdaterPath: "/push/OneSignalSDKUpdaterWorker.js",
-      serviceWorkerParam: {
-        scope: "/push/",
-      },
+      serviceWorkerPath: "/OneSignalSDKWorker.js",
+      serviceWorkerUpdaterPath: "/OneSignalSDKUpdaterWorker.js",
       notifyButton: {
         enable: false,
       } as any,

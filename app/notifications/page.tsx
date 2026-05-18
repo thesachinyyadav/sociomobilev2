@@ -48,83 +48,77 @@ function Card({
   onMarkRead: () => void;
 }) {
   const { icon, bg, label } = typeStyle(n.type);
-  
+
   return (
     <motion.div
       layout
-      initial={{ opacity: 0, y: 10 }}
+      initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, scale: 0.95 }}
-      transition={{ duration: 0.18 }}
+      exit={{ opacity: 0, scale: 0.97 }}
+      transition={{ duration: 0.14 }}
       drag="x"
       dragConstraints={{ left: -80, right: 0 }}
       dragElastic={0.1}
       onDragEnd={(e, info) => {
-        if (info.offset.x < -40) {
-          onClear();
-        }
+        if (info.offset.x < -40) onClear();
       }}
-      className={`relative mb-4 group`}
+      className="relative mb-2 group"
     >
       <div
-        className={`relative overflow-hidden transition-all active:scale-[0.98] duration-200 cursor-pointer ${
-          !n.read 
-            ? "shadow-[0_12px_30px_rgba(1,31,123,0.10),_0_0_15px_rgba(1,31,123,0.03)]" 
-            : "opacity-90 shadow-[0_6px_20px_rgba(0,0,0,0.02)]"
+        className={`relative overflow-hidden transition-all active:scale-[0.99] duration-150 cursor-pointer ${
+          !n.read
+            ? "shadow-[0_4px_14px_rgba(1,31,123,0.08)]"
+            : "opacity-88 shadow-[0_2px_6px_rgba(0,0,0,0.03)]"
         }`}
         style={{
-          background: "rgba(255, 255, 255, 0.92)",
+          background: "rgba(255, 255, 255, 0.94)",
           backdropFilter: "blur(12px)",
           WebkitBackdropFilter: "blur(12px)",
-          borderTop: "1px solid rgba(226, 232, 240, 0.85)",
-          borderRight: "1px solid rgba(226, 232, 240, 0.85)",
-          borderBottom: "1px solid rgba(226, 232, 240, 0.85)",
-          borderLeft: !n.read ? "4px solid #011F7B" : "4px solid transparent",
-          borderRadius: "28px",
-          padding: "20px",
+          border: "1px solid rgba(226, 232, 240, 0.8)",
+          borderLeft: !n.read ? "3px solid #011F7B" : "3px solid transparent",
+          borderRadius: "14px",
+          padding: "12px 14px",
         }}
         onClick={onTap}
       >
-        <div className="w-full text-left flex gap-4">
-          {/* Left Icon */}
-          <div className={`w-11 h-11 rounded-full flex items-center justify-center shrink-0 ${bg} shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)]`}>
-            {icon}
+        <div className="w-full text-left flex gap-3">
+          {/* Icon */}
+          <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${bg}`}>
+            <div className="[&>svg]:w-[14px] [&>svg]:h-[14px]">{icon}</div>
           </div>
-          
+
           {/* Content */}
           <div className="flex-1 min-w-0">
-            <div className="flex items-center justify-between mb-1">
-              <div className="flex items-center gap-1.5">
-                <span className="text-[11px] font-extrabold uppercase tracking-widest text-[#011F7B]">
+            <div className="flex items-center justify-between mb-0.5">
+              <div className="flex items-center gap-1">
+                <span className="text-[9px] font-bold uppercase tracking-widest text-[#011F7B]">
                   {label}
                 </span>
-                <span className="text-[11px] text-slate-300 font-bold">•</span>
-                <span className="text-[11px] text-slate-500 font-semibold">
+                <span className="text-[9px] text-slate-300">·</span>
+                <span className="text-[9px] text-slate-400">
                   {timeAgo(n.createdAt)}
                 </span>
               </div>
-              <div className="flex items-center gap-2">
-                {!n.read && <div className="w-2.5 h-2.5 rounded-full bg-[#011F7B] shadow-[0_0_8px_#011F7B]" />}
-                <ChevronRightIcon size={16} className="text-[#011F7B]/30" />
+              <div className="flex items-center gap-1">
+                {!n.read && <div className="w-1.5 h-1.5 rounded-full bg-[#011F7B]" />}
+                <ChevronRightIcon size={12} className="text-[#011F7B]/25" />
               </div>
             </div>
-            
-            <h3 className="text-[18px] font-extrabold text-[#0F172A] mb-1 leading-tight tracking-tight">
+
+            <h3 className="text-[13px] font-bold text-[#0F172A] leading-snug tracking-tight">
               {n.title}
             </h3>
-            
-            <p className="text-[13.5px] text-[#5C74A6] leading-relaxed font-medium mb-3">
+
+            <p className="text-[11px] text-[#64748B] leading-relaxed mt-0.5 line-clamp-2">
               {n.message}
             </p>
 
             {n.eventTitle && (
-              <div className="flex items-center justify-between mt-3 flex-wrap gap-2">
-                <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#F8FAFC] border border-[#E2E8F0]">
-                  <CalendarIcon size={13} className="text-[#5C74A6]" />
-                  <span className="text-[12px] font-bold text-[#334155] truncate max-w-[150px]">
-                    {n.eventTitle}
-                  </span>
-                </div>
+              <div className="inline-flex items-center gap-1 mt-1.5 px-2 py-0.5 rounded-full bg-[#F8FAFC] border border-[#E2E8F0]">
+                <CalendarIcon size={10} className="text-[#64748B]" />
+                <span className="text-[10px] font-medium text-[#334155] truncate max-w-[130px]">
+                  {n.eventTitle}
+                </span>
               </div>
             )}
           </div>
@@ -224,152 +218,127 @@ export default function NotificationsPage() {
       <div className="absolute top-[580px] right-[8%] w-2 h-2 rounded-full bg-[#011F7B]/8 pointer-events-none" />
       <div className="absolute top-[800px] left-[15%] w-1.5 h-1.5 rounded-full bg-[#011F7B]/8 pointer-events-none" />
 
-      {/* Premium Hero Header with Curved Corners */}
-      <div 
-        className="relative z-20 w-full overflow-hidden flex flex-col justify-between" 
+      {/* Hero Header */}
+      <div
+        className="relative z-20 w-full overflow-hidden flex flex-col justify-between"
         style={{
           background: "linear-gradient(135deg, #011F7B 0%, #1E3FAB 100%)",
-          height: "260px",
-          paddingTop: "calc(var(--safe-top) + 12px)",
-          paddingBottom: "24px",
-          paddingLeft: "24px",
-          paddingRight: "24px",
-          borderBottomLeftRadius: "36px",
-          borderBottomRightRadius: "36px",
-          boxShadow: "0 12px 32px rgba(1,31,123,0.18)"
+          height: "180px",
+          paddingTop: "calc(var(--safe-top) + 10px)",
+          paddingBottom: "18px",
+          paddingLeft: "20px",
+          paddingRight: "20px",
+          borderBottomLeftRadius: "28px",
+          borderBottomRightRadius: "28px",
+          boxShadow: "0 8px 24px rgba(1,31,123,0.16)",
         }}
       >
-        {/* Blueprint grid overlay inside Hero */}
-        <div className="absolute inset-0 opacity-[0.4] pointer-events-none" style={{
-          backgroundImage: `
-            linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px)
-          `,
-          backgroundSize: "20px 20px"
-        }} />
+        {/* Blueprint grid overlay */}
+        <div
+          className="absolute inset-0 opacity-[0.35] pointer-events-none"
+          style={{
+            backgroundImage: `linear-gradient(rgba(255,255,255,0.05) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.05) 1px,transparent 1px)`,
+            backgroundSize: "20px 20px",
+          }}
+        />
+        <div className="absolute top-[60px] right-[22%] w-1 h-1 rounded-full bg-[#FFBA09] shadow-[0_0_6px_#FFBA09] opacity-60 animate-pulse pointer-events-none" />
+        <div className="absolute top-[130px] right-[8%] w-1 h-1 rounded-full bg-[#FFBA09] shadow-[0_0_6px_#FFBA09] opacity-45 animate-pulse pointer-events-none" style={{ animationDelay: "1.5s" }} />
 
-        {/* Glowing operational dots */}
-        <div className="absolute top-[80px] right-[25%] w-1.5 h-1.5 rounded-full bg-[#FFBA09] shadow-[0_0_8px_#FFBA09] opacity-60 animate-pulse pointer-events-none" />
-        <div className="absolute top-[140px] left-[20%] w-1 h-1 rounded-full bg-blue-300 shadow-[0_0_6px_#93c5fd] opacity-40 pointer-events-none" />
-        <div className="absolute top-[190px] right-[10%] w-1.5 h-1.5 rounded-full bg-[#FFBA09] shadow-[0_0_8px_#FFBA09] opacity-50 animate-pulse pointer-events-none" style={{ animationDelay: "1.5s" }} />
-        
-        {/* Soft radial glow inside Hero */}
-        <div className="absolute bottom-[20%] right-[15%] w-48 h-48 rounded-full bg-blue-500/20 blur-[50px] pointer-events-none" />
-
-        {/* Content Wrapper */}
         <div className="relative z-10 flex flex-col h-full justify-between w-full">
-          {/* Top Row - Minimal layout with Back button and Centered Title, no bell */}
-          <div className="flex items-center justify-between mb-2 w-full relative">
-            <button 
-              onClick={() => router.back()} 
-              className="w-10 h-10 rounded-[14px] bg-black/35 border border-white/15 flex items-center justify-center active:scale-95 transition-all backdrop-blur-md text-white shadow-[0_4px_12px_rgba(0,0,0,0.15)] hover:bg-black/45 z-10"
+          {/* Top row */}
+          <div className="flex items-center justify-between w-full relative">
+            <button
+              onClick={() => router.back()}
+              className="w-8 h-8 rounded-xl bg-black/30 border border-white/15 flex items-center justify-center active:scale-95 transition-all text-white"
             >
-              <ArrowLeftIcon size={18} strokeWidth={2.5} />
+              <ArrowLeftIcon size={15} strokeWidth={2.5} />
             </button>
-            
-            <div className="text-[18px] font-black tracking-[0.1em] text-white absolute left-1/2 -translate-x-1/2 font-sans">
+            <div className="text-[15px] font-black tracking-[0.12em] text-white absolute left-1/2 -translate-x-1/2">
               SOCIO
             </div>
-
-            <div className="w-10 h-10" />
+            <div className="w-8 h-8" />
           </div>
 
-          {/* Title Area */}
-          <div className="flex flex-col gap-1 mt-auto">
-            <h1 className="text-[34px] font-extrabold tracking-tight text-white leading-none">
+          {/* Title */}
+          <div className="flex flex-col gap-0.5">
+            <h1 className="text-[26px] font-extrabold tracking-tight text-white leading-none">
               Notifications
             </h1>
-            <div className="flex flex-col gap-0.5 mt-2">
-              <div className="flex items-center gap-2">
-                <span className="w-2.5 h-2.5 rounded-full bg-[#FFBA09] shadow-[0_0_8px_#FFBA09]" />
-                <span className="text-[14px] font-semibold text-white tracking-wide">
-                  {unreadCount} unread updates
-                </span>
-              </div>
-              <div className="flex items-center gap-1.5 mt-0.5 opacity-80">
-                <RefreshCwIcon size={12} className="text-white/70 shrink-0" />
-                <span className="text-[11px] font-bold text-white/78 tracking-wider uppercase">
-                  Last synced just now
-                </span>
-              </div>
+            <div className="flex items-center gap-1.5 mt-1.5">
+              <span className="w-2 h-2 rounded-full bg-[#FFBA09] shadow-[0_0_6px_#FFBA09]" />
+              <span className="text-[12px] font-semibold text-white/90">
+                {unreadCount} unread
+              </span>
+              <span className="text-white/30 mx-1">·</span>
+              <RefreshCwIcon size={10} className="text-white/60 shrink-0" />
+              <span className="text-[10px] text-white/60 uppercase tracking-wider font-semibold">
+                Just synced
+              </span>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Floating pill buttons overlapping hero bottom edge */}
-      <div className="relative z-30 px-6 flex items-center justify-center gap-4 -mt-6">
+      {/* Action pills */}
+      <div className="relative z-30 px-5 flex items-center gap-3 -mt-5">
         <button
           onClick={markAllRead}
-          className="flex-1 h-[48px] rounded-full bg-white/95 backdrop-blur-md shadow-[0_12px_24px_rgba(1,31,123,0.12)] border border-white/80 flex items-center justify-center gap-2 active:scale-95 transition-all hover:bg-white/100"
+          className="flex-1 h-9 rounded-full bg-white/95 backdrop-blur-md shadow-[0_6px_16px_rgba(1,31,123,0.10)] border border-white/70 flex items-center justify-center gap-1.5 active:scale-95 transition-all"
         >
-          <CheckIcon size={15} className="text-[#011F7B]" strokeWidth={2.5} />
-          <span className="text-[11px] font-black uppercase tracking-wider text-[#011F7B]">MARK ALL AS READ</span>
+          <CheckIcon size={12} className="text-[#011F7B]" strokeWidth={2.5} />
+          <span className="text-[10px] font-bold uppercase tracking-wider text-[#011F7B]">Mark read</span>
         </button>
-
         <button
           onClick={() => setShowClearModal(true)}
-          className="flex-1 h-[48px] rounded-full bg-white/95 backdrop-blur-md shadow-[0_12px_24px_rgba(1,31,123,0.12)] border border-white/80 flex items-center justify-center gap-2 active:scale-95 transition-all hover:bg-white/100"
+          className="flex-1 h-9 rounded-full bg-white/95 backdrop-blur-md shadow-[0_6px_16px_rgba(1,31,123,0.10)] border border-white/70 flex items-center justify-center gap-1.5 active:scale-95 transition-all"
         >
-          <TrashIcon size={15} className="text-[#F05252]" strokeWidth={2.5} />
-          <span className="text-[11px] font-black uppercase tracking-wider text-[#F05252]">CLEAR ALL</span>
+          <TrashIcon size={12} className="text-[#F05252]" strokeWidth={2.5} />
+          <span className="text-[10px] font-bold uppercase tracking-wider text-[#F05252]">Clear all</span>
         </button>
       </div>
 
       {/* Main Content */}
-      <div className="relative z-10 px-4 pt-8 pb-48">
+      <div className="relative z-10 px-4 pt-5 pb-40">
         {isLoading && notifications.length === 0 ? (
-          <div className="space-y-5">
-            {[...Array(4)].map((_, i) => (
-              <div 
-                key={i} 
-                className="h-[120px] w-full border border-slate-200/60 skeleton" 
+          <div className="space-y-2.5">
+            {[...Array(5)].map((_, i) => (
+              <div
+                key={i}
+                className="h-[72px] w-full border border-slate-200/60 skeleton"
                 style={{
-                  background: "rgba(255, 255, 255, 0.6)",
+                  background: "rgba(255,255,255,0.6)",
                   backdropFilter: "blur(12px)",
-                  borderRadius: "28px",
+                  borderRadius: "14px",
                 }}
               />
             ))}
           </div>
         ) : groups.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 text-center px-8 relative overflow-hidden">
-            {/* Layered concentric orbits/radar circles */}
-            <div className="absolute w-[320px] h-[320px] rounded-full border border-dashed border-[#011F7B]/5 animate-[spin_120s_linear_infinite] pointer-events-none" />
-            <div className="absolute w-[240px] h-[240px] rounded-full border border-dashed border-[#011F7B]/10 animate-[spin_60s_linear_infinite] pointer-events-none" style={{ animationDirection: "reverse" }} />
-            
-            {/* Glow effect behind the main circle */}
-            <div className="absolute w-36 h-36 rounded-full bg-[#011F7B]/5 blur-2xl pointer-events-none" />
-
-            {/* Inner Circle for the Icon */}
-            <div className="w-24 h-24 rounded-full bg-white border border-[#E2E8F0] shadow-[0_16px_36px_rgba(1,31,123,0.12)] flex items-center justify-center mb-8 relative z-10">
-              <InfoIcon size={34} className="text-[#011F7B] opacity-90" />
-              {/* Subtle pulsing ring */}
-              <div className="absolute inset-0 bg-[#011F7B]/5 rounded-full animate-ping opacity-30" />
+          <div className="flex flex-col items-center justify-center py-14 text-center px-6 relative overflow-hidden">
+            <div className="absolute w-[220px] h-[220px] rounded-full border border-dashed border-[#011F7B]/5 animate-[spin_120s_linear_infinite] pointer-events-none" />
+            <div className="absolute w-[160px] h-[160px] rounded-full border border-dashed border-[#011F7B]/8 animate-[spin_60s_linear_infinite] pointer-events-none" style={{ animationDirection: "reverse" }} />
+            <div className="w-16 h-16 rounded-full bg-white border border-[#E2E8F0] shadow-[0_8px_24px_rgba(1,31,123,0.10)] flex items-center justify-center mb-5 relative z-10">
+              <InfoIcon size={22} className="text-[#011F7B] opacity-80" />
             </div>
-
-            {/* Typography */}
-            <h2 className="text-[24px] font-extrabold text-[#011F7B] tracking-tight relative z-10">
-              No new updates
+            <h2 className="text-[18px] font-bold text-[#011F7B] tracking-tight relative z-10">
+              All caught up
             </h2>
-            <p className="text-[14px] text-[#5C74A6] mt-3.5 max-w-[260px] leading-relaxed font-medium relative z-10">
-              You're all caught up. We'll alert you when there's operational activity.
+            <p className="text-[12px] text-[#5C74A6] mt-2 max-w-[220px] leading-relaxed relative z-10">
+              We&apos;ll alert you when there&apos;s new activity.
             </p>
-
-            {/* Refresh button */}
-            <button 
+            <button
               onClick={() => refresh()}
-              className="mt-10 flex items-center gap-2 px-7 py-3 rounded-full bg-white border border-[#011F7B]/30 shadow-[0_8px_20px_rgba(1,31,123,0.06)] text-[#011F7B] font-bold text-[13px] tracking-wider uppercase hover:scale-105 active:scale-95 transition-all relative z-10"
+              className="mt-6 flex items-center gap-1.5 px-5 py-2 rounded-full bg-white border border-[#011F7B]/20 shadow-sm text-[#011F7B] font-semibold text-[11px] tracking-wider uppercase active:scale-95 transition-all relative z-10"
             >
-              <RefreshCwIcon size={14} className="animate-spin-slow" />
-              REFRESH
+              <RefreshCwIcon size={11} className="animate-spin-slow" />
+              Refresh
             </button>
           </div>
         ) : (
-          <div className="space-y-10">
+          <div className="space-y-5">
             {groups.map((group) => (
-              <div key={group.title} className="space-y-5">
-                <h2 className="text-[12px] font-bold uppercase tracking-[0.2em] text-[#5C74A6] pl-3 mb-4">
+              <div key={group.title}>
+                <h2 className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#94A3B8] pl-1 mb-2">
                   {group.title}
                 </h2>
                 <AnimatePresence>
@@ -387,13 +356,13 @@ export default function NotificationsPage() {
             ))}
 
             {hasMore && (
-              <div className="pt-8 flex justify-center pb-8">
+              <div className="flex justify-center pt-4 pb-4">
                 <button
                   onClick={loadMore}
                   disabled={isLoading}
-                  className="px-10 py-4 rounded-full bg-white/80 backdrop-blur-md shadow-sm border border-[#E2E8F0] text-[#0F172A] font-bold text-[12px] uppercase tracking-[0.2em] active:scale-95 transition-transform"
+                  className="px-7 py-2.5 rounded-full bg-white/80 backdrop-blur-md shadow-sm border border-[#E2E8F0] text-[#0F172A] font-semibold text-[11px] uppercase tracking-[0.15em] active:scale-95 transition-transform"
                 >
-                  {isLoading ? "Loading..." : "Load Older"}
+                  {isLoading ? "Loading…" : "Load older"}
                 </button>
               </div>
             )}

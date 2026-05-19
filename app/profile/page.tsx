@@ -5,8 +5,11 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { toast } from "react-hot-toast";
 import { useAuth } from "@/context/AuthContext";
 import { useEvents } from "@/context/EventContext";
+import { useNotifications } from "@/context/NotificationContext";
+import { isOneSignalFullyInitialized, nukeServiceWorkers } from "@/lib/onesignal";
 import Skeleton from "@/components/Skeleton";
 import ProfileSkeleton from "@/components/skeletons/ProfileSkeleton";
 import LoadingScreen from "@/components/LoadingScreen";
@@ -85,7 +88,190 @@ interface Registration {
 export default function ProfilePage() {
   const { userData, isLoading, signOut, session, refreshUserData } = useAuth();
   const { allEvents } = useEvents();
+  const { pushStatus, enablePushNotifications, disablePushNotifications } = useNotifications();
   const router = useRouter();
+  const [isEnablingPush, setIsEnablingPush] = useState(false);
+  const [isDisablingPush, setIsDisablingPush] = useState(false);
+  const [isBroadcasting, setIsBroadcasting] = useState(false);
+  const [showBroadcastConfirm, setShowBroadcastConfirm] = useState(false);
+  const [pushReady, setPushReady] = useState(false);
+  const [pushUnavailable, setPushUnavailable] = useState<{ reason: string; detail?: string } | null>(null);
+  const [isResettingPush, setIsResettingPush] = useState(false);
+  const [browserPermission, setBrowserPermission] = useState<NotificationPermission | "unsupported">("unsupported");
+
+  // Staff = anyone who can trigger the canned welcome broadcast.
+  // UserData type only declares masteradmin/organiser/support but the API
+  // returns the full users row, so cast and probe the rest.
+  const ud = userData as any;
+  const isStaff = !!(
+    ud?.is_masteradmin || ud?.is_organiser || ud?.is_support ||
+    ud?.is_hod || ud?.is_dean || ud?.is_cfo ||
+    ud?.is_campus_director || ud?.is_accounts_office
+  );
+
+  // Use the context's pushStatus as the strict source of truth for "on/off"
+  // so that disabling actually flips the UI back. Browser permission can't
+  // be revoked from JS — only the user can do that in browser settings —
+  // so if we OR'd it in here, the disable button could never show "Off".
+  const isPushEnabled = pushStatus === "granted";
+  const isPushBlocked = browserPermission === "denied" || pushStatus === "denied";
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (isOneSignalFullyInitialized()) {
+      setPushReady(true);
+      return;
+    }
+    // If init later completes, clear any stuck-state we may have set below.
+    const onReady = () => {
+      setPushReady(true);
+      setPushUnavailable(null);
+    };
+    window.addEventListener("socio:onesignalFullyInitialized", onReady);
+
+    // Fallback: if neither the ready event nor a fail event fires within 20s,
+    // OneSignal init is effectively stuck. Flip to the Unavailable state so
+    // the user gets the Reset & reload button instead of a forever spinner.
+    const stuckTimer = setTimeout(() => {
+      if (!isOneSignalFullyInitialized()) {
+        setPushUnavailable((prev) =>
+          prev || {
+            reason: "init-timeout",
+            detail: "OneSignal SDK didn't finish initializing within 20s",
+          }
+        );
+      }
+    }, 20000);
+
+    return () => {
+      window.removeEventListener("socio:onesignalFullyInitialized", onReady);
+      clearTimeout(stuckTimer);
+    };
+  }, []);
+
+  // OneSignal init can bail out before the ready event ever fires — most
+  // commonly when the app's origin lock doesn't match the current host.
+  // Listening here lets us replace the misleading "Initializing…" pill with
+  // a clear "Unavailable" state and surface a one-tap cache reset.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const onInitFailed = (e: Event) => {
+      const detail = (e as CustomEvent).detail || {};
+      setPushUnavailable({
+        reason: detail.reason || "unknown",
+        detail: detail.allowedOrigin || detail.message || "",
+      });
+      setPushReady(false);
+    };
+    window.addEventListener("socio:onesignalInitFailed", onInitFailed);
+    return () => window.removeEventListener("socio:onesignalInitFailed", onInitFailed);
+  }, []);
+
+  const handleResetPushCache = async () => {
+    setIsResettingPush(true);
+    try {
+      await nukeServiceWorkers();
+      toast.success("Push cache cleared — reloading…");
+      setTimeout(() => window.location.reload(), 600);
+    } catch (e: any) {
+      console.error("[Profile] push cache reset error", e);
+      toast.error(e?.message || "Failed to reset push cache");
+      setIsResettingPush(false);
+    }
+  };
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !("Notification" in window)) return;
+    setBrowserPermission(Notification.permission);
+    // Some browsers expose a permissions API that can notify us of changes.
+    let permStatus: PermissionStatus | null = null;
+    let onChange: (() => void) | null = null;
+    if (navigator.permissions?.query) {
+      navigator.permissions
+        .query({ name: "notifications" as PermissionName })
+        .then((status) => {
+          permStatus = status;
+          onChange = () => setBrowserPermission(Notification.permission);
+          status.addEventListener("change", onChange);
+        })
+        .catch(() => {});
+    }
+    const onFocus = () => setBrowserPermission(Notification.permission);
+    window.addEventListener("focus", onFocus);
+    return () => {
+      window.removeEventListener("focus", onFocus);
+      if (permStatus && onChange) permStatus.removeEventListener("change", onChange);
+    };
+  }, []);
+
+  const waitForPushReady = (timeoutMs: number) => {
+    if (isOneSignalFullyInitialized()) return Promise.resolve(true);
+    return new Promise<boolean>((resolve) => {
+      const onReady = () => {
+        window.removeEventListener("socio:onesignalFullyInitialized", onReady);
+        clearTimeout(timer);
+        resolve(true);
+      };
+      const timer = setTimeout(() => {
+        window.removeEventListener("socio:onesignalFullyInitialized", onReady);
+        resolve(false);
+      }, timeoutMs);
+      window.addEventListener("socio:onesignalFullyInitialized", onReady);
+    });
+  };
+
+  const handleEnableNotifications = async () => {
+    setIsEnablingPush(true);
+    try {
+      const ready = await waitForPushReady(8000);
+      if (!ready) {
+        toast.error("Push service is still starting. Please try again in a few seconds.");
+        return;
+      }
+      await enablePushNotifications();
+    } catch (e: any) {
+      toast.error(e?.message || "Failed to enable notifications");
+    } finally {
+      setIsEnablingPush(false);
+    }
+  };
+
+  const handleDisableNotifications = async () => {
+    setIsDisablingPush(true);
+    try {
+      await disablePushNotifications();
+    } catch (e: any) {
+      console.error("[Profile] disable error", e);
+    } finally {
+      setIsDisablingPush(false);
+    }
+  };
+
+  const handleSendBroadcast = async () => {
+    setShowBroadcastConfirm(false);
+    setIsBroadcasting(true);
+    const toastId = "staff-broadcast";
+    toast.loading("Sending broadcast…", { id: toastId });
+    try {
+      const result = await apiRequest<any>("/notifications/staff-welcome-broadcast", {
+        method: "POST",
+      });
+      if (result?.ok) {
+        console.log("[Broadcast] success", result);
+        toast.success("Broadcast sent — live push fired to all opted-in users", { id: toastId });
+      } else {
+        const msg = result?.error || "Broadcast failed";
+        console.error("[Broadcast] non-ok response:", result);
+        toast.error(msg, { id: toastId });
+      }
+    } catch (e: any) {
+      const msg = e?.message || "Broadcast failed — check console";
+      console.error("[Broadcast] error:", e);
+      toast.error(msg, { id: toastId });
+    } finally {
+      setIsBroadcasting(false);
+    }
+  };
   
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -341,6 +527,113 @@ export default function ProfilePage() {
             <ChevronRight size={15} className="text-[var(--color-text-light)]" />
           </Link>
         )}
+
+        {/* Notifications */}
+        <div className="card p-3">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-full bg-amber-50 flex items-center justify-center">
+              <Bell size={17} className="text-amber-600" />
+            </div>
+            <div className="text-left flex-1 min-w-0">
+              <p className="text-[13px] font-bold">Notifications</p>
+              <p className="text-[11px] text-[var(--color-text-muted)]">
+                {pushUnavailable
+                  ? pushUnavailable.reason === "origin-lock"
+                    ? `Unavailable on this origin (locked to ${pushUnavailable.detail})`
+                    : pushUnavailable.reason === "init-timeout"
+                    ? "Taking too long to start — try resetting the cache"
+                    : "Push service unavailable — see console for details"
+                  : isPushEnabled
+                  ? "Push notifications are on"
+                  : isPushBlocked
+                  ? "Blocked in browser settings — enable there to allow"
+                  : "Get instant alerts for events & registrations"}
+              </p>
+            </div>
+            {pushUnavailable ? (
+              <span
+                className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-50 text-amber-700"
+                title={pushUnavailable.detail || pushUnavailable.reason}
+              >
+                Unavailable
+              </span>
+            ) : isPushEnabled ? (
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700">
+                On
+              </span>
+            ) : (
+              <Button
+                variant="primary"
+                size="sm"
+                disabled={isEnablingPush || isPushBlocked || !pushReady}
+                onClick={handleEnableNotifications}
+              >
+                {isEnablingPush
+                  ? "Enabling…"
+                  : !pushReady
+                  ? "Initializing…"
+                  : "Enable"}
+              </Button>
+            )}
+          </div>
+
+          {pushUnavailable && (
+            <>
+              <p className="mt-3 text-[11px] leading-relaxed text-[var(--color-text-muted)]">
+                {pushUnavailable.reason === "origin-lock" ? (
+                  <>
+                    Push notifications can't initialize on this host. Add{" "}
+                    <code className="font-mono text-[10px] bg-gray-100 px-1 rounded">
+                      {typeof window !== "undefined" ? window.location.origin : ""}
+                    </code>{" "}
+                    to <strong>OneSignal Dashboard → Settings → Platforms → Web → Allowed Origins</strong>, then tap below to clear the cached config.
+                  </>
+                ) : (
+                  <>Push initialization failed. Tap below to clear cached state and retry.</>
+                )}
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                fullWidth
+                className="mt-3"
+                disabled={isResettingPush}
+                onClick={handleResetPushCache}
+              >
+                {isResettingPush ? "Resetting…" : "Reset push cache & reload"}
+              </Button>
+            </>
+          )}
+
+          {isPushEnabled && (
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                fullWidth
+                className="mt-3"
+                disabled={!isStaff || isBroadcasting || isDisablingPush}
+                title={!isStaff ? "Available only to staff" : undefined}
+                onClick={() => isStaff && setShowBroadcastConfirm(true)}
+                leftIcon={<Bell size={14} />}
+              >
+                {isBroadcasting
+                  ? "Sending…"
+                  : isStaff
+                  ? "Send Test Notification"
+                  : "Send Test Notification (Staff only)"}
+              </Button>
+              <button
+                type="button"
+                onClick={handleDisableNotifications}
+                disabled={isDisablingPush || isBroadcasting}
+                className="mt-2 w-full text-center text-[12px] font-semibold text-red-600 hover:text-red-700 disabled:opacity-50 py-2"
+              >
+                {isDisablingPush ? "Turning off…" : "Turn off notifications"}
+              </button>
+            </>
+          )}
+        </div>
       </div>
 
       {/* Info Card */}
@@ -555,6 +848,50 @@ export default function ProfilePage() {
           </Button>
         )}
       </div>
+
+      {showBroadcastConfirm && (
+        <div className="modal-backdrop">
+          <div className="modal-card overflow-hidden">
+            <div className="bg-[var(--color-primary-dark)] px-5 py-4">
+              <h3 className="text-lg font-bold text-white">Send broadcast to everyone?</h3>
+              <p className="text-blue-100 text-xs mt-0.5">
+                Live push to all opted-in devices
+              </p>
+            </div>
+            <div className="p-5">
+              <div className="rounded-xl border border-blue-100 bg-blue-50 px-3 py-3 mb-4">
+                <p className="text-[12px] font-bold text-blue-900">Hi, Welcome to Socio!</p>
+                <p className="text-[11px] text-blue-700 mt-0.5">
+                  Glad to have you on SOCIO — your hub for campus events, fests, and clubs.
+                </p>
+              </div>
+              <p className="text-xs text-gray-600">
+                This sends a live push notification to{" "}
+                <strong>every user with notifications enabled</strong>. This action
+                cannot be undone.
+              </p>
+              <div className="flex gap-2 mt-5">
+                <Button
+                  variant="ghost"
+                  className="flex-1"
+                  onClick={() => setShowBroadcastConfirm(false)}
+                  disabled={isBroadcasting}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant="primary"
+                  className="flex-1"
+                  onClick={handleSendBroadcast}
+                  disabled={isBroadcasting}
+                >
+                  {isBroadcasting ? "Sending…" : "Send to all"}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {isEditingName && (
         <div className="modal-backdrop">

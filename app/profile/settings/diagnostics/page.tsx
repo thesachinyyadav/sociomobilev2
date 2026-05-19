@@ -38,6 +38,7 @@ interface Diagnostic {
   subscriptionId: string;
   pushToken: string;
   externalId: string;
+  externalIdBound: boolean;
   serviceWorkers: string[];
   swScope: string[];
   origin: string;
@@ -46,11 +47,15 @@ interface Diagnostic {
   lastNotificationReceived: string;
   analytics: ReturnType<typeof getNotificationAnalyticsSummary> | null;
   serverConfig: any;
+  clientAppIdSuffix: string;
+  serverAppIdSuffix: string | null;
+  appIdMatches: boolean | null;
   collectedAt: string;
   userEmail: string;
 }
 
 const APP_VERSION = process.env.NEXT_PUBLIC_APP_VERSION || "dev";
+const CLIENT_APP_ID = process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID || "";
 const LS_LAST_NOTIF_KEY = "socio_last_notif_received";
 
 export default function DiagnosticsPage() {
@@ -65,7 +70,9 @@ export default function DiagnosticsPage() {
     let optedIn: any = "n/a";
     let subId = "n/a";
     let token = "n/a";
-    let externalId = userData?.email?.toLowerCase() || "n/a";
+    const expectedExternalId = userData?.email?.toLowerCase() || "";
+    let externalId = expectedExternalId || "n/a";
+    let externalIdBound = false;
     let osInit = false;
     const swList: string[] = [];
     const swScope: string[] = [];
@@ -83,6 +90,13 @@ export default function DiagnosticsPage() {
           subId = OS.User?.pushSubscription?.id || "none";
           optedIn = String(OS.User?.pushSubscription?.optedIn ?? "unknown");
           token = OS.User?.pushSubscription?.token || "none";
+          try {
+            const native = (OS.User?.externalId || "").toString().toLowerCase();
+            if (native) {
+              externalId = native;
+              externalIdBound = !!expectedExternalId && native === expectedExternalId;
+            }
+          } catch {}
         }
       } else {
         const OS = typeof window !== "undefined" ? (window as any).OneSignal : null;
@@ -92,8 +106,17 @@ export default function DiagnosticsPage() {
           token = OS.User?.PushSubscription?.token || "none";
           optedIn = String(OS.User?.PushSubscription?.optedIn ?? "unknown");
           try {
-            externalId = OS.User?.externalId || externalId;
-          } catch {}
+            const reported = (OS.User?.externalId || "").toString().toLowerCase();
+            if (reported) {
+              externalId = reported;
+              externalIdBound = !!expectedExternalId && reported === expectedExternalId;
+            } else {
+              externalId = "(not set on device)";
+              externalIdBound = false;
+            }
+          } catch {
+            externalIdBound = false;
+          }
         }
       }
     } catch (e) {
@@ -121,6 +144,13 @@ export default function DiagnosticsPage() {
 
     const lastNotif = (typeof window !== "undefined" && localStorage.getItem(LS_LAST_NOTIF_KEY)) || "never";
 
+    const clientAppIdSuffix = CLIENT_APP_ID ? CLIENT_APP_ID.slice(-6) : "(unset)";
+    const serverAppIdSuffix: string | null = serverConfig?.config?.appIdSuffix ?? null;
+    const appIdMatches: boolean | null =
+      serverAppIdSuffix && CLIENT_APP_ID
+        ? serverAppIdSuffix === clientAppIdSuffix
+        : null;
+
     setDiag({
       appVersion: APP_VERSION,
       platform: Capacitor.getPlatform(),
@@ -131,6 +161,7 @@ export default function DiagnosticsPage() {
       subscriptionId: subId,
       pushToken: token,
       externalId,
+      externalIdBound,
       serviceWorkers: swList,
       swScope,
       origin: typeof window !== "undefined" ? window.location.origin : "ssr",
@@ -139,6 +170,9 @@ export default function DiagnosticsPage() {
       lastNotificationReceived: lastNotif,
       analytics: getNotificationAnalyticsSummary(),
       serverConfig,
+      clientAppIdSuffix,
+      serverAppIdSuffix,
+      appIdMatches,
       collectedAt: new Date().toISOString(),
       userEmail: userData?.email || "(signed out)",
     });
@@ -217,6 +251,62 @@ export default function DiagnosticsPage() {
       setTimeout(() => collect(), 1500);
     } catch (e: any) {
       toast.error(e?.message || "Re-register failed");
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const handleForceRelink = async () => {
+    setBusy("relink");
+    try {
+      if (!userData?.email) {
+        toast.error("Sign in first — no email on session");
+        return;
+      }
+      const externalId = userData.email.toLowerCase();
+      if (Capacitor.isNativePlatform()) {
+        const OS = (await import("onesignal-cordova-plugin")).default as any;
+        if (!OS) {
+          toast.error("Native OneSignal handle unavailable");
+          return;
+        }
+        OS.logout();
+        OS.login(externalId);
+        OS.User?.addTags?.({ email: externalId });
+      } else {
+        const OS = (await import("react-onesignal")).default;
+        if (!OS) {
+          toast.error("Web OneSignal SDK not loaded");
+          return;
+        }
+        try {
+          await OS.logout();
+        } catch {}
+        if (
+          Notification.permission === "granted" &&
+          OS.User?.PushSubscription &&
+          OS.User.PushSubscription.optedIn === false
+        ) {
+          try {
+            await OS.User.PushSubscription.optIn();
+          } catch {}
+        }
+        await OS.login(externalId);
+        await OS.User.addTags({ email: externalId });
+        for (let i = 0; i < 4; i += 1) {
+          const reported = (OS.User?.externalId || "").toString().toLowerCase();
+          if (reported === externalId) break;
+          await new Promise((r) => setTimeout(r, 500 * (i + 1)));
+          try {
+            await OS.login(externalId);
+          } catch {}
+        }
+      }
+      toast.success(`Re-linked identity to ${externalId}`);
+      await collect();
+    } catch (e: any) {
+      console.error("[Diagnostics] Force re-link failed", e);
+      toast.error(e?.message || "Force re-link failed");
     } finally {
       setBusy(null);
     }
@@ -310,11 +400,58 @@ export default function DiagnosticsPage() {
           <Button onClick={handleForceReregisterSW} isLoading={busy === "sw"} fullWidth variant="outline">
             Force Re-register SW
           </Button>
+          <Button onClick={handleForceRelink} isLoading={busy === "relink"} fullWidth variant="outline">
+            Force Re-link Identity
+          </Button>
           <Button onClick={handleCopyReport} fullWidth variant="accent">
             Copy Diagnostic Report
           </Button>
         </div>
       </div>
+
+      {/* App-ID + identity sanity check — most common cause of recipients=0 */}
+      {diag && (
+        <div className="card p-4 space-y-1 text-xs">
+          <h2 className="text-sm font-bold mb-2">Targeting Sanity Check</h2>
+          <Row
+            label="Client App ID suffix"
+            value={diag.clientAppIdSuffix}
+            good={!!diag.serverAppIdSuffix && diag.appIdMatches === true}
+          />
+          <Row
+            label="Server App ID suffix"
+            value={diag.serverAppIdSuffix || "(server unreachable)"}
+            good={!!diag.serverAppIdSuffix && diag.appIdMatches === true}
+          />
+          <Row
+            label="App ID match"
+            value={
+              diag.appIdMatches === null
+                ? "unknown"
+                : diag.appIdMatches
+                ? "match"
+                : "MISMATCH — server and device target different OneSignal apps"
+            }
+            good={diag.appIdMatches === true}
+          />
+          <Row
+            label="External ID bound to this device"
+            value={diag.externalIdBound ? "yes" : "no — server pushes will return recipients=0"}
+            good={diag.externalIdBound}
+          />
+          {!diag.externalIdBound && diag.optedIn === "true" && (
+            <p className="text-[11px] text-amber-700 mt-1">
+              Tap <span className="font-bold">Force Re-link Identity</span> above, then run Send Test Notification again.
+            </p>
+          )}
+          {diag.appIdMatches === false && (
+            <p className="text-[11px] text-red-700 mt-1">
+              NEXT_PUBLIC_ONESIGNAL_APP_ID on the device does not match ONESIGNAL_APP_ID on the server.
+              Until these match, no push can ever be delivered. Fix the env var and redeploy.
+            </p>
+          )}
+        </div>
+      )}
 
       {/* Live state */}
       <div className="card p-4 space-y-1.5 text-xs font-mono">
@@ -330,7 +467,7 @@ export default function DiagnosticsPage() {
             <Row label="Opted In" value={diag.optedIn} good={diag.optedIn === "true"} />
             <Row label="Subscription ID" value={diag.subscriptionId} good={diag.subscriptionId !== "none"} copyable />
             <Row label="Push Token" value={diag.pushToken} copyable />
-            <Row label="External ID" value={diag.externalId} copyable />
+            <Row label="External ID" value={diag.externalId} copyable good={diag.externalIdBound} />
             <Row label="User Email" value={diag.userEmail} />
             <Row label="Last Hydration" value={diag.lastHydration} />
             <Row label="Last Notification" value={diag.lastNotificationReceived} />

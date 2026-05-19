@@ -249,7 +249,7 @@ export default function NotificationsPage() {
 
   const handleTap = (n: Notification) => {
     if (!n.read) markRead(n.id);
-    const route = n.actionUrl || (n.eventId ? `/event/${n.eventId}` : null);
+    const route = n.deepLink || n.actionUrl || (n.eventId ? `/event/${n.eventId}` : null);
     
     // Track click interaction analytics
     trackNotificationEvent(n.id, "clicked", { route: route || "/notifications" });

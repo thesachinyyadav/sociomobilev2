@@ -180,12 +180,12 @@ export function initOneSignal(): void {
               OneSignal.Notifications.addEventListener("click", (event: any) => {
                 console.log("[OneSignal] Notification clicked:", event);
                 const n = event.notification;
+                const route = n.additionalData?.deepLink || n.additionalData?.route || n.additionalData?.actionUrl;
                 window.dispatchEvent(
                   new CustomEvent("socio:notificationClick", {
                     detail: {
-                      route: n.additionalData?.route,
-                      actionUrl: n.additionalData?.actionUrl,
-                      eventId: n.additionalData?.eventId,
+                      route,
+                      eventId: n.additionalData?.eventId || n.additionalData?.event_id,
                       festId: n.additionalData?.festId
                     }
                   })
@@ -204,10 +204,10 @@ export function initOneSignal(): void {
                 console.log("[OneSignal] Foreground notification arrived:", event);
                 event.preventDefault();
                 const n = event.notification;
-                const payloadType = n.additionalData?.type || "event";
+                const payloadType = n.additionalData?.type || n.additionalData?.category || "event";
                 const payloadBadge = n.additionalData?.badge || "UPDATE";
-                const payloadCtaText = n.additionalData?.ctaText || "View Event";
-                const payloadCtaRoute = n.additionalData?.route || n.additionalData?.actionUrl || "/notifications";
+                const payloadCtaText = n.additionalData?.ctaText || "View";
+                const payloadCtaRoute = n.additionalData?.deepLink || n.additionalData?.route || n.additionalData?.actionUrl || "/notifications";
                 window.dispatchEvent(
                   new CustomEvent("socio:foregroundNotification", {
                     detail: {

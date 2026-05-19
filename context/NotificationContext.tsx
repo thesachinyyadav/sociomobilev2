@@ -20,6 +20,10 @@ export interface Notification {
   read: boolean;
   createdAt: string;
   actionUrl: string | null;
+  deepLink?: string | null;
+  category?: string;
+  priority?: string;
+  metadata?: any;
   isBroadcast: boolean;
 }
 
@@ -91,6 +95,8 @@ function urlBase64ToUint8Array(base64String: string) {
   }
   return outputArray;
 }
+
+import { App } from "@capacitor/app";
 
 export function NotificationProvider({ children }: { children: ReactNode }) {
   const { userData, isAuthReady } = useAuth();
@@ -340,11 +346,10 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     fetchRef.current = fetchNotifications;
   }, [fetchNotifications]);
 
-  /* ── Polling effect ───────────────────────────────────────────────────
-   * Only re-runs when the user's email/token changes (login/logout) AND OneSignal is fully ready.
-   * The interval is set once and calls fetchRef.current, which always
-   * points to the latest callback. This eliminates the previous bug where
-   * the interval was recreated on every fetch cycle.
+  /* ── Polling & Hydration effect ───────────────────────────────────────
+   * Re-runs when the user's email changes AND OneSignal is fully ready.
+   * - Polls every 60s
+   * - Hydrates immediately on App resume (background -> foreground)
    * ─────────────────────────────────────────────────────────────────── */
   useEffect(() => {
     if (!isAuthReady || !userData?.email || !isPushReady) return;
@@ -356,9 +361,25 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     }, 1500);
 
     const timer = setInterval(() => fetchRef.current(), 60000);
+
+    let appStateListener: any = null;
+    if (Capacitor.isNativePlatform()) {
+      App.addListener("appStateChange", ({ isActive }) => {
+        if (isActive) {
+          console.log("[Notifications] App resumed, hydrating...");
+          fetchRef.current(); // Uses the /sync endpoint if !isLoadMore
+        }
+      }).then(listener => {
+        appStateListener = listener;
+      });
+    }
+
     return () => {
       clearTimeout(initialTimer);
       clearInterval(timer);
+      if (appStateListener) {
+        appStateListener.remove();
+      }
     };
   }, [userData?.email, isAuthReady, isPushReady]);
 

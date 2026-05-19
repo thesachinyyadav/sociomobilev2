@@ -7,7 +7,6 @@ import { useRouter } from "next/navigation";
 import { toast } from "react-hot-toast";
 import { apiRequest } from "@/lib/apiClient";
 import { startPerfSpan } from "@/lib/capacitorPerfAudit";
-import { initOneSignal, isOneSignalFullyInitialized } from "@/lib/onesignal";
 import { trackNotificationEvent } from "@/lib/notificationAnalytics";
 
 export interface Notification {
@@ -139,34 +138,11 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     updatePromptStatus("shown");
   }, [promptStatus, updatePromptStatus]);
 
-  // 1. OneSignal Initialization
-  //    • Web/PWA  → lib/onesignal.ts handles web push (guarded, de-duped)
-  //    • Native   → Cordova plugin handles push; attach listeners only
+  // 1. Push subsystem initialization
+  //    • Web/PWA  → register /sw.js for VAPID web push (OneSignal removed)
+  //    • Native   → OneSignal Cordova plugin (unchanged)
   useEffect(() => {
     if (typeof window === "undefined") return;
-
-    const handlePushReady = () => {
-      console.log("[Notifications] OneSignal fully initialized event received. Enabling hydration...");
-      setIsPushReady(true);
-    };
-
-    // If OneSignal init fails (e.g. origin lock on localhost) we still want
-    // the in-app notification feed to hydrate — it reads from the DB via the
-    // API and doesn't depend on the push subscription pipeline.
-    const handlePushFailed = () => {
-      console.warn("[Notifications] OneSignal init failed — enabling hydration anyway so the in-app feed still works.");
-      setIsPushReady(true);
-    };
-
-    if (isOneSignalFullyInitialized()) {
-      setIsPushReady(true);
-    } else {
-      window.addEventListener("socio:onesignalFullyInitialized", handlePushReady);
-      window.addEventListener("socio:onesignalInitFailed", handlePushFailed);
-    }
-
-    // Web push init — all guards live inside initOneSignal()
-    initOneSignal();
 
     const handleNotificationClick = (e: Event) => {
       const detail = (e as CustomEvent).detail;
@@ -179,8 +155,18 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     };
     window.addEventListener("socio:notificationClick", handleNotificationClick);
 
-    // Native-only: attach Cordova notification listeners
+    // SW posts messages back to the page when the user taps a notification
+    // (see public/sw.js notificationclick handler). Translate into the same
+    // socio:notificationClick event so the click-routing flow above still works.
+    const handleSwMessage = (event: MessageEvent) => {
+      if (event.data?.type === "socio:notificationClick") {
+        const route = event.data.url || "/notifications";
+        window.dispatchEvent(new CustomEvent("socio:notificationClick", { detail: { route } }));
+      }
+    };
+
     if (Capacitor.isNativePlatform()) {
+      // Native: OneSignal Cordova plugin path (unchanged)
       (async () => {
         try {
           const appId = process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID;
@@ -220,135 +206,79 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
           setIsPushReady(true);
         } catch (e) {
           console.error("[OneSignal] Native init error", e);
+          setIsPushReady(true);
         }
       })();
+    } else {
+      // Web: register our own SW for VAPID push handling.
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker
+          .register("/sw.js")
+          .then((reg) => {
+            console.log("[VAPID] Service worker registered (scope:", reg.scope, ")");
+            setIsPushReady(true);
+          })
+          .catch((err) => {
+            console.error("[VAPID] Service worker registration failed:", err);
+            // Still flip ready so the in-app feed (which reads from the API,
+            // not from push) can hydrate.
+            setIsPushReady(true);
+          });
+        navigator.serviceWorker.addEventListener("message", handleSwMessage);
+      } else {
+        // No SW support at all — still let the rest of the app function.
+        setIsPushReady(true);
+      }
     }
 
     return () => {
-      window.removeEventListener("socio:onesignalFullyInitialized", handlePushReady);
-      window.removeEventListener("socio:onesignalInitFailed", handlePushFailed);
       window.removeEventListener("socio:notificationClick", handleNotificationClick);
+      if (typeof navigator !== "undefined" && "serviceWorker" in navigator) {
+        navigator.serviceWorker.removeEventListener("message", handleSwMessage);
+      }
     };
   }, [router]);
 
   // Sync User Tags (Web & Native)
-  // OneSignal v16 quirk: login(externalId) only links the *current*
-  // subscription. If login() runs before the subscription is created (or
-  // before the user opts in), the alias is set on an anonymous user and the
-  // subscription that arrives later is never bound to it — the server then
-  // sees recipients=0 because no subscription matches external_id=<email>.
-  // To work around this we (a) run on the explicit
-  // "socio:onesignalSubscriptionChanged" event so we re-bind whenever the
-  // subscription is created/refreshed, and (b) verify+retry up to 5 times
-  // after each login() until OS.User.externalId reports our email.
+  // Native-only effect: bind OneSignal external_id once auth and the Cordova
+  // SDK handle are both ready. Web uses VAPID and has no equivalent binding
+  // step — the subscription endpoint itself is the identity, and the email
+  // is POSTed alongside it to /notifications/push/subscribe.
   useEffect(() => {
-    let cancelled = false;
-
-    const verifyBound = async (OS: any, expected: string): Promise<boolean> => {
-      try {
-        const current = OS?.User?.externalId;
-        if (typeof current === "string" && current.toLowerCase() === expected) return true;
-      } catch {
-        return false;
-      }
-      return false;
-    };
-
+    // Native-only: OneSignal external_id binding. Web uses VAPID, which has
+    // no separate identity binding — the subscription endpoint itself IS the
+    // identity, and the email is sent alongside it to /notifications/push/subscribe.
     const syncIdentity = async (reason: string) => {
+      if (!Capacitor.isNativePlatform()) return;
       if (!userData?.email) return;
+      if (!oneSignal) {
+        console.log("[OneSignal] Native SDK handle not ready — skipping sync");
+        return;
+      }
       const externalId = userData.email.toLowerCase();
       console.log(`[OneSignal] Identity sync requested (reason=${reason}) for external_id=${externalId}`);
 
       try {
-        if (Capacitor.isNativePlatform()) {
-          if (!oneSignal) {
-            console.log("[OneSignal] Native SDK handle not ready — skipping sync");
-            return;
-          }
-          oneSignal.login(externalId);
-          oneSignal.User.addTags({
-            department: userData.department || "none",
-            campus: userData.campus || "none",
-            email: externalId,
-          });
-          const sub = oneSignal.User.PushSubscription;
-          console.log(
-            `[OneSignal] Native sync complete (sub_id=${sub?.id || "none"}, optedIn=${sub?.optedIn}, token=${sub?.token ? "present" : "none"})`
-          );
-          return;
-        }
-
-        const OS = (await import("react-onesignal")).default;
-        if (!OS) return;
-
-        if (
-          Notification.permission === "granted" &&
-          OS.User?.PushSubscription &&
-          OS.User.PushSubscription.optedIn === false
-        ) {
-          try {
-            await OS.User.PushSubscription.optIn();
-            console.log("[OneSignal] Auto-opted in (permission was already granted).");
-          } catch (optErr) {
-            console.warn("[OneSignal] Auto-optIn failed:", optErr);
-          }
-        }
-
-        await OS.login(externalId);
-        await OS.User.addTags({
+        oneSignal.login(externalId);
+        oneSignal.User.addTags({
           department: userData.department || "none",
           campus: userData.campus || "none",
           email: externalId,
         });
-
-        let bound = await verifyBound(OS, externalId);
-        const maxAttempts = 5;
-        let attempt = 0;
-        while (!bound && !cancelled && attempt < maxAttempts) {
-          attempt += 1;
-          const delay = 500 * attempt;
-          console.log(
-            `[OneSignal] Binding not yet visible (attempt ${attempt}/${maxAttempts}); waiting ${delay}ms then retrying login()…`
-          );
-          await new Promise((r) => setTimeout(r, delay));
-          try {
-            await OS.login(externalId);
-          } catch (loopErr) {
-            console.warn(`[OneSignal] retry login() failed (attempt ${attempt}):`, loopErr);
-          }
-          bound = await verifyBound(OS, externalId);
-        }
-
-        const subId = OS.User?.PushSubscription?.id || "none";
-        const optedIn = OS.User?.PushSubscription?.optedIn;
-        if (bound) {
-          console.log(
-            `[OneSignal] Web identity bound (external_id=${externalId}, sub_id=${subId}, optedIn=${optedIn})`
-          );
-        } else {
-          console.warn(
-            `[OneSignal] Identity binding NOT verified after ${maxAttempts} retries. Server pushes targeting external_id=${externalId} will return 0 recipients. sub_id=${subId} optedIn=${optedIn}`
-          );
-        }
+        const sub = oneSignal.User.PushSubscription;
+        console.log(
+          `[OneSignal] Native sync complete (sub_id=${sub?.id || "none"}, optedIn=${sub?.optedIn}, token=${sub?.token ? "present" : "none"})`
+        );
       } catch (e) {
         console.warn("[OneSignal] Identity sync failed:", e);
       }
     };
 
     const logoutIdentity = async () => {
+      if (!Capacitor.isNativePlatform()) return;
       if (userData?.email) return;
-      // SDK must be fully initialized before logout() is safe to call; otherwise
-      // it crashes reading internal state (TypeError on minified 'Qe' prop).
-      // Most commonly skipped when OneSignal app is locked to a non-localhost
-      // origin and init was aborted in lib/onesignal.ts handleInitError.
-      if (!isOneSignalFullyInitialized()) return;
       try {
-        if (Capacitor.isNativePlatform() && oneSignal) {
-          oneSignal.logout();
-        } else if (!Capacitor.isNativePlatform()) {
-          const OS = (await import("react-onesignal")).default;
-          if (OS) await OS.logout();
-        }
+        if (oneSignal) oneSignal.logout();
       } catch (e) {
         console.warn("[OneSignal] Logout failed:", e);
       }
@@ -360,14 +290,8 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       logoutIdentity();
     }
 
-    const onSubChange = () => {
-      if (userData?.email) syncIdentity("subscription-changed");
-    };
-    window.addEventListener("socio:onesignalSubscriptionChanged", onSubChange);
-
     return () => {
       cancelled = true;
-      window.removeEventListener("socio:onesignalSubscriptionChanged", onSubChange);
     };
   }, [userData?.email, userData?.department, userData?.campus, oneSignal, isPushReady]);
 
@@ -378,56 +302,82 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       let granted = false;
 
       if (Capacitor.isNativePlatform()) {
-        // Native: use the Cordova OS instance stored in state
+        // Native: OneSignal Cordova plugin
         if (!oneSignal) {
           console.warn("[OneSignal] Native SDK not ready — cannot request permission yet");
           return;
         }
         granted = await oneSignal.Notifications.requestPermission(true);
         console.log("[OneSignal] Native permission result:", granted);
-        // CRITICAL: native side does not need optIn(); requestPermission()
-        // simultaneously registers the subscription.
       } else {
-        // Web/PWA: use the global OneSignal object exposed by react-onesignal
-        const OS = (await import("react-onesignal")).default;
-        if (!OS?.Notifications) {
-          console.warn("[OneSignal] Web SDK not fully initialized");
+        // Web: VAPID web push via PushManager + our /sw.js
+        if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
+          toast.error("Push notifications aren't supported in this browser");
           return;
         }
-        await OS.Notifications.requestPermission();
-        granted =
-          OS.Notifications.permission === true ||
-          Notification.permission === "granted";
-        console.log("[OneSignal] Web permission state after request:", Notification.permission);
-
-        // CRITICAL FIX: in OneSignal Web SDK v16 the browser permission grant
-        // does NOT subscribe the user — you must explicitly opt-in. Without
-        // this call no push token is registered, no subscription ID is
-        // created, OneSignal dashboard shows 0 subscribers and notifications
-        // silently fail to deliver.
-        if (granted && OS.User?.PushSubscription) {
-          try {
-            await OS.User.PushSubscription.optIn();
-            console.log("[OneSignal] optIn() succeeded — push subscription active");
-          } catch (optErr) {
-            console.error("[OneSignal] optIn() failed:", optErr);
-          }
+        const vapidKey = process.env.NEXT_PUBLIC_VAPID_KEY;
+        if (!vapidKey) {
+          console.error("[VAPID] NEXT_PUBLIC_VAPID_KEY is not set");
+          toast.error("Push notifications are not configured (missing VAPID key)");
+          return;
         }
 
-        // Re-sync identity (login + tags) so the freshly-created subscription
-        // is immediately linked to the current user's external_id.
-        if (granted && userData?.email) {
+        let reg: ServiceWorkerRegistration;
+        try {
+          reg = await navigator.serviceWorker.register("/sw.js");
+          await navigator.serviceWorker.ready;
+        } catch (swErr: any) {
+          console.error("[VAPID] Service worker registration failed:", swErr);
+          toast.error(swErr?.message || "Service worker registration failed");
+          return;
+        }
+
+        const permission = await Notification.requestPermission();
+        console.log("[VAPID] Permission after request:", permission);
+        granted = permission === "granted";
+        if (!granted) {
+          setPushStatus(permission === "denied" ? "denied" : "not_requested");
+          localStorage.setItem(LS_PUSH_STATUS_KEY, permission === "denied" ? "denied" : "not_requested");
+          updatePromptStatus(permission === "denied" ? "denied" : "not_shown");
+          if (permission === "denied") {
+            toast.error("Notifications are blocked in browser settings");
+          }
+          return;
+        }
+
+        // Reuse existing subscription if present, otherwise create one.
+        let subscription = await reg.pushManager.getSubscription();
+        if (!subscription) {
           try {
-            const externalId = userData.email.toLowerCase();
-            await OS.login(externalId);
-            await OS.User.addTags({
-              department: userData.department || "none",
-              campus: userData.campus || "none",
-              email: externalId,
+            subscription = await reg.pushManager.subscribe({
+              userVisibleOnly: true,
+              applicationServerKey: urlBase64ToUint8Array(vapidKey),
             });
-            console.log("[OneSignal] Identity re-synced after opt-in:", externalId);
-          } catch (loginErr) {
-            console.warn("[OneSignal] Identity re-sync failed:", loginErr);
+            console.log("[VAPID] Created new push subscription");
+          } catch (subErr: any) {
+            console.error("[VAPID] pushManager.subscribe failed:", subErr);
+            toast.error(subErr?.message || "Failed to subscribe to push");
+            return;
+          }
+        } else {
+          console.log("[VAPID] Reusing existing push subscription");
+        }
+
+        // Persist the subscription on the server so broadcasts can find it.
+        if (userData?.email) {
+          try {
+            await apiRequest("/notifications/push/subscribe", {
+              method: "POST",
+              body: JSON.stringify({
+                email: userData.email,
+                subscription: subscription.toJSON(),
+              }),
+            });
+            console.log("[VAPID] Subscription saved on server");
+          } catch (postErr: any) {
+            console.error("[VAPID] Server subscribe failed:", postErr);
+            toast.error(postErr?.message || "Could not save subscription on server");
+            return;
           }
         }
       }
@@ -439,17 +389,16 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
       if (granted) {
         toast.success("Notifications enabled!");
-        console.log("[OneSignal] Subscription active");
       }
     } catch (e) {
-      console.error("[OneSignal] Push enable error", e);
+      console.error("[Push] Enable error", e);
     }
-  }, [oneSignal, updatePromptStatus, userData?.email, userData?.department, userData?.campus]);
+  }, [oneSignal, updatePromptStatus, userData?.email]);
 
   // Opt the user out of push delivery without revoking browser permission
   // (only the user can revoke that in browser settings). After this call,
-  // OneSignal stops sending pushes to this device; pushStatus reflects the
-  // change so the UI flips back to "Enable".
+  // the server stops delivering pushes to this device; pushStatus reflects
+  // the change so the UI flips back to "Enable".
   const disablePushNotifications = useCallback(async () => {
     if (typeof window === "undefined") return;
 
@@ -460,10 +409,33 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
           console.log("[OneSignal] Native opted out");
         }
       } else {
-        const OS = (await import("react-onesignal")).default;
-        if (OS?.User?.PushSubscription?.optOut) {
-          await OS.User.PushSubscription.optOut();
-          console.log("[OneSignal] Web opted out");
+        // Web: VAPID — unsubscribe from PushManager + notify the server so it
+        // marks the row inactive and stops trying to deliver to a dead endpoint.
+        if ("serviceWorker" in navigator) {
+          try {
+            const reg = await navigator.serviceWorker.getRegistration("/sw.js");
+            const subscription = await reg?.pushManager.getSubscription();
+            if (subscription) {
+              if (userData?.email) {
+                try {
+                  await apiRequest("/notifications/push/unsubscribe", {
+                    method: "DELETE",
+                    body: JSON.stringify({
+                      email: userData.email,
+                      endpoint: subscription.endpoint,
+                    }),
+                  });
+                  console.log("[VAPID] Server unsubscribe sent");
+                } catch (serverErr) {
+                  console.warn("[VAPID] Server unsubscribe failed (continuing local unsubscribe):", serverErr);
+                }
+              }
+              await subscription.unsubscribe();
+              console.log("[VAPID] Local unsubscribe complete");
+            }
+          } catch (e) {
+            console.warn("[VAPID] Disable error:", e);
+          }
         }
       }
 

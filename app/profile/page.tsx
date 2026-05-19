@@ -9,7 +9,6 @@ import { toast } from "react-hot-toast";
 import { useAuth } from "@/context/AuthContext";
 import { useEvents } from "@/context/EventContext";
 import { useNotifications } from "@/context/NotificationContext";
-import { isOneSignalFullyInitialized, nukeServiceWorkers } from "@/lib/onesignal";
 import Skeleton from "@/components/Skeleton";
 import ProfileSkeleton from "@/components/skeletons/ProfileSkeleton";
 import LoadingScreen from "@/components/LoadingScreen";
@@ -94,9 +93,6 @@ export default function ProfilePage() {
   const [isDisablingPush, setIsDisablingPush] = useState(false);
   const [isBroadcasting, setIsBroadcasting] = useState(false);
   const [showBroadcastConfirm, setShowBroadcastConfirm] = useState(false);
-  const [pushReady, setPushReady] = useState(false);
-  const [pushUnavailable, setPushUnavailable] = useState<{ reason: string; detail?: string } | null>(null);
-  const [isResettingPush, setIsResettingPush] = useState(false);
   const [browserPermission, setBrowserPermission] = useState<NotificationPermission | "unsupported">("unsupported");
 
   // Staff = anyone who can trigger the canned welcome broadcast.
@@ -115,70 +111,6 @@ export default function ProfilePage() {
   // so if we OR'd it in here, the disable button could never show "Off".
   const isPushEnabled = pushStatus === "granted";
   const isPushBlocked = browserPermission === "denied" || pushStatus === "denied";
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    if (isOneSignalFullyInitialized()) {
-      setPushReady(true);
-      return;
-    }
-    // If init later completes, clear any stuck-state we may have set below.
-    const onReady = () => {
-      setPushReady(true);
-      setPushUnavailable(null);
-    };
-    window.addEventListener("socio:onesignalFullyInitialized", onReady);
-
-    // Fallback: if neither the ready event nor a fail event fires within 20s,
-    // OneSignal init is effectively stuck. Flip to the Unavailable state so
-    // the user gets the Reset & reload button instead of a forever spinner.
-    const stuckTimer = setTimeout(() => {
-      if (!isOneSignalFullyInitialized()) {
-        setPushUnavailable((prev) =>
-          prev || {
-            reason: "init-timeout",
-            detail: "OneSignal SDK didn't finish initializing within 20s",
-          }
-        );
-      }
-    }, 20000);
-
-    return () => {
-      window.removeEventListener("socio:onesignalFullyInitialized", onReady);
-      clearTimeout(stuckTimer);
-    };
-  }, []);
-
-  // OneSignal init can bail out before the ready event ever fires — most
-  // commonly when the app's origin lock doesn't match the current host.
-  // Listening here lets us replace the misleading "Initializing…" pill with
-  // a clear "Unavailable" state and surface a one-tap cache reset.
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const onInitFailed = (e: Event) => {
-      const detail = (e as CustomEvent).detail || {};
-      setPushUnavailable({
-        reason: detail.reason || "unknown",
-        detail: detail.allowedOrigin || detail.message || "",
-      });
-      setPushReady(false);
-    };
-    window.addEventListener("socio:onesignalInitFailed", onInitFailed);
-    return () => window.removeEventListener("socio:onesignalInitFailed", onInitFailed);
-  }, []);
-
-  const handleResetPushCache = async () => {
-    setIsResettingPush(true);
-    try {
-      await nukeServiceWorkers();
-      toast.success("Push cache cleared — reloading…");
-      setTimeout(() => window.location.reload(), 600);
-    } catch (e: any) {
-      console.error("[Profile] push cache reset error", e);
-      toast.error(e?.message || "Failed to reset push cache");
-      setIsResettingPush(false);
-    }
-  };
 
   useEffect(() => {
     if (typeof window === "undefined" || !("Notification" in window)) return;
@@ -582,27 +514,14 @@ export default function ProfilePage() {
             <div className="text-left flex-1 min-w-0">
               <p className="text-[13px] font-bold">Notifications</p>
               <p className="text-[11px] text-[var(--color-text-muted)]">
-                {pushUnavailable
-                  ? pushUnavailable.reason === "origin-lock"
-                    ? `Unavailable on this origin (locked to ${pushUnavailable.detail})`
-                    : pushUnavailable.reason === "init-timeout"
-                    ? "Taking too long to start — try resetting the cache"
-                    : "Push service unavailable — see console for details"
-                  : isPushEnabled
+                {isPushEnabled
                   ? "Push notifications are on"
                   : isPushBlocked
                   ? "Blocked in browser settings — enable there to allow"
                   : "Get instant alerts for events & registrations"}
               </p>
             </div>
-            {pushUnavailable ? (
-              <span
-                className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-50 text-amber-700"
-                title={pushUnavailable.detail || pushUnavailable.reason}
-              >
-                Unavailable
-              </span>
-            ) : isPushEnabled ? (
+            {isPushEnabled ? (
               <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700">
                 On
               </span>
@@ -610,45 +529,13 @@ export default function ProfilePage() {
               <Button
                 variant="primary"
                 size="sm"
-                disabled={isEnablingPush || isPushBlocked || !pushReady}
+                disabled={isEnablingPush || isPushBlocked}
                 onClick={handleEnableNotifications}
               >
-                {isEnablingPush
-                  ? "Enabling…"
-                  : !pushReady
-                  ? "Initializing…"
-                  : "Enable"}
+                {isEnablingPush ? "Enabling…" : "Enable"}
               </Button>
             )}
           </div>
-
-          {pushUnavailable && (
-            <>
-              <p className="mt-3 text-[11px] leading-relaxed text-[var(--color-text-muted)]">
-                {pushUnavailable.reason === "origin-lock" ? (
-                  <>
-                    Push notifications can't initialize on this host. Add{" "}
-                    <code className="font-mono text-[10px] bg-gray-100 px-1 rounded">
-                      {typeof window !== "undefined" ? window.location.origin : ""}
-                    </code>{" "}
-                    to <strong>OneSignal Dashboard → Settings → Platforms → Web → Allowed Origins</strong>, then tap below to clear the cached config.
-                  </>
-                ) : (
-                  <>Push initialization failed. Tap below to clear cached state and retry.</>
-                )}
-              </p>
-              <Button
-                variant="outline"
-                size="sm"
-                fullWidth
-                className="mt-3"
-                disabled={isResettingPush}
-                onClick={handleResetPushCache}
-              >
-                {isResettingPush ? "Resetting…" : "Reset push cache & reload"}
-              </Button>
-            </>
-          )}
 
           {isPushEnabled && (
             <>

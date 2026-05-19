@@ -221,24 +221,70 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
   // Sync User Tags (Web & Native)
   useEffect(() => {
-    if (oneSignal && userData?.email) {
+    const syncIdentity = async () => {
+      if (!userData?.email || !isPushReady) return;
+      
+      const externalId = userData.email.toLowerCase();
+      console.log("[OneSignal] Attempting to sync identity for:", externalId);
+
       try {
-        const externalId = userData.email.toLowerCase();
-        oneSignal.login(externalId);
-        oneSignal.User.addTags({
-          department: userData.department || "none",
-          campus: userData.campus || "none",
-          email: externalId
-        });
+        if (Capacitor.isNativePlatform()) {
+          if (!oneSignal) return;
+          oneSignal.login(externalId);
+          oneSignal.User.addTags({
+            department: userData.department || "none",
+            campus: userData.campus || "none",
+            email: externalId
+          });
+          console.log("[OneSignal] Native identity sync complete.");
+          
+          const pushSubscription = oneSignal.User.PushSubscription;
+          if (pushSubscription) {
+            console.log("[OneSignal] Native Sub State - optedIn:", pushSubscription.optedIn, "token:", pushSubscription.token);
+          }
+        } else {
+          // Web/PWA
+          const OS = (await import("react-onesignal")).default;
+          if (!OS) return;
+          
+          await OS.login(externalId);
+          await OS.User.addTags({
+            department: userData.department || "none",
+            campus: userData.campus || "none",
+            email: externalId
+          });
+          console.log("[OneSignal] Web identity sync complete.");
+          
+          if (OS.User?.PushSubscription) {
+             console.log("[OneSignal] Web Sub State - optedIn:", OS.User.PushSubscription.optedIn, "token:", OS.User.PushSubscription.token);
+          }
+        }
       } catch (e) {
-        console.warn("OneSignal identity sync failed", e);
+        console.warn("[OneSignal] Identity sync failed:", e);
       }
-    } else if (oneSignal && !userData?.email) {
+    };
+
+    const logoutIdentity = async () => {
+      if (userData?.email) return;
+      
       try {
-        oneSignal.logout();
-      } catch {}
+        if (Capacitor.isNativePlatform() && oneSignal) {
+          oneSignal.logout();
+        } else if (!Capacitor.isNativePlatform()) {
+          const OS = (await import("react-onesignal")).default;
+          if (OS) await OS.logout();
+        }
+      } catch (e) {
+        console.warn("[OneSignal] Logout failed:", e);
+      }
+    };
+
+    if (userData?.email) {
+      syncIdentity();
+    } else {
+      logoutIdentity();
     }
-  }, [userData, oneSignal]);
+  }, [userData?.email, userData?.department, userData?.campus, oneSignal, isPushReady]);
 
   const enablePushNotifications = useCallback(async () => {
     if (typeof window === "undefined") return;

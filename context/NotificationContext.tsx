@@ -44,6 +44,7 @@ interface NotifCtx {
   hasMore: boolean;
   loadMore: () => void;
   enablePushNotifications: () => Promise<void>;
+  disablePushNotifications: () => Promise<void>;
   updatePromptStatus: (status: NotificationPromptStatus) => void;
   triggerPrompt: () => void;
 }
@@ -62,6 +63,7 @@ const NotifContext = createContext<NotifCtx>({
   hasMore: false,
   loadMore: () => {},
   enablePushNotifications: async () => {},
+  disablePushNotifications: async () => {},
   updatePromptStatus: () => {},
   triggerPrompt: () => {},
 });
@@ -148,10 +150,19 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       setIsPushReady(true);
     };
 
+    // If OneSignal init fails (e.g. origin lock on localhost) we still want
+    // the in-app notification feed to hydrate — it reads from the DB via the
+    // API and doesn't depend on the push subscription pipeline.
+    const handlePushFailed = () => {
+      console.warn("[Notifications] OneSignal init failed — enabling hydration anyway so the in-app feed still works.");
+      setIsPushReady(true);
+    };
+
     if (isOneSignalFullyInitialized()) {
       setIsPushReady(true);
     } else {
       window.addEventListener("socio:onesignalFullyInitialized", handlePushReady);
+      window.addEventListener("socio:onesignalInitFailed", handlePushFailed);
     }
 
     // Web push init — all guards live inside initOneSignal()
@@ -215,62 +226,109 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
     return () => {
       window.removeEventListener("socio:onesignalFullyInitialized", handlePushReady);
+      window.removeEventListener("socio:onesignalInitFailed", handlePushFailed);
       window.removeEventListener("socio:notificationClick", handleNotificationClick);
     };
   }, [router]);
 
   // Sync User Tags (Web & Native)
+  // OneSignal v16 quirk: login(externalId) only links the *current*
+  // subscription. If login() runs before the subscription is created (or
+  // before the user opts in), the alias is set on an anonymous user and the
+  // subscription that arrives later is never bound to it — the server then
+  // sees recipients=0 because no subscription matches external_id=<email>.
+  // To work around this we (a) run on the explicit
+  // "socio:onesignalSubscriptionChanged" event so we re-bind whenever the
+  // subscription is created/refreshed, and (b) verify+retry up to 5 times
+  // after each login() until OS.User.externalId reports our email.
   useEffect(() => {
-    const syncIdentity = async () => {
-      if (!userData?.email || !isPushReady) return;
-      
+    let cancelled = false;
+
+    const verifyBound = async (OS: any, expected: string): Promise<boolean> => {
+      try {
+        const current = OS?.User?.externalId;
+        if (typeof current === "string" && current.toLowerCase() === expected) return true;
+      } catch {
+        return false;
+      }
+      return false;
+    };
+
+    const syncIdentity = async (reason: string) => {
+      if (!userData?.email) return;
       const externalId = userData.email.toLowerCase();
-      console.log("[OneSignal] Attempting to sync identity for:", externalId);
+      console.log(`[OneSignal] Identity sync requested (reason=${reason}) for external_id=${externalId}`);
 
       try {
         if (Capacitor.isNativePlatform()) {
-          if (!oneSignal) return;
+          if (!oneSignal) {
+            console.log("[OneSignal] Native SDK handle not ready — skipping sync");
+            return;
+          }
           oneSignal.login(externalId);
           oneSignal.User.addTags({
             department: userData.department || "none",
             campus: userData.campus || "none",
-            email: externalId
+            email: externalId,
           });
-          console.log("[OneSignal] Native identity sync complete.");
-          
-          const pushSubscription = oneSignal.User.PushSubscription;
-          if (pushSubscription) {
-            console.log("[OneSignal] Native Sub State - optedIn:", pushSubscription.optedIn, "token:", pushSubscription.token);
+          const sub = oneSignal.User.PushSubscription;
+          console.log(
+            `[OneSignal] Native sync complete (sub_id=${sub?.id || "none"}, optedIn=${sub?.optedIn}, token=${sub?.token ? "present" : "none"})`
+          );
+          return;
+        }
+
+        const OS = (await import("react-onesignal")).default;
+        if (!OS) return;
+
+        if (
+          Notification.permission === "granted" &&
+          OS.User?.PushSubscription &&
+          OS.User.PushSubscription.optedIn === false
+        ) {
+          try {
+            await OS.User.PushSubscription.optIn();
+            console.log("[OneSignal] Auto-opted in (permission was already granted).");
+          } catch (optErr) {
+            console.warn("[OneSignal] Auto-optIn failed:", optErr);
           }
+        }
+
+        await OS.login(externalId);
+        await OS.User.addTags({
+          department: userData.department || "none",
+          campus: userData.campus || "none",
+          email: externalId,
+        });
+
+        let bound = await verifyBound(OS, externalId);
+        const maxAttempts = 5;
+        let attempt = 0;
+        while (!bound && !cancelled && attempt < maxAttempts) {
+          attempt += 1;
+          const delay = 500 * attempt;
+          console.log(
+            `[OneSignal] Binding not yet visible (attempt ${attempt}/${maxAttempts}); waiting ${delay}ms then retrying login()…`
+          );
+          await new Promise((r) => setTimeout(r, delay));
+          try {
+            await OS.login(externalId);
+          } catch (loopErr) {
+            console.warn(`[OneSignal] retry login() failed (attempt ${attempt}):`, loopErr);
+          }
+          bound = await verifyBound(OS, externalId);
+        }
+
+        const subId = OS.User?.PushSubscription?.id || "none";
+        const optedIn = OS.User?.PushSubscription?.optedIn;
+        if (bound) {
+          console.log(
+            `[OneSignal] Web identity bound (external_id=${externalId}, sub_id=${subId}, optedIn=${optedIn})`
+          );
         } else {
-          // Web/PWA
-          const OS = (await import("react-onesignal")).default;
-          if (!OS) return;
-
-          await OS.login(externalId);
-          await OS.User.addTags({
-            department: userData.department || "none",
-            campus: userData.campus || "none",
-            email: externalId
-          });
-          console.log("[OneSignal] Web identity sync complete.");
-
-          // Auto-recover: if browser permission was already granted on a previous
-          // visit but the SDK never finished opting the user in, do it now. This
-          // closes the gap where users see "permission granted" yet OneSignal
-          // dashboard shows them unsubscribed.
-          if (Notification.permission === "granted" && OS.User?.PushSubscription) {
-            const optedIn = OS.User.PushSubscription.optedIn;
-            console.log("[OneSignal] Web Sub State - optedIn:", optedIn, "token:", OS.User.PushSubscription.token);
-            if (!optedIn) {
-              try {
-                await OS.User.PushSubscription.optIn();
-                console.log("[OneSignal] Auto-opted in existing permission-granted user.");
-              } catch (optErr) {
-                console.warn("[OneSignal] Auto-optIn failed:", optErr);
-              }
-            }
-          }
+          console.warn(
+            `[OneSignal] Identity binding NOT verified after ${maxAttempts} retries. Server pushes targeting external_id=${externalId} will return 0 recipients. sub_id=${subId} optedIn=${optedIn}`
+          );
         }
       } catch (e) {
         console.warn("[OneSignal] Identity sync failed:", e);
@@ -279,7 +337,11 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
     const logoutIdentity = async () => {
       if (userData?.email) return;
-      
+      // SDK must be fully initialized before logout() is safe to call; otherwise
+      // it crashes reading internal state (TypeError on minified 'Qe' prop).
+      // Most commonly skipped when OneSignal app is locked to a non-localhost
+      // origin and init was aborted in lib/onesignal.ts handleInitError.
+      if (!isOneSignalFullyInitialized()) return;
       try {
         if (Capacitor.isNativePlatform() && oneSignal) {
           oneSignal.logout();
@@ -292,11 +354,21 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       }
     };
 
-    if (userData?.email) {
-      syncIdentity();
-    } else {
+    if (userData?.email && isPushReady) {
+      syncIdentity("auth-or-ready");
+    } else if (!userData?.email) {
       logoutIdentity();
     }
+
+    const onSubChange = () => {
+      if (userData?.email) syncIdentity("subscription-changed");
+    };
+    window.addEventListener("socio:onesignalSubscriptionChanged", onSubChange);
+
+    return () => {
+      cancelled = true;
+      window.removeEventListener("socio:onesignalSubscriptionChanged", onSubChange);
+    };
   }, [userData?.email, userData?.department, userData?.campus, oneSignal, isPushReady]);
 
   const enablePushNotifications = useCallback(async () => {
@@ -374,6 +446,37 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     }
   }, [oneSignal, updatePromptStatus, userData?.email, userData?.department, userData?.campus]);
 
+  // Opt the user out of push delivery without revoking browser permission
+  // (only the user can revoke that in browser settings). After this call,
+  // OneSignal stops sending pushes to this device; pushStatus reflects the
+  // change so the UI flips back to "Enable".
+  const disablePushNotifications = useCallback(async () => {
+    if (typeof window === "undefined") return;
+
+    try {
+      if (Capacitor.isNativePlatform()) {
+        if (oneSignal?.User?.pushSubscription?.optOut) {
+          oneSignal.User.pushSubscription.optOut();
+          console.log("[OneSignal] Native opted out");
+        }
+      } else {
+        const OS = (await import("react-onesignal")).default;
+        if (OS?.User?.PushSubscription?.optOut) {
+          await OS.User.PushSubscription.optOut();
+          console.log("[OneSignal] Web opted out");
+        }
+      }
+
+      setPushStatus("not_requested");
+      localStorage.setItem(LS_PUSH_STATUS_KEY, "not_requested");
+      updatePromptStatus("not_shown");
+      toast.success("Notifications turned off");
+    } catch (e: any) {
+      console.error("[OneSignal] Push disable error", e);
+      toast.error(e?.message || "Failed to turn off notifications");
+    }
+  }, [oneSignal, updatePromptStatus]);
+
   /* ── Fetch notifications ──────────────────────────────────────────────
    * IMPORTANT: `unreadCount` and `page` are intentionally NOT in the dep
    * array. Reading them via functional setState or pageRef prevents the
@@ -396,7 +499,12 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         `/notifications?email=${encodeURIComponent(userData.email)}&page=${targetPage}&limit=15`,
         { cache: "no-store" }
       );
-      
+
+      console.log(
+        `[Notifications] GET /notifications returned count=${(data?.notifications || []).length} debug=`,
+        data?.debug
+      );
+
       const raw = (data.notifications || []) as Notification[];
 
         const readSet = getLocalSet(LS_READ_KEY);
@@ -572,6 +680,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       hasMore,
       loadMore,
       enablePushNotifications,
+      disablePushNotifications,
       updatePromptStatus,
       triggerPrompt,
     }),
@@ -588,6 +697,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       hasMore,
       loadMore,
       enablePushNotifications,
+      disablePushNotifications,
       updatePromptStatus,
       triggerPrompt,
     ]

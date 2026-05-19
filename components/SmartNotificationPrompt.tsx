@@ -1,67 +1,59 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import { useNotifications } from "@/context/NotificationContext";
+import { useAuth } from "@/context/AuthContext";
 import { BellRingIcon, XIcon } from "@/components/icons";
 
 export default function SmartNotificationPrompt() {
-  const { promptStatus, updatePromptStatus, enablePushNotifications } = useNotifications();
-  const [show, setShow] = useState(false);
+  const { pushStatus, updatePromptStatus } = useNotifications();
+  const { userData } = useAuth();
+  const router = useRouter();
+  const pathname = usePathname();
+  const [dismissed, setDismissed] = useState(false);
 
   const supported = useMemo(
     () => typeof window !== "undefined" && "Notification" in window,
     []
   );
 
+  // Reflect browser permission back into the persisted status so the rest
+  // of the app knows when it's already enabled.
   useEffect(() => {
     if (!supported) return;
-    
-    // Check if browser permission is already something else
-    if (Notification.permission !== "default") {
-      if (promptStatus !== "accepted" && Notification.permission === "granted") {
-        updatePromptStatus("accepted");
-      } else if (promptStatus !== "denied" && Notification.permission === "denied") {
-        updatePromptStatus("denied");
-      }
-      return;
+    if (Notification.permission === "granted") {
+      updatePromptStatus("accepted");
+    } else if (Notification.permission === "denied") {
+      updatePromptStatus("denied");
     }
+  }, [supported, updatePromptStatus]);
 
-    // Manually triggered by another component (e.g. Notifications page)
-    if (promptStatus === "shown") {
-      setShow(true);
-      return;
-    }
+  // If pushStatus flips (most importantly: user turned notifications off on
+  // /profile), reset the local dismissed flag so the popup reappears
+  // immediately without waiting for a refresh.
+  useEffect(() => {
+    setDismissed(false);
+  }, [pushStatus]);
 
-    // Only show if not shown/accepted/denied before
-    if (promptStatus === "not_shown") {
-      // Delay to not show immediately on load
-      const timer = setTimeout(() => {
-        updatePromptStatus("shown");
-      }, 5000); // 5 seconds delay for first-time visitors
-      return () => clearTimeout(timer);
-    }
-  }, [supported, promptStatus, updatePromptStatus]);
+  if (!supported) return null;
+  if (!userData) return null;
+  if (dismissed) return null;
+  // Gate on the app-level pushStatus, NOT Notification.permission — disabling
+  // via OneSignal optOut() leaves the browser permission "granted" forever,
+  // so a permission-based gate could never re-show the popup after a disable.
+  if (pushStatus === "granted") return null;
+  // Don't double up on the dedicated /profile Notifications card.
+  if (pathname?.startsWith("/profile")) return null;
 
-  const handleEnable = async () => {
-    setShow(false);
-    await enablePushNotifications();
-    // Guard: Notification API may be undefined in some Android WebViews
-    if (typeof Notification !== "undefined") {
-      if (Notification.permission === "granted") {
-        updatePromptStatus("accepted");
-      } else if (Notification.permission === "denied") {
-        updatePromptStatus("denied");
-      }
-    }
+  const handleEnable = () => {
+    setDismissed(true);
+    router.push("/profile");
   };
 
   const handleMaybeLater = () => {
-    setShow(false);
-    // We don't change status to denied, so it might show up again later (contextually)
-    // Or we can set a temporary session-based flag
+    setDismissed(true);
   };
-
-  if (!supported || !show) return null;
 
   return (
     <div className="fixed inset-x-4 bottom-[calc(var(--bottom-nav)+var(--safe-bottom)+20px)] z-50 animate-slide-up">
@@ -70,9 +62,10 @@ export default function SmartNotificationPrompt() {
           <div className="w-12 h-12 rounded-xl bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
             <BellRingIcon size={24} />
           </div>
-          <button 
+          <button
             onClick={handleMaybeLater}
             className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
+            aria-label="Dismiss"
           >
             <XIcon size={20} />
           </button>

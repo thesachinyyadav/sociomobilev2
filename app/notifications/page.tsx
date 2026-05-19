@@ -316,8 +316,8 @@ export default function NotificationsPage() {
             >
               <ArrowLeft size={16} />
             </button>
-            <div className="text-[12px] font-black tracking-[0.2em] text-white/50 absolute left-1/2 -translate-x-1/2 uppercase">
-              Realtime Feed
+            <div className="text-[14px] font-black tracking-[0.2em] text-white/80 absolute left-1/2 -translate-x-1/2 uppercase">
+              Socio
             </div>
             <button
               onClick={() => refresh()}
@@ -328,33 +328,32 @@ export default function NotificationsPage() {
             </button>
           </div>
 
-          {/* Title and stats bottom row */}
+          {/* Title + actions row */}
           <div className="flex items-end justify-between">
             <div>
-              <h1 className="text-[26px] font-black tracking-tight text-white leading-none">
+              <h1 className="text-[26px] font-extrabold tracking-tight text-white leading-none">
                 Notifications
               </h1>
-              <div className="flex items-center gap-1.5 mt-2">
-                <span className="w-2 h-2 rounded-full bg-[#FFBA09] shadow-[0_0_8px_#FFBA09]" />
-                <span className="text-[11px] font-extrabold text-white/80 uppercase tracking-wider">
-                  {unreadCount} unread cards
+              <div className="flex items-center gap-1.5 mt-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#FFBA09] shadow-[0_0_5px_#FFBA09]" />
+                <span className="text-[11px] font-medium text-white/80">
+                  {unreadCount} unread
                 </span>
               </div>
             </div>
             <div className="flex items-center gap-3 pb-0.5">
               <button
                 onClick={markAllRead}
-                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-white/10 border border-white/5 text-[10px] font-black tracking-wide text-white hover:bg-white/15 transition-all uppercase cursor-pointer"
+                className="text-[11px] font-semibold text-white/70 active:text-white transition-colors"
               >
-                <CheckCheck size={11} />
                 Mark read
               </button>
+              <span className="w-px h-3 bg-white/20" />
               <button
                 onClick={() => setShowClearModal(true)}
-                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-red-500/20 border border-red-500/10 text-[10px] font-black tracking-wide text-red-300 hover:bg-red-500/30 transition-all uppercase cursor-pointer"
+                className="text-[11px] font-semibold text-white/70 active:text-white transition-colors"
               >
-                <Trash2 size={11} />
-                Clear
+                Clear all
               </button>
             </div>
           </div>

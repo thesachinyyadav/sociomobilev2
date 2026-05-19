@@ -240,11 +240,25 @@ export function initOneSignal(): void {
             console.warn("[OneSignal] Failed to attach permission listener:", permErr);
           }
 
-          // subscription change listener
+          // subscription change listener — dispatch a window event so the
+          // NotificationContext can re-bind the external_id whenever the
+          // subscription is (re)created. Without this re-trigger, a login()
+          // call that ran before the subscription existed leaves the user
+          // permanently unbound, and the server gets recipients=0.
           try {
             if (OneSignal.User && OneSignal.User.PushSubscription) {
               OneSignal.User.PushSubscription.addEventListener("change", (event: any) => {
-                console.log("[OneSignal] Push subscription changed:", event);
+                const current = event?.current || {};
+                console.log("[OneSignal] Push subscription changed:", {
+                  id: current.id,
+                  token: current.token ? "present" : "none",
+                  optedIn: current.optedIn,
+                });
+                window.dispatchEvent(
+                  new CustomEvent("socio:onesignalSubscriptionChanged", {
+                    detail: { id: current.id, optedIn: current.optedIn },
+                  })
+                );
               });
               console.log("[OneSignal] Push subscription listener attached successfully");
             }
@@ -276,14 +290,47 @@ export function initOneSignal(): void {
           }
         })
         .catch((err) => {
-          console.error("[OneSignal] Background init failed:", err);
+          handleInitError(err);
         });
 
     } catch (err: any) {
-      initialized = false; // Reset state so a retry can be attempted later
-      console.error("[OneSignal] Initialization error:", err.message || err);
+      handleInitError(err);
     }
   };
+
+  function handleInitError(err: any) {
+    initialized = false;
+    const msg = (err && (err.message || String(err))) || "(unknown error)";
+    const originLockMatch = /Can only be used on:\s*(\S+)/i.exec(msg);
+    if (originLockMatch) {
+      const allowedOrigin = originLockMatch[1];
+      const currentOrigin = typeof window !== "undefined" ? window.location.origin : "(ssr)";
+      console.warn(
+        `[OneSignal] Init skipped: this OneSignal app is locked to origin "${allowedOrigin}", but the page is running at "${currentOrigin}".\n` +
+          `To enable local development:\n` +
+          `  1. Open OneSignal Dashboard → Settings → Platforms → Web (Web Push).\n` +
+          `  2. Under "Site Setup" / "Allowed Origins" add: ${currentOrigin}\n` +
+          `  3. Save and hard-reload this page.\n` +
+          `Alternative: open the deployed PWA at ${allowedOrigin} (the local server can still serve it via NEXT_PUBLIC_API_URL).`
+      );
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(
+          new CustomEvent("socio:onesignalInitFailed", {
+            detail: { reason: "origin-lock", allowedOrigin, currentOrigin },
+          })
+        );
+      }
+      return;
+    }
+    console.error("[OneSignal] Initialization error:", msg);
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(
+        new CustomEvent("socio:onesignalInitFailed", {
+          detail: { reason: "unknown", message: msg },
+        })
+      );
+    }
+  }
 
   // ── STEP 4: Delay OneSignal initialization ────────────────────
   if ("requestIdleCallback" in window) {

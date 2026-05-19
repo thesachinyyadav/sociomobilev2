@@ -256,13 +256,58 @@ export default function ProfilePage() {
       const result = await apiRequest<any>("/notifications/staff-welcome-broadcast", {
         method: "POST",
       });
-      if (result?.ok) {
-        console.log("[Broadcast] success", result);
-        toast.success("Broadcast sent — live push fired to all opted-in users", { id: toastId });
-      } else {
+      if (!result?.ok) {
         const msg = result?.error || "Broadcast failed";
         console.error("[Broadcast] non-ok response:", result);
         toast.error(msg, { id: toastId });
+        return;
+      }
+
+      // Server now returns per-channel delivery state. Show the real status,
+      // not just "we saved a row in the DB".
+      const delivery = result.delivery || {};
+      const osOk = delivery.oneSignal?.success !== false;
+      const webOk = delivery.webPush?.success !== false;
+      const osRecipients =
+        delivery.oneSignal?.result?.recipients ??
+        delivery.oneSignal?.recipients ??
+        null;
+      const webSent = delivery.webPush?.sent ?? null;
+      console.log("[Broadcast] response", {
+        ok: result.ok,
+        delivered: result.delivered,
+        osOk,
+        webOk,
+        osRecipients,
+        webSent,
+        delivery,
+      });
+
+      if (result.delivered) {
+        const parts: string[] = [];
+        if (osOk && (osRecipients === null || osRecipients > 0)) {
+          parts.push(osRecipients !== null ? `OneSignal: ${osRecipients}` : "OneSignal");
+        }
+        if (webOk && (webSent === null || webSent > 0)) {
+          parts.push(webSent !== null ? `web-push: ${webSent}` : "web-push");
+        }
+        toast.success(`Broadcast delivered — ${parts.join(", ") || "queued"}`, { id: toastId });
+      } else {
+        const errParts: string[] = [];
+        if (!osOk) {
+          errParts.push(`OneSignal failed${delivery.oneSignal?.error ? `: ${delivery.oneSignal.error}` : ""}`);
+        } else if (osRecipients === 0) {
+          errParts.push("OneSignal: 0 recipients");
+        }
+        if (!webOk) {
+          errParts.push(`web-push failed${delivery.webPush?.error ? `: ${delivery.webPush.error}` : ""}`);
+        } else if (webSent === 0) {
+          errParts.push("web-push: 0 recipients");
+        }
+        toast.error(
+          `Saved but not delivered — ${errParts.join("; ") || "no push channel succeeded"}`,
+          { id: toastId, duration: 6000 }
+        );
       }
     } catch (e: any) {
       const msg = e?.message || "Broadcast failed — check console";

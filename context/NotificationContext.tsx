@@ -160,6 +160,8 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       if (event.data?.type === "socio:notificationClick") {
         const route = event.data.url || "/notifications";
         window.dispatchEvent(new CustomEvent("socio:notificationClick", { detail: { route } }));
+      } else if (event.data?.type === "socio:foregroundNotification") {
+        window.dispatchEvent(new CustomEvent("socio:foregroundNotification", { detail: event.data }));
       }
     };
 

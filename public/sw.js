@@ -43,15 +43,38 @@ self.addEventListener("push", (event) => {
     };
 
     event.waitUntil(
-      self.registration.showNotification(title, options)
-        .catch((err) => {
-          console.error("[SW] showNotification failed, trying fallback:", err);
-          return self.registration.showNotification(title || "SOCIO", {
-            body: body || "New notification",
-            icon: "/applogo.png",
-            data: { url: route }
-          });
-        })
+      self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clients) => {
+        let isForeground = false;
+        
+        for (const client of clients) {
+          if (client.visibilityState === "visible") {
+            isForeground = true;
+            client.postMessage({
+              type: "socio:foregroundNotification",
+              title,
+              body,
+              route,
+              tag,
+              icon: data.icon,
+              badge: data.badge,
+              category: data.category || data.type || "info"
+            });
+          }
+        }
+
+        // Only show OS notification if app is in background, to avoid double notifications
+        if (!isForeground) {
+          return self.registration.showNotification(title, options)
+            .catch((err) => {
+              console.error("[SW] showNotification failed, trying fallback:", err);
+              return self.registration.showNotification(title || "SOCIO", {
+                body: body || "New notification",
+                icon: "/applogo.png",
+                data: { url: route }
+              });
+            });
+        }
+      })
     );
   } catch (fatalErr) {
     console.error("[SW] Fatal error in push listener:", fatalErr);

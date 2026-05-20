@@ -252,6 +252,20 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       localStorage.setItem("socio_vapid_subscription", subJSON);
       localStorage.setItem("socio_vapid_subscription_created_at", new Date().toISOString());
 
+      // Register the subscription on the backend database
+      try {
+        await apiRequest("/notifications/push/subscribe", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: subJSON,
+        });
+        console.log("[PUSH] Registered subscription on backend database successfully");
+      } catch (backendErr) {
+        console.warn("[PUSH] Backend subscription registration failed:", backendErr);
+      }
+
       const newStatus = "granted";
       setPushStatus(newStatus);
       localStorage.setItem(LS_PUSH_STATUS_KEY, newStatus);
@@ -279,6 +293,23 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         } catch (e) {
           console.warn("[PUSH] Local unsubscribe error:", e);
         }
+      }
+
+      // Clear server subscription
+      try {
+        const cachedSub = localStorage.getItem("socio_vapid_subscription");
+        if (cachedSub) {
+          await apiRequest("/notifications/push/unsubscribe", {
+            method: "DELETE",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: cachedSub,
+          });
+          console.log("[PUSH] Unregistered subscription from backend database");
+        }
+      } catch (backendErr) {
+        console.warn("[PUSH] Backend unsubscription failed:", backendErr);
       }
 
       // Clear local cache keys

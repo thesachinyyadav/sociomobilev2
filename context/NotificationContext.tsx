@@ -162,6 +162,8 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         window.dispatchEvent(new CustomEvent("socio:notificationClick", { detail: { route } }));
       } else if (event.data?.type === "socio:foregroundNotification") {
         window.dispatchEvent(new CustomEvent("socio:foregroundNotification", { detail: event.data }));
+        // Lightweight in-app sync: refresh the notifications list to update badge and counts
+        fetchRef.current();
       }
     };
 

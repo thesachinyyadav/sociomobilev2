@@ -19,7 +19,7 @@ export interface RealtimeToastData {
   id: string;
   title: string;
   body: string;
-  type?: "success" | "info" | "warning" | "error" | "event";
+  type?: "success" | "info" | "warning" | "error" | "event" | "broadcast" | "event_reminder" | string;
   badge?: string;
   ctaText?: string;
   ctaRoute?: string;
@@ -51,6 +51,12 @@ const TYPE_STYLES = {
     badgeBg: "bg-amber-500/10 text-amber-400 border-amber-500/20",
     icon: <AlertTriangle size={16} className="text-amber-400" />
   },
+  broadcast: {
+    glow: "shadow-[0_8px_32px_rgba(245,158,11,0.15)] border-amber-500/25",
+    bar: "bg-amber-500",
+    badgeBg: "bg-amber-500/10 text-amber-400 border-amber-500/20",
+    icon: <AlertTriangle size={16} className="text-amber-400" />
+  },
   error: {
     glow: "shadow-[0_8px_32px_rgba(239,68,68,0.15)] border-red-500/25",
     bar: "bg-red-500",
@@ -62,11 +68,17 @@ const TYPE_STYLES = {
     bar: "bg-gradient-to-b from-purple-500 to-pink-500",
     badgeBg: "bg-gradient-to-r from-purple-500/10 to-pink-500/10 text-purple-300 border-purple-500/20",
     icon: <Sparkles size={16} className="text-purple-400" />
+  },
+  event_reminder: {
+    glow: "shadow-[0_8px_32px_rgba(124,58,237,0.2)] border-purple-500/25",
+    bar: "bg-gradient-to-b from-purple-500 to-pink-500",
+    badgeBg: "bg-gradient-to-r from-purple-500/10 to-pink-500/10 text-purple-300 border-purple-500/20",
+    icon: <Sparkles size={16} className="text-purple-400" />
   }
 };
 
 export default function RealtimeToast({ toast, onDismiss }: RealtimeToastProps) {
-  const style = TYPE_STYLES[toast.type || "info"];
+  const style = TYPE_STYLES[(toast.type || "info") as keyof typeof TYPE_STYLES] || TYPE_STYLES.info;
   const controls = useAnimation();
 
   // Auto-dismiss after 6.5 seconds

@@ -16,10 +16,10 @@ export default function RealtimeToastContainer() {
         id: `t_${Math.random().toString(36).substr(2, 9)}`,
         title: detail.title || "Notification",
         body: detail.body || "",
-        type: detail.type || "info",
+        type: detail.category || (detail.type !== "socio:foregroundNotification" ? detail.type : null) || "info",
         badge: detail.badge || "UPDATE",
         ctaText: detail.ctaText || "View Detail",
-        ctaRoute: detail.ctaRoute || "/notifications",
+        ctaRoute: detail.route || detail.ctaRoute || "/notifications",
         icon: detail.icon,
         createdAt: Date.now(),
       };

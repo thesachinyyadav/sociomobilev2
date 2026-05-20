@@ -22,7 +22,7 @@ export interface Notification {
   deepLink?: string | null;
   category?: string;
   priority?: string;
-  metadata?: any;
+  metadata?: Record<string, unknown>;
   isBroadcast: boolean;
 }
 
@@ -207,9 +207,10 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       try {
         reg = await navigator.serviceWorker.register("/sw.js");
         await navigator.serviceWorker.ready;
-      } catch (swErr: any) {
+      } catch (swErr: unknown) {
+        const msg = swErr instanceof Error ? swErr.message : "Service worker registration failed";
         console.error("[PUSH] Service worker registration failed:", swErr);
-        toast.error(swErr?.message || "Service worker registration failed");
+        toast.error(msg);
         return;
       }
 
@@ -238,9 +239,10 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
             applicationServerKey: urlBase64ToUint8Array(vapidKey),
           });
           console.log("[PUSH] Subscription created:", subscription.endpoint);
-        } catch (subErr: any) {
+        } catch (subErr: unknown) {
+          const msg = subErr instanceof Error ? subErr.message : "Failed to subscribe to push";
           console.error("[PUSH] pushManager.subscribe failed:", subErr);
-          toast.error(subErr?.message || "Failed to subscribe to push");
+          toast.error(msg);
           return;
         }
       } else {
@@ -272,9 +274,10 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       updatePromptStatus("accepted");
 
       toast.success("Notifications enabled!");
-    } catch (e: any) {
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "Failed to enable notifications";
       console.error("[PUSH] Enable error", e);
-      toast.error(e?.message || "Failed to enable notifications");
+      toast.error(msg);
     }
   }, [updatePromptStatus]);
 
@@ -320,9 +323,10 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       localStorage.setItem(LS_PUSH_STATUS_KEY, "not_requested");
       updatePromptStatus("not_shown");
       toast.success("Notifications turned off");
-    } catch (e: any) {
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "Failed to turn off notifications";
       console.error("[PUSH] Disable error", e);
-      toast.error(e?.message || "Failed to turn off notifications");
+      toast.error(msg);
     }
   }, [updatePromptStatus]);
   /* ── Fetch notifications ──────────────────────────────────────────────
@@ -343,44 +347,35 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     console.log(`[API] endpoint: /notifications, platform: ${platform}`);
 
     try {
-      const data: any = await apiRequest(
+      const data = await apiRequest(
         `/notifications?email=${encodeURIComponent(userData.email)}&page=${targetPage}&limit=15`,
         { cache: "no-store" }
-      );
+      ) as { notifications: Notification[]; debug?: unknown };
 
       console.log(
         `[Notifications] GET /notifications returned count=${(data?.notifications || []).length} debug=`,
         data?.debug
       );
 
-      const raw = (data.notifications || []) as Notification[];
+      // Server now filters dismissed and applies read state via notification_user_status
+      const processed = data.notifications || [];
 
-        const readSet = getLocalSet(LS_READ_KEY);
-        const dismissedSet = getLocalSet(LS_DISMISSED_KEY);
+      // Track delivery analytics for newly fetched notifications
+      processed.forEach(n => {
+        trackNotificationEvent(n.id, "delivered", { title: n.title });
+      });
 
-        const processed = raw
-          .filter(n => !dismissedSet.has(n.id))
-          .map(n => ({
-            ...n,
-            read: n.read || readSet.has(n.id)
-          }));
+      if (isLoadMore) {
+        setNotifications(prev => [...prev, ...processed]);
+        pageRef.current = targetPage;
+      } else {
+        setNotifications(processed);
+        pageRef.current = 1;
+        // Functional update: avoids reading stale unreadCount in deps
+        setUnreadCount(processed.filter(n => !n.read).length);
+      }
 
-        // Track delivery analytics for newly fetched notifications
-        processed.forEach(n => {
-          trackNotificationEvent(n.id, "delivered", { title: n.title });
-        });
-
-        if (isLoadMore) {
-          setNotifications(prev => [...prev, ...processed]);
-          pageRef.current = targetPage;
-        } else {
-          setNotifications(processed);
-          pageRef.current = 1;
-          // Functional update: avoids reading stale unreadCount in deps
-          setUnreadCount(processed.filter(n => !n.read).length);
-        }
-
-        setHasMore(raw.length === 15);
+        setHasMore(processed.length === 15);
     } catch (err) {
       console.error("Fetch error", err);
     }
@@ -414,7 +409,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
     const timer = setInterval(() => fetchRef.current(), 60000);
 
-    let appStateListener: any = null;
+    let appStateListener: { remove: () => void } | null = null;
     if (Capacitor.isNativePlatform()) {
       App.addListener("appStateChange", ({ isActive }) => {
         if (isActive) {

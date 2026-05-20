@@ -174,6 +174,30 @@ export default function ProfilePage() {
         return;
       }
 
+      // VAPID Direct Push test logic for current user session:
+      // Since broadcasts bypass push dispatch in database-free VAPID mode,
+      // we also trigger a direct push to the user's active local subscription
+      // so they receive the push notification in their system tray/banner.
+      try {
+        const cachedSub = localStorage.getItem("socio_vapid_subscription");
+        if (cachedSub) {
+          console.log("[Broadcast] Dispatching direct push test to current local subscription...");
+          await apiRequest<any>("/notifications/send-direct", {
+            method: "POST",
+            body: JSON.stringify({
+              subscription: JSON.parse(cachedSub),
+              payload: {
+                title: "Hi, Welcome to Socio!",
+                body: "Glad to have you on SOCIO — your hub for campus events, fests, and clubs.",
+                url: "/notifications",
+              },
+            }),
+          });
+        }
+      } catch (pushErr) {
+        console.warn("[Broadcast] Failed to send local direct push notification:", pushErr);
+      }
+
       // Server now returns per-channel delivery state. Show the real status,
       // not just "we saved a row in the DB".
       const delivery = result.delivery || {};

@@ -136,30 +136,9 @@ export default function ProfilePage() {
     };
   }, []);
 
-  const waitForPushReady = (timeoutMs: number) => {
-    if (isOneSignalFullyInitialized()) return Promise.resolve(true);
-    return new Promise<boolean>((resolve) => {
-      const onReady = () => {
-        window.removeEventListener("socio:onesignalFullyInitialized", onReady);
-        clearTimeout(timer);
-        resolve(true);
-      };
-      const timer = setTimeout(() => {
-        window.removeEventListener("socio:onesignalFullyInitialized", onReady);
-        resolve(false);
-      }, timeoutMs);
-      window.addEventListener("socio:onesignalFullyInitialized", onReady);
-    });
-  };
-
   const handleEnableNotifications = async () => {
     setIsEnablingPush(true);
     try {
-      const ready = await waitForPushReady(8000);
-      if (!ready) {
-        toast.error("Push service is still starting. Please try again in a few seconds.");
-        return;
-      }
       await enablePushNotifications();
     } catch (e: any) {
       toast.error(e?.message || "Failed to enable notifications");

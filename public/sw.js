@@ -28,7 +28,9 @@ self.addEventListener("push", (event) => {
     icon: data.icon || "/applogo.png",
     badge: data.badge || "/applogo.png",
     tag,
+    vibrate: [200, 100, 200],
     renotify: !!tag,
+    silent: false,
     data: { url: route, notificationId: data.tag || data.notificationId || null },
   };
 

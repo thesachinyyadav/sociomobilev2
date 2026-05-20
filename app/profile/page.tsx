@@ -181,7 +181,7 @@ export default function ProfilePage() {
       try {
         const cachedSub = localStorage.getItem("socio_vapid_subscription");
         if (cachedSub) {
-          console.log("[Broadcast] Dispatching direct push test to current local subscription...");
+          console.log("[Broadcast] Dispatching direct push test with 3s delay...");
           await apiRequest<any>("/notifications/send-direct", {
             method: "POST",
             body: JSON.stringify({
@@ -191,8 +191,10 @@ export default function ProfilePage() {
                 body: "Glad to have you on SOCIO — your hub for campus events, fests, and clubs.",
                 url: "/notifications",
               },
+              delayMs: 3000,
             }),
           });
+          toast.success("Test notification scheduled! Close or minimize the app to see it pop up in 3 seconds.");
         }
       } catch (pushErr) {
         console.warn("[Broadcast] Failed to send local direct push notification:", pushErr);

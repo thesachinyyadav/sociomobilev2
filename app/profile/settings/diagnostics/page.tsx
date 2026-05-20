@@ -144,12 +144,13 @@ export default function DiagnosticsPage() {
         body: JSON.stringify({
           subscription: JSON.parse(cachedSub),
           payload,
+          delayMs: 3000,
         }),
       });
 
       setLastResult(result);
       if (result?.ok) {
-        toast.success("Push notification dispatched successfully!");
+        toast.success("Test notification scheduled! Close/minimize the app to see it pop up in 3 seconds.");
       } else {
         toast.error(`Push dispatch failed: ${result?.error || "Unknown error"}`);
       }

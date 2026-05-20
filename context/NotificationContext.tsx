@@ -160,9 +160,18 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       if (event.data?.type === "socio:notificationClick") {
         const route = event.data.url || "/notifications";
         window.dispatchEvent(new CustomEvent("socio:notificationClick", { detail: { route } }));
+
       } else if (event.data?.type === "socio:foregroundNotification") {
+        // SW sent this because app is in background — re-dispatch for any listeners
+        // and silently refresh the notification count
         window.dispatchEvent(new CustomEvent("socio:foregroundNotification", { detail: event.data }));
-        // Lightweight in-app sync: refresh the notifications list to update badge and counts
+        fetchRef.current();
+
+      } else if (event.data?.type === "socio:foregroundSync") {
+        // SW suppressed the native notification because the app is currently visible.
+        // Silently refresh unread count — no toast, no overlay, no popup.
+        // This matches Instagram/Discord foreground notification UX.
+        console.log("[PUSH] Foreground sync triggered — silently refreshing notification count");
         fetchRef.current();
       }
     };

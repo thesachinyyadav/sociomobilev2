@@ -40,7 +40,6 @@
     "jspdf": "^4.2.1",
     "lucide-react": "^0.562.0",
     "next": "^16.2.6",
-    "onesignal-cordova-plugin": "^5.3.7",
     "passkit-generator": "^3.5.7",
     "postcss": "^8.5.14",
     "qr-scanner": "^1.4.2",
@@ -48,7 +47,6 @@
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-hot-toast": "^2.6.0",
-    "react-onesignal": "^3.5.1",
     "swr": "^2.4.1"
   },
   "devDependencies": {

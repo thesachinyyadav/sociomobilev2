@@ -5,7 +5,7 @@ export async function generateStaticParams() {
 
   if (!supabaseUrl || !supabaseAnonKey) {
     console.warn("Supabase credentials missing during build-time generateStaticParams");
-    return [];
+    return [{ eventId: "1" }];
   }
 
   try {
@@ -19,12 +19,14 @@ export async function generateStaticParams() {
     if (!res.ok) throw new Error(`Supabase fetch failed: ${res.statusText}`);
     
     const events = await res.json();
-    return (events || []).map((e: any) => ({
+    const params = (events || []).map((e: any) => ({
       eventId: String(e.event_id),
     }));
+
+    return params.length > 0 ? params : [{ eventId: "1" }];
   } catch (err) {
     console.error("Error generating static params for volunteer scanner:", err);
-    return [];
+    return [{ eventId: "1" }];
   }
 }
 

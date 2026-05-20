@@ -6,10 +6,8 @@ import { Capacitor } from "@capacitor/core";
 interface DiagData {
   platform: string;
   serviceWorkers: string;
-  oneSignal: string;
+  vapidSubscription: string;
   permission: string;
-  optedIn: string;
-  subscriptionId: string;
   lastRefresh: string;
 }
 
@@ -17,10 +15,8 @@ export default function NotificationDiagnostics() {
   const [data, setData] = useState<DiagData>({
     platform: "…",
     serviceWorkers: "…",
-    oneSignal: "…",
+    vapidSubscription: "…",
     permission: "…",
-    optedIn: "…",
-    subscriptionId: "…",
     lastRefresh: "never",
   });
   const [isOpen, setIsOpen] = useState(false);
@@ -48,40 +44,28 @@ export default function NotificationDiagnostics() {
       }
     }
 
-    // ── OneSignal subscription state ───────────────────────────
-    let osState = "Not loaded";
+    // ── VAPID subscription state ───────────────────────────
+    let vapidState = "Not Cached";
     let permission = "default";
-    let optedIn = "unknown";
-    let subscriptionId = "N/A";
 
     try {
-      if (Capacitor.isNativePlatform()) {
-        const OS = (await import("onesignal-cordova-plugin")).default as any;
-        if (OS) {
-          osState = "Initialized (Native)";
-          subscriptionId = OS.User?.pushSubscription?.id || "None";
-          optedIn = String(OS.User?.pushSubscription?.optedIn ?? "unknown");
-        }
-      } else {
-        const OS = typeof window !== "undefined" ? (window as any).OneSignal : null;
-        if (OS) {
-          osState = "Initialized (Web)";
-          permission = Notification.permission;
-          optedIn = String(OS.User?.PushSubscription?.optedIn ?? "unknown");
-          subscriptionId = OS.User?.PushSubscription?.id || "⚠ Not assigned";
+      if (typeof window !== "undefined") {
+        permission = Notification.permission;
+        const cachedSub = localStorage.getItem("socio_vapid_subscription");
+        if (cachedSub) {
+          const parsed = JSON.parse(cachedSub);
+          vapidState = parsed.endpoint ? `Cached (${parsed.endpoint.slice(0, 30)}…)` : "Cached (No endpoint)";
         }
       }
     } catch (e) {
-      osState = `Error: ${(e as Error).message}`;
+      vapidState = `Error: ${(e as Error).message}`;
     }
 
     setData({
       platform: Capacitor.getPlatform(),
       serviceWorkers: swStatus,
-      oneSignal: osState,
+      vapidSubscription: vapidState,
       permission,
-      optedIn,
-      subscriptionId,
       lastRefresh: new Date().toLocaleTimeString(),
     });
   }, []);
@@ -101,27 +85,20 @@ export default function NotificationDiagnostics() {
     return (
       <button
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-20 left-4 bg-black/50 text-white text-[10px] px-2 py-1 rounded opacity-50 hover:opacity-100 z-50"
+        className="fixed bottom-20 left-4 bg-black/50 text-white text-[10px] px-2 py-1 rounded opacity-50 hover:opacity-100 z-50 cursor-pointer"
       >
-        OS Debug
+        Push Debug
       </button>
     );
   }
 
-  const subIdFull = data.subscriptionId;
-  const subIdShort =
-    subIdFull && subIdFull !== "N/A" && subIdFull !== "⚠ Not assigned"
-      ? `${subIdFull.slice(0, 8)}…${subIdFull.slice(-6)}`
-      : subIdFull;
-
-  const isHealthy =
-    data.permission === "granted" && data.optedIn === "true" && !data.subscriptionId.startsWith("⚠");
+  const isHealthy = data.permission === "granted" && data.vapidSubscription.startsWith("Cached");
 
   return (
     <div className="fixed bottom-20 left-4 right-4 bg-gray-900 text-green-400 font-mono text-[10px] p-3 rounded-lg shadow-xl z-50 overflow-auto max-h-[60vh] border border-gray-700">
       <div className="flex justify-between items-center mb-2 pb-2 border-b border-gray-700">
         <h3 className="font-bold text-white">
-          OneSignal Diagnostics{" "}
+          VAPID Push Diagnostics{" "}
           <span className={isHealthy ? "text-green-400" : "text-yellow-400"}>
             {isHealthy ? "✅" : "⚠️"}
           </span>
@@ -129,11 +106,11 @@ export default function NotificationDiagnostics() {
         <div className="flex gap-2">
           <button
             onClick={collectData}
-            className="text-blue-400 hover:text-blue-200 px-2"
+            className="text-blue-400 hover:text-blue-200 px-2 cursor-pointer"
           >
             Refresh
           </button>
-          <button onClick={() => setIsOpen(false)} className="text-gray-400 hover:text-white px-2">
+          <button onClick={() => setIsOpen(false)} className="text-gray-400 hover:text-white px-2 cursor-pointer">
             Close
           </button>
         </div>
@@ -145,28 +122,15 @@ export default function NotificationDiagnostics() {
           <span className="text-white">{data.platform}</span>
         </div>
         <div>
-          <span className="text-gray-400">OneSignal State:</span>{" "}
-          <span className="text-white">{data.oneSignal}</span>
-        </div>
-        <div>
           <span className="text-gray-400">Permission:</span>{" "}
           <span className={data.permission === "granted" ? "text-green-400" : "text-red-400"}>
             {data.permission}
           </span>
         </div>
-        <div>
-          <span className="text-gray-400">Opted In:</span>{" "}
-          <span className={data.optedIn === "true" ? "text-green-400" : "text-yellow-400"}>
-            {data.optedIn}
-          </span>
-        </div>
         <div className="break-all">
-          <span className="text-gray-400">Subscription ID:</span>{" "}
-          <span
-            className={data.subscriptionId.startsWith("⚠") ? "text-yellow-400" : "text-green-400"}
-            title={subIdFull}
-          >
-            {subIdShort}
+          <span className="text-gray-400">Subscription:</span>{" "}
+          <span className={data.vapidSubscription.startsWith("Cached") ? "text-green-400" : "text-yellow-400"}>
+            {data.vapidSubscription}
           </span>
         </div>
         <div className="break-all">
@@ -177,16 +141,6 @@ export default function NotificationDiagnostics() {
           Last refresh: {data.lastRefresh}
         </div>
       </div>
-
-      {/* Quick copy subscription ID for pasting into OneSignal dashboard */}
-      {subIdFull && !subIdFull.startsWith("⚠") && subIdFull !== "N/A" && (
-        <button
-          onClick={() => navigator.clipboard?.writeText(subIdFull)}
-          className="mt-2 w-full text-center text-blue-400 hover:text-blue-200 border border-blue-900 rounded py-1"
-        >
-          Copy Subscription ID
-        </button>
-      )}
     </div>
   );
 }

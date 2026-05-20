@@ -106,7 +106,6 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(false);
   const [pushStatus, setPushStatus] = useState<PushStatus>("not_requested");
   const [promptStatus, setPromptStatus] = useState<NotificationPromptStatus>("not_shown");
-  const [oneSignal, setOneSignal] = useState<any>(null);
   const [isPushReady, setIsPushReady] = useState(false);
   const router = useRouter();
 
@@ -139,8 +138,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   }, [promptStatus, updatePromptStatus]);
 
   // 1. Push subsystem initialization
-  //    • Web/PWA  → register /sw.js for VAPID web push (OneSignal removed)
-  //    • Native   → OneSignal Cordova plugin (unchanged)
+  //    • Web/PWA  → register /sw.js for VAPID web push
   useEffect(() => {
     if (typeof window === "undefined") return;
 
@@ -165,70 +163,21 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       }
     };
 
-    if (Capacitor.isNativePlatform()) {
-      // Native: OneSignal Cordova plugin path (unchanged)
-      (async () => {
-        try {
-          const appId = process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID;
-          if (!appId || appId === "placeholder_onesignal_id_here") return;
-
-          const OS = (await import("onesignal-cordova-plugin")).default;
-          OS.initialize(appId);
-
-          if (OS.Notifications) {
-            OS.Notifications.addEventListener("click", (event: any) => {
-              const route =
-                event.notification.additionalData?.route ||
-                event.notification.additionalData?.actionUrl;
-              router.push(route || "/notifications");
-            });
-            OS.Notifications.addEventListener("foregroundWillDisplay", (event: any) => {
-              event.preventDefault();
-              const n = event.notification;
-              window.dispatchEvent(
-                new CustomEvent("socio:foregroundNotification", {
-                  detail: {
-                    title: n.title,
-                    body: n.body,
-                    type: n.additionalData?.type || "event",
-                    badge: n.additionalData?.badge || "UPDATE",
-                    ctaText: n.additionalData?.ctaText || "View Detail",
-                    ctaRoute: n.additionalData?.route || n.additionalData?.actionUrl || "/notifications",
-                    icon: n.icon
-                  }
-                })
-              );
-            });
-          }
-
-          setOneSignal(OS);
-          console.log("[OneSignal] Native Cordova listeners attached");
+    // Web / PWA SW registration:
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker
+        .register("/sw.js")
+        .then((reg) => {
+          console.log("[PUSH] Service worker registered (scope:", reg.scope, ")");
           setIsPushReady(true);
-        } catch (e) {
-          console.error("[OneSignal] Native init error", e);
+        })
+        .catch((err) => {
+          console.error("[PUSH] Service worker registration failed:", err);
           setIsPushReady(true);
-        }
-      })();
+        });
+      navigator.serviceWorker.addEventListener("message", handleSwMessage);
     } else {
-      // Web: register our own SW for VAPID push handling.
-      if ("serviceWorker" in navigator) {
-        navigator.serviceWorker
-          .register("/sw.js")
-          .then((reg) => {
-            console.log("[VAPID] Service worker registered (scope:", reg.scope, ")");
-            setIsPushReady(true);
-          })
-          .catch((err) => {
-            console.error("[VAPID] Service worker registration failed:", err);
-            // Still flip ready so the in-app feed (which reads from the API,
-            // not from push) can hydrate.
-            setIsPushReady(true);
-          });
-        navigator.serviceWorker.addEventListener("message", handleSwMessage);
-      } else {
-        // No SW support at all — still let the rest of the app function.
-        setIsPushReady(true);
-      }
+      setIsPushReady(true);
     }
 
     return () => {
@@ -238,217 +187,113 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       }
     };
   }, [router]);
-
-  // Sync User Tags (Web & Native)
-  // Native-only effect: bind OneSignal external_id once auth and the Cordova
-  // SDK handle are both ready. Web uses VAPID and has no equivalent binding
-  // step — the subscription endpoint itself is the identity, and the email
-  // is POSTed alongside it to /notifications/push/subscribe.
-  useEffect(() => {
-    // Native-only: OneSignal external_id binding. Web uses VAPID, which has
-    // no separate identity binding — the subscription endpoint itself IS the
-    // identity, and the email is sent alongside it to /notifications/push/subscribe.
-    const syncIdentity = async (reason: string) => {
-      if (!Capacitor.isNativePlatform()) return;
-      if (!userData?.email) return;
-      if (!oneSignal) {
-        console.log("[OneSignal] Native SDK handle not ready — skipping sync");
-        return;
-      }
-      const externalId = userData.email.toLowerCase();
-      console.log(`[OneSignal] Identity sync requested (reason=${reason}) for external_id=${externalId}`);
-
-      try {
-        oneSignal.login(externalId);
-        oneSignal.User.addTags({
-          department: userData.department || "none",
-          campus: userData.campus || "none",
-          email: externalId,
-        });
-        const sub = oneSignal.User.PushSubscription;
-        console.log(
-          `[OneSignal] Native sync complete (sub_id=${sub?.id || "none"}, optedIn=${sub?.optedIn}, token=${sub?.token ? "present" : "none"})`
-        );
-      } catch (e) {
-        console.warn("[OneSignal] Identity sync failed:", e);
-      }
-    };
-
-    const logoutIdentity = async () => {
-      if (!Capacitor.isNativePlatform()) return;
-      if (userData?.email) return;
-      try {
-        if (oneSignal) oneSignal.logout();
-      } catch (e) {
-        console.warn("[OneSignal] Logout failed:", e);
-      }
-    };
-
-    if (userData?.email && isPushReady) {
-      syncIdentity("auth-or-ready");
-    } else if (!userData?.email) {
-      logoutIdentity();
-    }
-
-    return () => {
-      cancelled = true;
-    };
-  }, [userData?.email, userData?.department, userData?.campus, oneSignal, isPushReady]);
-
   const enablePushNotifications = useCallback(async () => {
     if (typeof window === "undefined") return;
 
     try {
-      let granted = false;
-
-      if (Capacitor.isNativePlatform()) {
-        // Native: OneSignal Cordova plugin
-        if (!oneSignal) {
-          console.warn("[OneSignal] Native SDK not ready — cannot request permission yet");
-          return;
-        }
-        granted = await oneSignal.Notifications.requestPermission(true);
-        console.log("[OneSignal] Native permission result:", granted);
-      } else {
-        // Web: VAPID web push via PushManager + our /sw.js
-        if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
-          toast.error("Push notifications aren't supported in this browser");
-          return;
-        }
-        const vapidKey = process.env.NEXT_PUBLIC_VAPID_KEY;
-        if (!vapidKey) {
-          console.error("[VAPID] NEXT_PUBLIC_VAPID_KEY is not set");
-          toast.error("Push notifications are not configured (missing VAPID key)");
-          return;
-        }
-
-        let reg: ServiceWorkerRegistration;
-        try {
-          reg = await navigator.serviceWorker.register("/sw.js");
-          await navigator.serviceWorker.ready;
-        } catch (swErr: any) {
-          console.error("[VAPID] Service worker registration failed:", swErr);
-          toast.error(swErr?.message || "Service worker registration failed");
-          return;
-        }
-
-        const permission = await Notification.requestPermission();
-        console.log("[VAPID] Permission after request:", permission);
-        granted = permission === "granted";
-        if (!granted) {
-          setPushStatus(permission === "denied" ? "denied" : "not_requested");
-          localStorage.setItem(LS_PUSH_STATUS_KEY, permission === "denied" ? "denied" : "not_requested");
-          updatePromptStatus(permission === "denied" ? "denied" : "not_shown");
-          if (permission === "denied") {
-            toast.error("Notifications are blocked in browser settings");
-          }
-          return;
-        }
-
-        // Reuse existing subscription if present, otherwise create one.
-        let subscription = await reg.pushManager.getSubscription();
-        if (!subscription) {
-          try {
-            subscription = await reg.pushManager.subscribe({
-              userVisibleOnly: true,
-              applicationServerKey: urlBase64ToUint8Array(vapidKey),
-            });
-            console.log("[VAPID] Created new push subscription");
-          } catch (subErr: any) {
-            console.error("[VAPID] pushManager.subscribe failed:", subErr);
-            toast.error(subErr?.message || "Failed to subscribe to push");
-            return;
-          }
-        } else {
-          console.log("[VAPID] Reusing existing push subscription");
-        }
-
-        // Persist the subscription on the server so broadcasts can find it.
-        if (userData?.email) {
-          try {
-            await apiRequest("/notifications/push/subscribe", {
-              method: "POST",
-              body: JSON.stringify({
-                email: userData.email,
-                subscription: subscription.toJSON(),
-              }),
-            });
-            console.log("[VAPID] Subscription saved on server");
-          } catch (postErr: any) {
-            console.error("[VAPID] Server subscribe failed:", postErr);
-            toast.error(postErr?.message || "Could not save subscription on server");
-            return;
-          }
-        }
+      if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
+        toast.error("Push notifications aren't supported in this browser");
+        return;
       }
 
-      const newStatus = granted ? "granted" : "denied";
+      const vapidKey = process.env.NEXT_PUBLIC_VAPID_KEY;
+      if (!vapidKey) {
+        console.error("[PUSH] NEXT_PUBLIC_VAPID_KEY is not set");
+        toast.error("Push notifications are not configured (missing VAPID key)");
+        return;
+      }
+
+      let reg: ServiceWorkerRegistration;
+      try {
+        reg = await navigator.serviceWorker.register("/sw.js");
+        await navigator.serviceWorker.ready;
+      } catch (swErr: any) {
+        console.error("[PUSH] Service worker registration failed:", swErr);
+        toast.error(swErr?.message || "Service worker registration failed");
+        return;
+      }
+
+      const permission = await Notification.requestPermission();
+      console.log("[PUSH] Permission after request:", permission);
+
+      const granted = permission === "granted";
+      if (!granted) {
+        setPushStatus(permission === "denied" ? "denied" : "not_requested");
+        localStorage.setItem(LS_PUSH_STATUS_KEY, permission === "denied" ? "denied" : "not_requested");
+        updatePromptStatus(permission === "denied" ? "denied" : "not_shown");
+        if (permission === "denied") {
+          toast.error("Notifications are blocked in browser settings");
+        }
+        return;
+      }
+
+      console.log("[PUSH] Permission granted");
+
+      // Reuse existing subscription if present, otherwise create one.
+      let subscription = await reg.pushManager.getSubscription();
+      if (!subscription) {
+        try {
+          subscription = await reg.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: urlBase64ToUint8Array(vapidKey),
+          });
+          console.log("[PUSH] Subscription created:", subscription.endpoint);
+        } catch (subErr: any) {
+          console.error("[PUSH] pushManager.subscribe failed:", subErr);
+          toast.error(subErr?.message || "Failed to subscribe to push");
+          return;
+        }
+      } else {
+        console.log("[PUSH] Reusing existing push subscription:", subscription.endpoint);
+      }
+
+      // Cache the subscription locally in localStorage (no database persistence)
+      const subJSON = JSON.stringify(subscription.toJSON());
+      localStorage.setItem("socio_vapid_subscription", subJSON);
+      localStorage.setItem("socio_vapid_subscription_created_at", new Date().toISOString());
+
+      const newStatus = "granted";
       setPushStatus(newStatus);
       localStorage.setItem(LS_PUSH_STATUS_KEY, newStatus);
-      updatePromptStatus(granted ? "accepted" : "denied");
+      updatePromptStatus("accepted");
 
-      if (granted) {
-        toast.success("Notifications enabled!");
-      }
-    } catch (e) {
-      console.error("[Push] Enable error", e);
+      toast.success("Notifications enabled!");
+    } catch (e: any) {
+      console.error("[PUSH] Enable error", e);
+      toast.error(e?.message || "Failed to enable notifications");
     }
-  }, [oneSignal, updatePromptStatus, userData?.email]);
+  }, [updatePromptStatus]);
 
-  // Opt the user out of push delivery without revoking browser permission
-  // (only the user can revoke that in browser settings). After this call,
-  // the server stops delivering pushes to this device; pushStatus reflects
-  // the change so the UI flips back to "Enable".
   const disablePushNotifications = useCallback(async () => {
     if (typeof window === "undefined") return;
 
     try {
-      if (Capacitor.isNativePlatform()) {
-        if (oneSignal?.User?.pushSubscription?.optOut) {
-          oneSignal.User.pushSubscription.optOut();
-          console.log("[OneSignal] Native opted out");
-        }
-      } else {
-        // Web: VAPID — unsubscribe from PushManager + notify the server so it
-        // marks the row inactive and stops trying to deliver to a dead endpoint.
-        if ("serviceWorker" in navigator) {
-          try {
-            const reg = await navigator.serviceWorker.getRegistration("/sw.js");
-            const subscription = await reg?.pushManager.getSubscription();
-            if (subscription) {
-              if (userData?.email) {
-                try {
-                  await apiRequest("/notifications/push/unsubscribe", {
-                    method: "DELETE",
-                    body: JSON.stringify({
-                      email: userData.email,
-                      endpoint: subscription.endpoint,
-                    }),
-                  });
-                  console.log("[VAPID] Server unsubscribe sent");
-                } catch (serverErr) {
-                  console.warn("[VAPID] Server unsubscribe failed (continuing local unsubscribe):", serverErr);
-                }
-              }
-              await subscription.unsubscribe();
-              console.log("[VAPID] Local unsubscribe complete");
-            }
-          } catch (e) {
-            console.warn("[VAPID] Disable error:", e);
+      if ("serviceWorker" in navigator) {
+        try {
+          const reg = await navigator.serviceWorker.getRegistration("/sw.js");
+          const subscription = await reg?.pushManager.getSubscription();
+          if (subscription) {
+            await subscription.unsubscribe();
+            console.log("[PUSH] Local unsubscribe complete");
           }
+        } catch (e) {
+          console.warn("[PUSH] Local unsubscribe error:", e);
         }
       }
+
+      // Clear local cache keys
+      localStorage.removeItem("socio_vapid_subscription");
+      localStorage.removeItem("socio_vapid_subscription_created_at");
 
       setPushStatus("not_requested");
       localStorage.setItem(LS_PUSH_STATUS_KEY, "not_requested");
       updatePromptStatus("not_shown");
       toast.success("Notifications turned off");
     } catch (e: any) {
-      console.error("[OneSignal] Push disable error", e);
+      console.error("[PUSH] Disable error", e);
       toast.error(e?.message || "Failed to turn off notifications");
     }
-  }, [oneSignal, updatePromptStatus]);
-
+  }, [updatePromptStatus]);
   /* ── Fetch notifications ──────────────────────────────────────────────
    * IMPORTANT: `unreadCount` and `page` are intentionally NOT in the dep
    * array. Reading them via functional setState or pageRef prevents the

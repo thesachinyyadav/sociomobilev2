@@ -1,4 +1,4 @@
-package com.socioapp.mobile;
+package com.withsocio.app;
 
 import static org.junit.Assert.*;
 

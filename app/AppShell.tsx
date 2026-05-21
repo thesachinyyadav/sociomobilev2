@@ -75,12 +75,11 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         if (!Capacitor.isNativePlatform()) return;
 
         const { App } = await import("@capacitor/app");
-        
-        // Handle links when app is in background or already open
-        deepLinkListener = await App.addListener('appUrlOpen', (data) => {
-          console.log("👉 [AppShell] Deep Link Hit:", data.url);
+
+        const handleUrl = (urlString: string) => {
+          console.log("👉 [AppShell] Handling Deep Link URL:", urlString);
           try {
-            const url = new URL(data.url);
+            const url = new URL(urlString);
             
             // 🛑 [AuthRaceFix] If this is an auth callback with tokens, do NOT navigate.
             // Let AuthContext handle the session exchange.
@@ -94,15 +93,32 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               return;
             }
 
-            const path = url.pathname + url.search;
+            let path = url.pathname + url.search;
+            if (url.protocol === 'socio:') {
+              path = '/' + url.host + url.pathname + url.search;
+              path = path.replace(/\/+/g, '/');
+            }
+
             if (path && path !== '/') {
               console.log("🚀 [AppShell] Navigating to:", path);
               router.push(path);
             }
           } catch (e) {
-            console.warn("[AppShell] Invalid deep link URL:", data.url);
+            console.warn("[AppShell] Invalid deep link URL:", urlString);
           }
+        };
+        
+        // Handle links when app is in background or already open
+        deepLinkListener = await App.addListener('appUrlOpen', (data) => {
+          handleUrl(data.url);
         });
+
+        // Check for launch URL (cold boot)
+        const launchUrlData = await App.getLaunchUrl();
+        if (launchUrlData && launchUrlData.url) {
+          console.log("👉 [AppShell] Cold Boot launch URL detected:", launchUrlData.url);
+          handleUrl(launchUrlData.url);
+        }
       } catch (err) {
         console.warn("Deep link setup failed:", err);
       }

@@ -1,4 +1,4 @@
-package com.socioapp.mobile;
+package com.withsocio.app;
 
 import static org.junit.Assert.*;
 
@@ -21,6 +21,6 @@ public class ExampleInstrumentedTest {
         // Context of the app under test.
         Context appContext = InstrumentationRegistry.getInstrumentation().getTargetContext();
 
-        assertEquals("com.socioapp.mobile", appContext.getPackageName());
+        assertEquals("com.withsocio.app", appContext.getPackageName());
     }
 }

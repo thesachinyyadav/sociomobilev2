@@ -72,14 +72,14 @@ const EventCard = memo(function EventCard({
   return (
     <Link href={`/event/${event.event_id}`} className={cardClasses}>
       {/* Premium Operational Hero Image Container */}
-      <div className="relative overflow-hidden rounded-t-[inherit] h-[210px] md:h-[240px] lg:h-[260px] bg-[#011F7B]">
+      <div className="relative overflow-hidden rounded-t-[inherit] aspect-[4/3] md:aspect-[16/10] lg:aspect-[16/9] bg-[#011F7B]">
         {/* Background Event Image */}
         {event.event_image_url || event.banner_url ? (
           <ShimmerImage
             src={(event.banner_url || event.event_image_url)!}
             alt={event.title}
             fill
-            className="object-cover object-center group-hover:scale-[1.03] transition-transform duration-500 ease-out"
+            className="object-cover object-center group-hover:scale-105 transition-transform duration-500 ease-out"
             sizes="(max-width:480px) 100vw, 50vw"
           />
         ) : (

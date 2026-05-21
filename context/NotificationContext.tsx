@@ -8,6 +8,13 @@ import { toast } from "react-hot-toast";
 import { apiRequest } from "@/lib/apiClient";
 import { startPerfSpan } from "@/lib/capacitorPerfAudit";
 import { trackNotificationEvent } from "@/lib/notificationAnalytics";
+import {
+  initNativeOneSignal,
+  requestNativePushPermission,
+  getNativePushPermissionState,
+  optInNativePush,
+  optOutNativePush,
+} from "@/lib/nativeOneSignal";
 
 export interface Notification {
   id: string;
@@ -137,6 +144,38 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     updatePromptStatus("shown");
   }, [promptStatus, updatePromptStatus]);
 
+  // Native OneSignal and Platform Registration initialization
+  useEffect(() => {
+    if (typeof window === "undefined" || !isAuthReady || !userData?.email) return;
+
+    const email = userData.email;
+    const isNative = Capacitor.isNativePlatform();
+
+    if (isNative) {
+      console.log(`[NATIVE PUSH] Boot: initializing OneSignal for ${email}`);
+      initNativeOneSignal(email);
+
+      // Verify native permission and update local state
+      getNativePushPermissionState().then((hasPermission) => {
+        const status: PushStatus = hasPermission ? "granted" : "not_requested";
+        setPushStatus(status);
+        localStorage.setItem(LS_PUSH_STATUS_KEY, status);
+      });
+    }
+
+    // Register active platform on backend
+    const platform = isNative ? "android-native" : "web";
+    console.log(`[PUSH] Registering platform with backend: ${platform} for ${email}`);
+    apiRequest("/notifications/push/register-platform", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, platform }),
+    }).catch((err: unknown) => {
+      console.warn("[PUSH] Failed to register active platform with backend:", err);
+    });
+
+  }, [userData?.email, isAuthReady]);
+
   // 1. Push subsystem initialization
   //    • Web/PWA  → register /sw.js for VAPID web push
   useEffect(() => {
@@ -204,9 +243,9 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
      * after any backend restart.
      *
      * This re-posts the cached VAPID subscription to the backend on every app boot
-     * (best-effort, silent — no UI impact). It is fast (<50ms) and idempotent.
-     */
+     * (best-effort, silent — no UI impact). It is fast */
     const reRegisterSubscriptionOnBoot = async () => {
+      if (Capacitor.isNativePlatform()) return;
       try {
         const cachedSub = localStorage.getItem("socio_vapid_subscription");
         if (!cachedSub) return; // never subscribed or explicitly unsubscribed
@@ -237,7 +276,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     };
 
     // Web / PWA SW registration:
-    if ("serviceWorker" in navigator) {
+    if ("serviceWorker" in navigator && !Capacitor.isNativePlatform()) {
       navigator.serviceWorker
         .register("/sw.js")
         .then((reg) => {
@@ -267,6 +306,31 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     if (typeof window === "undefined") return;
 
     try {
+      if (Capacitor.isNativePlatform()) {
+        const granted = await requestNativePushPermission();
+        if (granted) {
+          await optInNativePush();
+          setPushStatus("granted");
+          localStorage.setItem(LS_PUSH_STATUS_KEY, "granted");
+          updatePromptStatus("accepted");
+          toast.success("Notifications enabled!");
+
+          if (userData?.email) {
+            apiRequest("/notifications/push/register-platform", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ email: userData.email, platform: "android-native" }),
+            }).catch(() => {});
+          }
+        } else {
+          setPushStatus("denied");
+          localStorage.setItem(LS_PUSH_STATUS_KEY, "denied");
+          updatePromptStatus("denied");
+          toast.error("Notification permission denied");
+        }
+        return;
+      }
+
       if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
         toast.error("Push notifications aren't supported in this browser");
         return;
@@ -355,12 +419,21 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       console.error("[PUSH] Enable error", e);
       toast.error(msg);
     }
-  }, [updatePromptStatus]);
+  }, [updatePromptStatus, userData?.email]);
 
   const disablePushNotifications = useCallback(async () => {
     if (typeof window === "undefined") return;
 
     try {
+      if (Capacitor.isNativePlatform()) {
+        await optOutNativePush();
+        setPushStatus("not_requested");
+        localStorage.setItem(LS_PUSH_STATUS_KEY, "not_requested");
+        updatePromptStatus("not_shown");
+        toast.success("Notifications turned off");
+        return;
+      }
+
       if ("serviceWorker" in navigator) {
         try {
           const reg = await navigator.serviceWorker.getRegistration("/sw.js");
@@ -404,7 +477,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       console.error("[PUSH] Disable error", e);
       toast.error(msg);
     }
-  }, [updatePromptStatus]);
+  }, [updatePromptStatus, userData?.email]);
   /* ── Fetch notifications ──────────────────────────────────────────────
    * IMPORTANT: `unreadCount` and `page` are intentionally NOT in the dep
    * array. Reading them via functional setState or pageRef prevents the

@@ -1,10 +1,11 @@
 apply plugin: 'com.android.application'
+apply plugin: 'com.onesignal.androidsdk.onesignal-gradle-plugin'
 
 android {
-    namespace = "com.socioapp.mobile"
+    namespace "com.withsocio.app"
     compileSdk = rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "com.socioapp.mobile"
+        applicationId "com.withsocio.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
@@ -15,17 +16,7 @@ android {
              // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
-
-        manifestPlaceholders = [
-            onesignal_app_id: "291a29a9-bfe3-4983-a8ee-615ef55676ee",
-            onesignal_google_project_number: "REMOTE"
-        ]
-        manifestPlaceholders = [
-            onesignal_app_id: "291a29a9-bfe3-4983-a8ee-615ef55676ee",
-            onesignal_google_project_number: "REMOTE"
-        ]
     }
-
 
     buildTypes {
         release {
@@ -56,6 +47,12 @@ dependencies {
     implementation "androidx.coordinatorlayout:coordinatorlayout:$androidxCoordinatorLayoutVersion"
     implementation "androidx.core:core-splashscreen:$coreSplashScreenVersion"
     implementation project(':capacitor-android')
+    
+    // Firebase Cloud Messaging (FCM) dependencies
+    implementation platform('com.google.firebase:firebase-bom:33.1.2')
+    implementation 'com.google.firebase:firebase-messaging'
+    implementation 'com.onesignal:OneSignal:[5.0.0, 5.99.99]'
+
     testImplementation "junit:junit:$junitVersion"
     androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
     androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"

@@ -37,6 +37,9 @@ const VIBRATION = {
   default:  [200, 100, 200],
 };
 
+/* ── Deduplication buffer ── */
+const PROCESSED_NOTIFICATIONS = new Set();
+
 /* ── Helpers ─────────────────────────────────────────────────────────────── */
 function resolveAbsoluteUrl(relativeOrAbsolute) {
   try {
@@ -67,8 +70,18 @@ self.addEventListener("install", () => {
 });
 
 self.addEventListener("activate", (event) => {
-  console.log("[PUSH] SW activated — claiming all clients");
-  event.waitUntil(self.clients.claim());
+  console.log("[PUSH] SW activated — claiming all clients & clearing old caches");
+  console.log("[WEB PUSH] Service worker initialized");
+  event.waitUntil(
+    caches.keys().then((cacheNames) => {
+      return Promise.all(
+        cacheNames.map((cacheName) => {
+          console.log("[SW] Deleting stale cache:", cacheName);
+          return caches.delete(cacheName);
+        })
+      );
+    }).then(() => self.clients.claim())
+  );
 });
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -136,7 +149,7 @@ self.addEventListener("push", (event) => {
   let data = {};
   try {
     if (event.data) {
-      data = event.data.json();
+      data = event.data.json() || {};
     }
   } catch (jsonErr) {
     console.warn("[PUSH] JSON parse failed, attempting text fallback:", jsonErr);
@@ -145,6 +158,24 @@ self.addEventListener("push", (event) => {
       data = { body: text, title: "SOCIO" };
     } catch (textErr) {
       console.error("[PUSH] Text parse also failed:", textErr);
+    }
+  }
+
+  if (!data || typeof data !== "object") {
+    data = {};
+  }
+
+  /* ── Deduplication Check ── */
+  const notificationId = data.notificationId || data.tag || data.id || null;
+  if (notificationId) {
+    if (PROCESSED_NOTIFICATIONS.has(notificationId)) {
+      console.log(`[PUSH] Duplicate notification ignored: ${notificationId}`);
+      return;
+    }
+    PROCESSED_NOTIFICATIONS.add(notificationId);
+    if (PROCESSED_NOTIFICATIONS.size > 100) {
+      const firstVal = PROCESSED_NOTIFICATIONS.values().next().value;
+      PROCESSED_NOTIFICATIONS.delete(firstVal);
     }
   }
 
@@ -166,7 +197,6 @@ self.addEventListener("push", (event) => {
   const body           = (data.body || data.message || "New activity on SOCIO").slice(0, 300);
   const category       = (data.category || data.type || "info").toLowerCase();
   const priority       = (data.priority || "normal").toLowerCase();
-  const notificationId = data.notificationId || data.tag || data.id || null;
   const route          = data.actionUrl || data.deepLink || data.route || "/notifications";
   const image          = data.image || undefined;
   const userEmail      = data.userEmail || undefined;
@@ -230,7 +260,7 @@ self.addEventListener("push", (event) => {
     silent: false,
 
     /* vibrate: haptic pattern — matched to notification category */
-    vibrate: data.vibrate || getVibration(category),
+    vibrate: Array.isArray(data.vibrate) ? data.vibrate : getVibration(category),
 
     /* data: forwarded to the notificationclick handler */
     data: {
@@ -294,6 +324,7 @@ self.addEventListener("push", (event) => {
     /* ── Show native Android notification in ALL states ── */
     try {
       await self.registration.showNotification(title, options);
+      console.log("[WEB PUSH] Notification shown");
       const renderLatencyMs = Date.now() - receivedAt;
       console.log(
         "[PUSH] Notification rendered —",
@@ -345,7 +376,11 @@ self.addEventListener("push", (event) => {
     }
   })();
 
-  event.waitUntil(promise);
+  event.waitUntil(
+    promise.catch((err) => {
+      console.error("[PUSH] Push delivery process failed:", err);
+    })
+  );
 });
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -420,7 +455,9 @@ self.addEventListener("notificationclick", (event) => {
       } catch (openErr) {
         console.error("[PUSH] clients.openWindow failed:", openErr);
       }
-    })()
+    })().catch((err) => {
+      console.error("[PUSH] Notification click process failed:", err);
+    })
   );
 });
 

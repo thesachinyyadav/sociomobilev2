@@ -30,7 +30,7 @@ export default function EventCardSkeleton({
       ) : (
         <>
           {/* Banner area */}
-          <div className={`skeleton w-full ${featured ? "aspect-[16/10]" : "aspect-[16/9]"}`} />
+          <div className="skeleton w-full aspect-[4/3] md:aspect-[16/10] lg:aspect-[16/9]" />
           
           {/* Body area */}
           <div className={featured ? "p-5" : "p-4"}>

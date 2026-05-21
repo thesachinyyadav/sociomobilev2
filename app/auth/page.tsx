@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { AlertCircleIcon, Loader2Icon, SchoolIcon, WifiOffIcon } from "@/components/icons";
+import { AlertCircleIcon, Loader2Icon, WifiOffIcon } from "@/components/icons";
 import { useAuth } from "@/context/AuthContext";
 
 function GoogleMark() {
@@ -48,6 +48,28 @@ export default function AuthPage() {
     return () => {
       window.removeEventListener("online", syncOnlineState);
       window.removeEventListener("offline", syncOnlineState);
+    };
+  }, []);
+
+  // Reset isSubmitting when the user returns to the page (e.g., after Google browser closes)
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        setIsSubmitting(false);
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    // Also handle Capacitor app resume
+    const handleAppResume = () => setIsSubmitting(false);
+    window.addEventListener("resume", handleAppResume);
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("resume", handleAppResume);
     };
   }, []);
 
@@ -107,10 +129,15 @@ export default function AuthPage() {
 
       <main className="relative mx-auto flex min-h-dvh w-full max-w-[420px] flex-col items-center justify-center px-6 pb-16">
         <div className="w-full space-y-6">
-          <div className="flex flex-col items-center gap-4 text-center">
-            <div className="flex h-16 w-16 items-center justify-center rounded-[20px] bg-[var(--color-primary)] shadow-[0_12px_32px_rgba(1,31,123,0.18)]">
-              <SchoolIcon className="h-8 w-8 text-white" strokeWidth={2.2} />
-            </div>
+          <div className="flex flex-col items-center gap-3 text-center">
+            <Image
+              src="/applogo.png"
+              alt="SOCIO"
+              width={80}
+              height={80}
+              priority
+              className="mx-auto rounded-[22px] shadow-[0_12px_32px_rgba(1,31,123,0.18)]"
+            />
             <Image
               src="/logo.svg"
               alt="SOCIO"

@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import { 
   ArrowLeft, 
   Trash2, 
-  CheckCheck, 
   RefreshCw, 
   ChevronRight, 
   Sparkles,
@@ -14,19 +13,12 @@ import {
   Info,
   CheckCircle,
   Calendar,
-  Archive,
   Inbox
 } from "lucide-react";
 import { timeAgo } from "@/lib/dateUtils";
 import { motion, AnimatePresence } from "framer-motion";
 import { trackNotificationEvent } from "@/lib/notificationAnalytics";
 
-const FILTER_ITEMS = [
-  { value: "all", label: "All Feed" },
-  { value: "alerts", label: "Alerts" },
-  { value: "events", label: "Events" },
-  { value: "systems", label: "Systems" }
-] as const;
 
 const TYPE_THEMES = {
   success: {
@@ -77,48 +69,22 @@ function Card({
   n,
   onTap,
   onClear,
-  onMarkRead,
 }: {
   n: Notification;
   onTap: () => void;
   onClear: () => void;
-  onMarkRead: () => void;
 }) {
   const theme = TYPE_THEMES[n.type as keyof typeof TYPE_THEMES] || TYPE_THEMES.info;
 
   return (
     <motion.div
       layout
-      drag="x"
-      dragConstraints={{ left: -100, right: 100 }}
-      dragElastic={{ left: 0.15, right: 0.15 }}
-      onDragEnd={(e, info) => {
-        if (info.offset.x < -65) {
-          // Swipe left to Archive / Clear
-          onClear();
-        } else if (info.offset.x > 65) {
-          // Swipe right to Mark as Read
-          onMarkRead();
-        }
-      }}
       initial={{ opacity: 0, y: 8, scale: 0.98 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.95, x: -100 }}
+      exit={{ opacity: 0, scale: 0.95, x: -40 }}
       transition={{ type: "spring", stiffness: 450, damping: 30 }}
-      className="relative mb-3 group touch-pan-y"
+      className="relative mb-3 group"
     >
-      {/* Behind Gestures Visual Guides */}
-      <div className="absolute inset-0 rounded-[20px] bg-gradient-to-r from-emerald-500/20 via-transparent to-red-500/20 flex items-center justify-between px-6 pointer-events-none -z-10 border border-white/5">
-        <div className="flex items-center gap-2 text-emerald-400 text-[10px] font-black uppercase tracking-wider">
-          <CheckCheck size={14} />
-          Read
-        </div>
-        <div className="flex items-center gap-2 text-red-400 text-[10px] font-black uppercase tracking-wider">
-          <Archive size={14} />
-          Archive
-        </div>
-      </div>
-
       <div
         className={`relative overflow-hidden transition-all duration-300 active:scale-[0.99] cursor-pointer rounded-[20px] p-4 border bg-white/70 backdrop-blur-[14px] ${
           !n.read 
@@ -165,7 +131,7 @@ function Card({
               {n.message}
             </p>
 
-            {/* Event Tag Context / action button */}
+            {/* Event Tag Context */}
             {n.eventTitle && (
               <div className="inline-flex items-center gap-1.5 mt-2.5 px-2.5 py-1 rounded-full bg-slate-50 border border-slate-200/40">
                 <Calendar size={10} className="text-slate-400" />
@@ -199,7 +165,6 @@ export default function NotificationsPage() {
   const router = useRouter();
 
   const [showClearModal, setShowClearModal] = useState(false);
-  const [activeFilter, setActiveFilter] = useState<"all" | "alerts" | "events" | "systems">("all");
 
   useEffect(() => {
     if (pushStatus === "not_requested") {
@@ -207,24 +172,13 @@ export default function NotificationsPage() {
     }
   }, [pushStatus, triggerPrompt]);
 
-  // Apply filters
-  const filteredNotifications = useMemo(() => {
-    return notifications.filter(n => {
-      if (activeFilter === "all") return true;
-      if (activeFilter === "alerts") return ["warning", "error", "broadcast"].includes(n.type) || n.isBroadcast;
-      if (activeFilter === "events") return n.eventId || n.type === "event_reminder";
-      if (activeFilter === "systems") return ["success", "info"].includes(n.type) && !n.eventId;
-      return true;
-    });
-  }, [notifications, activeFilter]);
-
   // Group notifications into Today, This Week, Earlier
   const groups = useMemo(() => {
     const now = new Date();
     const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const startOfThisWeek = new Date(startOfToday.getTime() - 7 * 24 * 60 * 60 * 1000);
 
-    const sorted = [...filteredNotifications].sort((a, b) => 
+    const sorted = [...notifications].sort((a, b) => 
       new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     );
 
@@ -240,7 +194,7 @@ export default function NotificationsPage() {
       { title: "This Week", items: thisWeekItems },
       { title: "Earlier", items: earlierItems },
     ].filter(g => g.items.length > 0);
-  }, [filteredNotifications]);
+  }, [notifications]);
 
   const handleDismissAll = async () => {
     setShowClearModal(false);
@@ -360,28 +314,9 @@ export default function NotificationsPage() {
         </div>
       </div>
 
-      {/* Category Filter Bar */}
-      <div className="relative z-20 px-4 mt-4 overflow-x-auto scrollbar-none">
-        <div className="flex gap-2 min-w-max pb-1">
-          {FILTER_ITEMS.map((item) => (
-            <button
-              key={item.value}
-              onClick={() => setActiveFilter(item.value)}
-              className={`px-4 py-2 rounded-full text-[11px] font-black tracking-wider uppercase transition-all duration-200 border cursor-pointer ${
-                activeFilter === item.value
-                  ? "bg-[#011F7B] text-white border-[#011F7B] shadow-md shadow-[#011F7B]/15"
-                  : "bg-white/70 backdrop-blur-sm text-slate-500 border-slate-200/50 hover:bg-white"
-              }`}
-            >
-              {item.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
       {/* Main Content Feed */}
       <div className="relative z-10 px-4 pt-4 pb-40">
-        {isLoading && filteredNotifications.length === 0 ? (
+        {isLoading && notifications.length === 0 ? (
           <div className="space-y-3">
             {[...Array(5)].map((_, i) => (
               <div
@@ -423,7 +358,6 @@ export default function NotificationsPage() {
                       n={n}
                       onTap={() => handleTap(n)}
                       onClear={() => handleClearOne(n)}
-                      onMarkRead={() => markRead(n.id)}
                     />
                   ))}
                 </AnimatePresence>

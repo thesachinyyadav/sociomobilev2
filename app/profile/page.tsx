@@ -8,7 +8,6 @@ import { useRouter } from "next/navigation";
 import { toast } from "react-hot-toast";
 import { useAuth } from "@/context/AuthContext";
 import { useEvents } from "@/context/EventContext";
-import { useNotifications } from "@/context/NotificationContext";
 import Skeleton from "@/components/Skeleton";
 import ProfileSkeleton from "@/components/skeletons/ProfileSkeleton";
 import LoadingScreen from "@/components/LoadingScreen";
@@ -19,7 +18,6 @@ import {
   BuildingIcon as Building,
   CalendarIcon as CalendarDays,
   ChevronRightIcon as ChevronRight,
-  BellIcon as Bell,
   TicketIcon as Ticket,
   MapPinIcon as MapPin,
   PencilIcon as Pencil,
@@ -87,174 +85,8 @@ interface Registration {
 export default function ProfilePage() {
   const { userData, isLoading, signOut, session, refreshUserData } = useAuth();
   const { allEvents } = useEvents();
-  const { pushStatus, enablePushNotifications, disablePushNotifications } = useNotifications();
   const router = useRouter();
-  const [isEnablingPush, setIsEnablingPush] = useState(false);
-  const [isDisablingPush, setIsDisablingPush] = useState(false);
-  const [isBroadcasting, setIsBroadcasting] = useState(false);
-  const [showBroadcastConfirm, setShowBroadcastConfirm] = useState(false);
-  const [browserPermission, setBrowserPermission] = useState<NotificationPermission | "unsupported">("unsupported");
 
-  // Staff = anyone who can trigger the canned welcome broadcast.
-  // UserData type only declares masteradmin/organiser/support but the API
-  // returns the full users row, so cast and probe the rest.
-  const ud = userData as any;
-  const isStaff = !!(
-    ud?.is_masteradmin || ud?.is_organiser || ud?.is_support ||
-    ud?.is_hod || ud?.is_dean || ud?.is_cfo ||
-    ud?.is_campus_director || ud?.is_accounts_office
-  );
-
-  // Use the context's pushStatus as the strict source of truth for "on/off"
-  // so that disabling actually flips the UI back. Browser permission can't
-  // be revoked from JS — only the user can do that in browser settings —
-  // so if we OR'd it in here, the disable button could never show "Off".
-  const isPushEnabled = pushStatus === "granted";
-  const isPushBlocked = browserPermission === "denied" || pushStatus === "denied";
-
-  useEffect(() => {
-    if (typeof window === "undefined" || !("Notification" in window)) return;
-    setBrowserPermission(Notification.permission);
-    // Some browsers expose a permissions API that can notify us of changes.
-    let permStatus: PermissionStatus | null = null;
-    let onChange: (() => void) | null = null;
-    if (navigator.permissions?.query) {
-      navigator.permissions
-        .query({ name: "notifications" as PermissionName })
-        .then((status) => {
-          permStatus = status;
-          onChange = () => setBrowserPermission(Notification.permission);
-          status.addEventListener("change", onChange);
-        })
-        .catch(() => {});
-    }
-    const onFocus = () => setBrowserPermission(Notification.permission);
-    window.addEventListener("focus", onFocus);
-    return () => {
-      window.removeEventListener("focus", onFocus);
-      if (permStatus && onChange) permStatus.removeEventListener("change", onChange);
-    };
-  }, []);
-
-  const handleEnableNotifications = async () => {
-    setIsEnablingPush(true);
-    try {
-      await enablePushNotifications();
-    } catch (e: any) {
-      toast.error(e?.message || "Failed to enable notifications");
-    } finally {
-      setIsEnablingPush(false);
-    }
-  };
-
-  const handleDisableNotifications = async () => {
-    setIsDisablingPush(true);
-    try {
-      await disablePushNotifications();
-    } catch (e: any) {
-      console.error("[Profile] disable error", e);
-    } finally {
-      setIsDisablingPush(false);
-    }
-  };
-
-  const handleSendBroadcast = async () => {
-    setShowBroadcastConfirm(false);
-    setIsBroadcasting(true);
-    const toastId = "staff-broadcast";
-    toast.loading("Sending broadcast…", { id: toastId });
-    try {
-      const result = await apiRequest<any>("/notifications/staff-welcome-broadcast", {
-        method: "POST",
-      });
-      if (!result?.ok) {
-        const msg = result?.error || "Broadcast failed";
-        console.error("[Broadcast] non-ok response:", result);
-        toast.error(msg, { id: toastId });
-        return;
-      }
-
-      // VAPID Direct Push test logic for current user session:
-      // Since broadcasts bypass push dispatch in database-free VAPID mode,
-      // we also trigger a direct push to the user's active local subscription
-      // so they receive the push notification in their system tray/banner.
-      try {
-        const cachedSub = localStorage.getItem("socio_vapid_subscription");
-        if (cachedSub) {
-          console.log("[Broadcast] Dispatching direct push test with 3s delay...");
-          await apiRequest<any>("/notifications/send-direct", {
-            method: "POST",
-            body: JSON.stringify({
-              subscription: JSON.parse(cachedSub),
-              payload: {
-                title: "Hi, Welcome to Socio!",
-                body: "Glad to have you on SOCIO — your hub for campus events, fests, and clubs.",
-                url: "/notifications",
-              },
-              delayMs: 3000,
-            }),
-          });
-          toast.success("Test notification scheduled! Close or minimize the app to see it pop up in 3 seconds.");
-        }
-      } catch (pushErr) {
-        console.warn("[Broadcast] Failed to send local direct push notification:", pushErr);
-      }
-
-      // Server now returns per-channel delivery state. Show the real status,
-      // not just "we saved a row in the DB".
-      const delivery = result.delivery || {};
-      const osOk = delivery.oneSignal?.success !== false;
-      const webOk = delivery.webPush?.success !== false;
-      const osRecipients =
-        delivery.oneSignal?.result?.recipients ??
-        delivery.oneSignal?.recipients ??
-        null;
-      const webSent = delivery.webPush?.sent ?? null;
-      console.log("[Broadcast] response", {
-        ok: result.ok,
-        delivered: result.delivered,
-        osOk,
-        webOk,
-        osRecipients,
-        webSent,
-        delivery,
-      });
-
-      if (result.delivered) {
-        const parts: string[] = [];
-        if (osOk && (osRecipients === null || osRecipients > 0)) {
-          parts.push(osRecipients !== null ? `OneSignal: ${osRecipients}` : "OneSignal");
-        }
-        if (webOk && (webSent === null || webSent > 0)) {
-          parts.push(webSent !== null ? `web-push: ${webSent}` : "web-push");
-        }
-        toast.success(`Broadcast delivered — ${parts.join(", ") || "queued"}`, { id: toastId });
-      } else {
-        const errParts: string[] = [];
-        if (!osOk) {
-          errParts.push(`OneSignal failed${delivery.oneSignal?.error ? `: ${delivery.oneSignal.error}` : ""}`);
-        } else if (osRecipients === 0) {
-          errParts.push("OneSignal: 0 recipients");
-        }
-        if (!webOk) {
-          errParts.push(`web-push failed${delivery.webPush?.error ? `: ${delivery.webPush.error}` : ""}`);
-        } else if (webSent === 0) {
-          errParts.push("web-push: 0 recipients");
-        }
-        toast.error(
-          `Saved but not delivered — ${errParts.join("; ") || "no push channel succeeded"}`,
-          { id: toastId, duration: 6000 }
-        );
-      }
-    } catch (e: any) {
-      const msg = e?.message || "Broadcast failed — check console";
-      console.error("[Broadcast] error:", e);
-      toast.error(msg, { id: toastId });
-    } finally {
-      setIsBroadcasting(false);
-    }
-  };
-  
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 5;
@@ -510,67 +342,6 @@ export default function ProfilePage() {
           </Link>
         )}
 
-        {/* Notifications */}
-        <div className="card p-3">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-full bg-amber-50 flex items-center justify-center">
-              <Bell size={17} className="text-amber-600" />
-            </div>
-            <div className="text-left flex-1 min-w-0">
-              <p className="text-[13px] font-bold">Notifications</p>
-              <p className="text-[11px] text-[var(--color-text-muted)]">
-                {isPushEnabled
-                  ? "Push notifications are on"
-                  : isPushBlocked
-                  ? "Blocked in browser settings — enable there to allow"
-                  : "Get instant alerts for events & registrations"}
-              </p>
-            </div>
-            {isPushEnabled ? (
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700">
-                On
-              </span>
-            ) : (
-              <Button
-                variant="primary"
-                size="sm"
-                disabled={isEnablingPush || isPushBlocked}
-                onClick={handleEnableNotifications}
-              >
-                {isEnablingPush ? "Enabling…" : "Enable"}
-              </Button>
-            )}
-          </div>
-
-          {isPushEnabled && (
-            <>
-              <Button
-                variant="outline"
-                size="sm"
-                fullWidth
-                className="mt-3"
-                disabled={!isStaff || isBroadcasting || isDisablingPush}
-                title={!isStaff ? "Available only to staff" : undefined}
-                onClick={() => isStaff && setShowBroadcastConfirm(true)}
-                leftIcon={<Bell size={14} />}
-              >
-                {isBroadcasting
-                  ? "Sending…"
-                  : isStaff
-                  ? "Send Test Notification"
-                  : "Send Test Notification (Staff only)"}
-              </Button>
-              <button
-                type="button"
-                onClick={handleDisableNotifications}
-                disabled={isDisablingPush || isBroadcasting}
-                className="mt-2 w-full text-center text-[12px] font-semibold text-red-600 hover:text-red-700 disabled:opacity-50 py-2"
-              >
-                {isDisablingPush ? "Turning off…" : "Turn off notifications"}
-              </button>
-            </>
-          )}
-        </div>
       </div>
 
       {/* Info Card */}
@@ -786,49 +557,6 @@ export default function ProfilePage() {
         )}
       </div>
 
-      {showBroadcastConfirm && (
-        <div className="modal-backdrop">
-          <div className="modal-card overflow-hidden">
-            <div className="bg-[var(--color-primary-dark)] px-5 py-4">
-              <h3 className="text-lg font-bold text-white">Send broadcast to everyone?</h3>
-              <p className="text-blue-100 text-xs mt-0.5">
-                Live push to all opted-in devices
-              </p>
-            </div>
-            <div className="p-5">
-              <div className="rounded-xl border border-blue-100 bg-blue-50 px-3 py-3 mb-4">
-                <p className="text-[12px] font-bold text-blue-900">Hi, Welcome to Socio!</p>
-                <p className="text-[11px] text-blue-700 mt-0.5">
-                  Glad to have you on SOCIO — your hub for campus events, fests, and clubs.
-                </p>
-              </div>
-              <p className="text-xs text-gray-600">
-                This sends a live push notification to{" "}
-                <strong>every user with notifications enabled</strong>. This action
-                cannot be undone.
-              </p>
-              <div className="flex gap-2 mt-5">
-                <Button
-                  variant="ghost"
-                  className="flex-1"
-                  onClick={() => setShowBroadcastConfirm(false)}
-                  disabled={isBroadcasting}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  variant="primary"
-                  className="flex-1"
-                  onClick={handleSendBroadcast}
-                  disabled={isBroadcasting}
-                >
-                  {isBroadcasting ? "Sending…" : "Send to all"}
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
       {isEditingName && (
         <div className="modal-backdrop">

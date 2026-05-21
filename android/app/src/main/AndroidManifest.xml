@@ -22,6 +22,14 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
+            <!-- Deep link handler for Google OAuth callback (socio://auth/callback) -->
+            <intent-filter android:label="@string/title_activity_main">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="socio" />
+            </intent-filter>
+
         </activity>
 
         <provider
@@ -38,4 +46,13 @@
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Required for ML Kit barcode scanning -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <!-- Required for haptics / vibration feedback -->
+    <uses-permission android:name="android.permission.VIBRATE" />
+    <!-- Required for Android 13+ push notifications -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Required for geolocation/campus selection -->
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
 </manifest>

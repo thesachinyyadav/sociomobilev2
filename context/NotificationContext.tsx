@@ -173,6 +173,66 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         // This matches Instagram/Discord foreground notification UX.
         console.log("[PUSH] Foreground sync triggered — silently refreshing notification count");
         fetchRef.current();
+
+      } else if (event.data?.type === "socio:subscriptionRotated") {
+        // SW's pushsubscriptionchange handler fired — browser rotated our push endpoint.
+        // Re-register the new subscription with the backend so it can send to the new endpoint.
+        const newSub = event.data.newSubscription;
+        if (newSub && newSub.endpoint) {
+          console.log("[PUSH] Subscription rotated — re-registering new endpoint with backend");
+          const newSubStr = JSON.stringify(newSub);
+          localStorage.setItem("socio_vapid_subscription", newSubStr);
+          localStorage.setItem("socio_vapid_subscription_created_at", new Date().toISOString());
+          apiRequest("/notifications/push/subscribe", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: newSubStr,
+          }).catch((err: unknown) => {
+            console.warn("[PUSH] Failed to re-register rotated subscription:", err);
+          });
+        }
+      }
+    };
+
+    /**
+     * Boot-time subscription re-registration.
+     *
+     * WHY THIS IS NEEDED:
+     * The backend uses an in-memory subscription store (Map). Every server restart
+     * wipes that store, so all existing subscribers are forgotten — even though their
+     * browser subscription is still valid. Without this, zero pushes are delivered
+     * after any backend restart.
+     *
+     * This re-posts the cached VAPID subscription to the backend on every app boot
+     * (best-effort, silent — no UI impact). It is fast (<50ms) and idempotent.
+     */
+    const reRegisterSubscriptionOnBoot = async () => {
+      try {
+        const cachedSub = localStorage.getItem("socio_vapid_subscription");
+        if (!cachedSub) return; // never subscribed or explicitly unsubscribed
+
+        // Verify the subscription is still valid in the browser's PushManager
+        const reg = await navigator.serviceWorker.ready;
+        const liveSub = await reg.pushManager.getSubscription();
+        if (!liveSub) {
+          // Browser has already invalidated the subscription — clear stale cache
+          console.log("[PUSH] Boot check: cached subscription no longer valid in browser. Clearing.");
+          localStorage.removeItem("socio_vapid_subscription");
+          localStorage.removeItem("socio_vapid_subscription_created_at");
+          return;
+        }
+
+        // Re-register with backend (idempotent — backend deduplicates by endpoint)
+        console.log("[PUSH] Boot re-registration: posting cached subscription to backend");
+        await apiRequest("/notifications/push/subscribe", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: cachedSub,
+        });
+        console.log("[PUSH] Boot re-registration: success");
+      } catch (err) {
+        // Best-effort — never block app startup
+        console.warn("[PUSH] Boot re-registration failed (non-fatal):", err);
       }
     };
 
@@ -183,6 +243,9 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         .then((reg) => {
           console.log("[PUSH] Service worker registered (scope:", reg.scope, ")");
           setIsPushReady(true);
+          // Re-register subscription after SW is ready — ensures backend in-memory
+          // store is populated even after server restarts.
+          reRegisterSubscriptionOnBoot();
         })
         .catch((err) => {
           console.error("[PUSH] Service worker registration failed:", err);

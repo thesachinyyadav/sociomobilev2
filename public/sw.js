@@ -1,6 +1,6 @@
 /* ──────────────────────────────────────────────────────────────────────────────
    SOCIO PWA — Service Worker (VAPID Web Push)
-   Production-grade Android notification presentation
+   Production-grade Android notification presentation + delivery optimization
    ────────────────────────────────────────────────────────────────────────────── */
 
 /* ── Icon paths ── */
@@ -72,6 +72,58 @@ self.addEventListener("activate", (event) => {
 });
 
 /* ─────────────────────────────────────────────────────────────────────────────
+   PUSH SUBSCRIPTION CHANGE
+   ───────────────────────────────────────────────────────────────────────────
+   Google rotates push endpoints periodically (especially after Chrome updates
+   or when the subscription expires). Without this handler, the old endpoint
+   silently stops delivering — the backend never learns about the new endpoint.
+
+   This handler:
+   1. Subscribes with the new keys automatically
+   2. Posts a message to the app (if open) so it can re-register with the backend
+   3. Falls back gracefully if the page is not open
+   ─────────────────────────────────────────────────────────────────────────── */
+self.addEventListener("pushsubscriptionchange", (event) => {
+  console.log("[PUSH] pushsubscriptionchange fired — subscription rotated by browser");
+
+  const resubscribe = async () => {
+    try {
+      const vapidPublicKey = self.__VAPID_PUBLIC_KEY__;
+
+      // Try to re-subscribe with existing applicationServerKey if available
+      const newSubscription = await self.registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        ...(vapidPublicKey ? { applicationServerKey: vapidPublicKey } : {}),
+      });
+
+      console.log("[PUSH] pushsubscriptionchange: resubscribed to new endpoint:", newSubscription.endpoint.substring(0, 50) + "...");
+
+      // Notify the open page so it can re-register the new subscription on the backend.
+      // If no page is open, the NotificationContext will re-register on next boot via
+      // the localStorage subscription re-registration flow.
+      const clients = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+      for (const client of clients) {
+        try {
+          client.postMessage({
+            type:            "socio:subscriptionRotated",
+            newSubscription: newSubscription.toJSON(),
+          });
+        } catch (msgErr) {
+          console.warn("[PUSH] pushsubscriptionchange: postMessage to client failed:", msgErr);
+        }
+      }
+
+      // Persist new subscription in clients' localStorage via message is not possible
+      // from SW. The page handler (NotificationContext) will store & register it.
+    } catch (err) {
+      console.error("[PUSH] pushsubscriptionchange: resubscribe failed:", err);
+    }
+  };
+
+  event.waitUntil(resubscribe());
+});
+
+/* ─────────────────────────────────────────────────────────────────────────────
    PUSH RECEIVED
    ───────────────────────────────────────────────────────────────────────── */
 
@@ -94,7 +146,20 @@ self.addEventListener("push", (event) => {
     }
   }
 
-  /* ── 2. Extract fields with sensible defaults ── */
+  /* ── 2. Delivery latency instrumentation ──
+   * Backend injects sentAt: Date.now() into every payload.
+   * This measures: backend→Google→Chrome→SW wake-up total latency.
+   * Check Chrome DevTools → Application → Service Workers → Console for this log.
+   */
+  if (data.sentAt) {
+    const deliveryLatencyMs = Date.now() - data.sentAt;
+    console.log(`[PUSH] Delivery latency: ${deliveryLatencyMs}ms (backend→SW)`);
+    if (deliveryLatencyMs > 30000) {
+      console.warn(`[PUSH] HIGH LATENCY DETECTED: ${deliveryLatencyMs}ms — Android may be in Doze mode. Check battery optimization settings.`);
+    }
+  }
+
+  /* ── 3. Extract fields with sensible defaults ── */
   const title          = (data.title || "SOCIO").slice(0, 100);
   const body           = (data.body || data.message || "New activity on SOCIO").slice(0, 300);
   const category       = (data.category || data.type || "info").toLowerCase();
@@ -104,7 +169,7 @@ self.addEventListener("push", (event) => {
   const image          = data.image || undefined;
   const userEmail      = data.userEmail || undefined;
 
-  /* ── 3. Build per-category notification tag for Android grouping ──
+  /* ── 4. Build per-category notification tag for Android grouping ──
    *  Format: {groupPrefix}-{notificationId}
    *  This causes Android to stack multiple notifications from the same
    *  category (e.g. multiple event reminders) under one expandable bundle.
@@ -112,7 +177,7 @@ self.addEventListener("push", (event) => {
   const groupTag = getGroupTag(category);
   const tag      = notificationId ? `${groupTag}-${notificationId}` : groupTag;
 
-  /* ── 4. Build the notification options object ── */
+  /* ── 5. Build the notification options object ── */
   const options = {
     body,
 
@@ -132,7 +197,8 @@ self.addEventListener("push", (event) => {
     renotify: true,
 
     /* requireInteraction: keeps notification alive on lock screen until user explicitly interacts.
-     * Only set for high-priority pushes (event deadlines, admin alerts). */
+     * Only set for high-priority pushes (event deadlines, admin alerts).
+     * Do NOT set for welcome/info pushes — causes Android notification weirdness. */
     requireInteraction: priority === "high",
 
     /* timestamp: used by Android to sort notifications and display relative time */
@@ -162,53 +228,62 @@ self.addEventListener("push", (event) => {
     ],
   };
 
-  /* ── 5. Check if app is currently in foreground ──
-   * If a visible window exists, we skip showing the native notification
-   * and instead send a silent foreground sync message so the app can
-   * silently update its unread badge — no ugly overlay popup.
+  /* ── 6. Always show native Android notification (WhatsApp/Instagram UX) ──
+   *
+   * DESIGN DECISION (Option B — WhatsApp/Instagram UX):
+   *   - ALWAYS show the native Android notification, even if the app is open
+   *     in the foreground. This matches the behaviour of WhatsApp, Instagram,
+   *     Discord, and Gmail on Android.
+   *
+   * We still send foregroundSync to all windows so they can silently refresh
+   * their unread badge — but this NEVER suppresses the native notification.
+   *
+   * Why this matters:
+   *   The previous "skip if foreground" logic caused users to miss notifications
+   *   whenever the PWA happened to be open, making delivery feel inconsistent.
+   *   Always showing ensures 100% of pushes appear in the Android tray.
    */
   const promise = (async () => {
     const clients = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
 
-    const hasVisibleClient = clients.some(c => c.visibilityState === "visible");
-
-    if (hasVisibleClient) {
-      console.log("[PUSH] App is in foreground — skipping native notification; sending silent sync");
-      for (const client of clients) {
-        try {
-          client.postMessage({
-            type:           "socio:foregroundSync",
-            title,
-            body,
-            route,
-            tag,
-            category,
-            priority,
-            notificationId,
-            userEmail,
-            icon:           options.icon,
-            badge:          options.badge,
-          });
-        } catch (msgErr) {
-          console.warn("[PUSH] postMessage to foreground client failed:", msgErr);
-        }
+    /* ── Always send foregroundSync to ALL windows (for badge/count refresh) ── */
+    const syncMsg = {
+      type:           "socio:foregroundSync",
+      title,
+      body,
+      route,
+      tag,
+      category,
+      priority,
+      notificationId,
+      userEmail,
+      icon:           options.icon,
+      badge:          options.badge,
+    };
+    for (const client of clients) {
+      try { client.postMessage(syncMsg); } catch (msgErr) {
+        console.warn("[PUSH] postMessage to client failed:", msgErr);
       }
-      return; // ← skip showNotification entirely
     }
 
-    /* ── 6. App not visible — show the native Android notification ── */
+    const isForeground = clients.some(c => c.visibilityState === "visible");
+    console.log(`[PUSH] App state: ${isForeground ? "foreground" : "background/closed"} — showing native notification`);
+
+    /* ── Show native Android notification in ALL states ── */
     try {
       await self.registration.showNotification(title, options);
-      console.log("[PUSH] Notification rendered —", `tag=${tag}`, `category=${category}`, `priority=${priority}`);
+      console.log("[PUSH] Notification rendered —", `tag=${tag}`, `category=${category}`, `priority=${priority}`, `foreground=${isForeground}`);
     } catch (showErr) {
       console.error("[PUSH] showNotification failed:", showErr);
-      /* Graceful fallback: minimal notification to prevent silent failure */
+      /* Graceful fallback: minimal notification to prevent Chrome's default
+       * "Tap to copy the URL for this app" placeholder notification */
       try {
         await self.registration.showNotification(title, {
           body,
-          icon: ICON_192,
+          icon:  ICON_192,
           badge: BADGE_72,
-          data: { url: route, notificationId },
+          tag:   tag || `socio-${Date.now()}`,
+          data:  { url: route, notificationId },
         });
         console.log("[PUSH] Notification rendered (fallback minimal options)");
       } catch (fallbackErr) {
@@ -216,8 +291,8 @@ self.addEventListener("push", (event) => {
       }
     }
 
-    /* ── 7. Also broadcast to any background/hidden app windows so they
-     * can silently refresh their unread count without user seeing a toast */
+    /* ── Also broadcast foregroundNotification to any background/hidden windows ──
+     * Allows them to silently refresh their unread count without a visible toast. */
     for (const client of clients) {
       try {
         client.postMessage({

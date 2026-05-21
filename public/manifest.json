@@ -13,6 +13,7 @@
   "background_color": "#000D3B",
   "theme_color": "#011F7B",
   "prefer_related_applications": false,
+  "gcm_sender_id": "103953800507",
   "categories": ["education", "social", "entertainment"],
   "icons": [
     { "src": "/icons/icon-48x48.png",   "sizes": "48x48",   "type": "image/png", "purpose": "any" },

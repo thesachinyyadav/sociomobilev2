@@ -41,10 +41,15 @@ console.log(sw.includes("BADGE_72")               ? "[OK]   72px badge ref"     
 
 // Verify Android delivery optimization headers
 console.log("\n=== Android Delivery Optimization (NEW) ===");
-console.log(sw.includes("pushsubscriptionchange") ? "[OK]   pushsubscriptionchange handler"        : "[MISS]  pushsubscriptionchange handler");
-console.log(sw.includes("data.sentAt")            ? "[OK]   sentAt latency logging"                : "[MISS]  sentAt latency logging");
-console.log(sw.includes("socio:subscriptionRotated") ? "[OK]   subscriptionRotated message type"  : "[MISS]  subscriptionRotated message type");
-console.log(sw.includes("HIGH LATENCY DETECTED")  ? "[OK]   high-latency warning"                 : "[MISS]  high-latency warning");
+console.log(sw.includes("pushsubscriptionchange")    ? "[OK]   pushsubscriptionchange handler"       : "[MISS]  pushsubscriptionchange handler");
+console.log(sw.includes("data.sentAt")               ? "[OK]   sentAt latency logging"               : "[MISS]  sentAt latency logging");
+console.log(sw.includes("socio:subscriptionRotated") ? "[OK]   subscriptionRotated message type"     : "[MISS]  subscriptionRotated message type");
+console.log(sw.includes("HIGH LATENCY DETECTED")     ? "[OK]   high-latency warning"                 : "[MISS]  high-latency warning");
+console.log(sw.includes("isIntentionalUpdate")       ? "[OK]   unique tag strategy"                  : "[MISS]  unique tag strategy (CRITICAL!)");
+console.log(sw.includes("uniqueSuffix")              ? "[OK]   unique tag suffix generation"          : "[MISS]  unique tag suffix");
+console.log(sw.includes("renotify: isIntentionalUpdate") ? "[OK]   conditional renotify"              : "[MISS]  conditional renotify");
+console.log(sw.includes("receivedAt")                ? "[OK]   receivedAt high-res timing"            : "[MISS]  receivedAt timing");
+console.log(sw.includes("renderLatency")             ? "[OK]   render latency log"                   : "[MISS]  render latency log");
 
 // Check webPushService enrichment
 const wps = fs.readFileSync("../socio2026v2/server/utils/webPushService.js", "utf8");

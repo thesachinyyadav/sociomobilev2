@@ -128,6 +128,8 @@ self.addEventListener("pushsubscriptionchange", (event) => {
    ───────────────────────────────────────────────────────────────────────── */
 
 self.addEventListener("push", (event) => {
+  /* High-res receive timestamp — used to measure SW→render latency below */
+  const receivedAt = Date.now();
   console.log("[PUSH] Push received");
 
   /* ── 1. Parse payload — safe with full fallback chain ── */
@@ -148,11 +150,11 @@ self.addEventListener("push", (event) => {
 
   /* ── 2. Delivery latency instrumentation ──
    * Backend injects sentAt: Date.now() into every payload.
-   * This measures: backend→Google→Chrome→SW wake-up total latency.
-   * Check Chrome DevTools → Application → Service Workers → Console for this log.
+   * Measures: backend → Google Push Service → Chrome → SW wake-up.
+   * Check Chrome DevTools → Application → Service Workers → Console.
    */
   if (data.sentAt) {
-    const deliveryLatencyMs = Date.now() - data.sentAt;
+    const deliveryLatencyMs = receivedAt - data.sentAt;
     console.log(`[PUSH] Delivery latency: ${deliveryLatencyMs}ms (backend→SW)`);
     if (deliveryLatencyMs > 30000) {
       console.warn(`[PUSH] HIGH LATENCY DETECTED: ${deliveryLatencyMs}ms — Android may be in Doze mode. Check battery optimization settings.`);
@@ -169,48 +171,68 @@ self.addEventListener("push", (event) => {
   const image          = data.image || undefined;
   const userEmail      = data.userEmail || undefined;
 
-  /* ── 4. Build per-category notification tag for Android grouping ──
-   *  Format: {groupPrefix}-{notificationId}
-   *  This causes Android to stack multiple notifications from the same
-   *  category (e.g. multiple event reminders) under one expandable bundle.
+  /* ── 4. Notification tag strategy ──
+   *
+   * TAG RULES (critical for Android stacking vs. replacing behaviour):
+   *
+   *   │ Situation                        │ Tag used                          │ Result            │
+   *   ├──────────────────────────────────┼───────────────────────────────────┼──────────────────│
+   *   │ notificationId present           │ {groupTag}-{notificationId}       │ same ID replaces  │
+   *   │ notificationId missing (generic) │ {groupTag}-{ts}-{rand}            │ always stacks     │
+   *
+   * WHY THIS MATTERS:
+   *   The previous code fell back to plain `groupTag` (e.g. "socio-group-admin")
+   *   when notificationId was absent. Every generic broadcast then shared the
+   *   same tag — each new one silently replaced the previous, making it look
+   *   like "only one notification ever appears".
+   *
+   * RENOTIFY RULE:
+   *   renotify: true  → only when intentionally updating an existing notification
+   *                       (same notificationId → same tag). Re-fires vibration/sound.
+   *   renotify: false → for unique tags (every notification is brand-new; renotify
+   *                       would be a no-op anyway but false is semantically correct).
    */
-  const groupTag = getGroupTag(category);
-  const tag      = notificationId ? `${groupTag}-${notificationId}` : groupTag;
+  const groupTag         = getGroupTag(category);
+  const isIntentionalUpdate = Boolean(notificationId); // has a real DB id — may replace old
+  const uniqueSuffix     = isIntentionalUpdate
+    ? notificationId                                    // intentional: same id → same tag → replace
+    : `${receivedAt}-${Math.random().toString(36).slice(2, 7)}`; // unique: always stack
+  const tag              = `${groupTag}-${uniqueSuffix}`;
 
   /* ── 5. Build the notification options object ── */
   const options = {
     body,
 
-    /* Icon: shown as the large notification icon (must be ≥192px for clarity on high-dpi Android) */
+    /* Icon: shown as the large notification icon (≥192px for high-dpi Android) */
     icon: data.icon || ICON_192,
 
-    /* Badge: tiny monochrome icon shown in Android status bar (must be ≤72px, white-on-transparent) */
+    /* Badge: tiny monochrome icon in Android status bar (≤72px, white-on-transparent) */
     badge: data.badge || BADGE_72,
 
-    /* Image: optional large image displayed below the body (used for event banners, etc.) */
+    /* Image: optional large banner image (event banners, etc.) */
     image,
 
-    /* Tag: enables Android-style stacking — same tag replaces / stacks the notification */
+    /* Tag: unique per notification — notifications stack independently.
+     * Same notificationId → same tag → intentional replace (e.g. event update). */
     tag,
 
-    /* renotify: re-trigger vibration/sound even if replacing an existing notification with same tag */
-    renotify: true,
+    /* renotify: true only for intentional updates to an existing notification.
+     * With unique tags, this is false — each notification is always brand-new. */
+    renotify: isIntentionalUpdate,
 
-    /* requireInteraction: keeps notification alive on lock screen until user explicitly interacts.
-     * Only set for high-priority pushes (event deadlines, admin alerts).
-     * Do NOT set for welcome/info pushes — causes Android notification weirdness. */
+    /* requireInteraction: pin to lock screen only for high-priority alerts */
     requireInteraction: priority === "high",
 
-    /* timestamp: used by Android to sort notifications and display relative time */
-    timestamp: data.timestamp || Date.now(),
+    /* timestamp: Android uses this to sort notifications in the tray */
+    timestamp: data.timestamp || receivedAt,
 
-    /* silent: always false so the device plays the default notification sound */
+    /* silent: false — always play default system notification sound */
     silent: false,
 
-    /* vibrate: pattern in ms — on, off, on, off … */
+    /* vibrate: haptic pattern — matched to notification category */
     vibrate: data.vibrate || getVibration(category),
 
-    /* data: passed through to the notificationclick handler */
+    /* data: forwarded to the notificationclick handler */
     data: {
       url:            route,
       notificationId: notificationId,
@@ -218,10 +240,10 @@ self.addEventListener("push", (event) => {
       priority:       priority,
       userEmail:      userEmail,
       groupTag:       groupTag,
+      receivedAt:     receivedAt,
     },
 
-    /* actions: rendered as buttons below the notification body on Android.
-     * Max 2 actions are shown on most Android launchers. */
+    /* actions: buttons below the notification body (max 2 on most Android launchers) */
     actions: [
       { action: "open",    title: "Open"    },
       { action: "dismiss", title: "Dismiss" },
@@ -272,7 +294,16 @@ self.addEventListener("push", (event) => {
     /* ── Show native Android notification in ALL states ── */
     try {
       await self.registration.showNotification(title, options);
-      console.log("[PUSH] Notification rendered —", `tag=${tag}`, `category=${category}`, `priority=${priority}`, `foreground=${isForeground}`);
+      const renderLatencyMs = Date.now() - receivedAt;
+      console.log(
+        "[PUSH] Notification rendered —",
+        `tag=${tag}`,
+        `category=${category}`,
+        `priority=${priority}`,
+        `foreground=${isForeground}`,
+        `intentionalUpdate=${isIntentionalUpdate}`,
+        `renderLatency=${renderLatencyMs}ms`
+      );
     } catch (showErr) {
       console.error("[PUSH] showNotification failed:", showErr);
       /* Graceful fallback: minimal notification to prevent Chrome's default

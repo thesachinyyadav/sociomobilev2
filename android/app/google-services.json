@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "780291704331",
+    "project_id": "socio-app-notifications",
+    "storage_bucket": "socio-app-notifications.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:780291704331:android:3b2fa2c9b4d083a24ca90e",
+        "android_client_info": {
+          "package_name": "com.withsocio.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC2PJn9J-55YfrxWcgm4OCIc4xAr9gSCC0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

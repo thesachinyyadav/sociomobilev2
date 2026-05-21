@@ -16,7 +16,7 @@ out/
 npm-debug.log*
 
 # android build artifacts
-*.apk
+
 *.aab
 
 # misc

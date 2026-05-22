@@ -167,9 +167,7 @@ export default function NativeScanner({
 
       {/* ── Navy Event Header ── */}
       <div 
-        className={`bg-[#011F7B] px-4 pt-3 relative w-full flex-shrink-0 rounded-b-[40px] transition-all duration-300 ${
-          isScanning ? "pb-12" : "pb-32"
-        }`} 
+        className="bg-[#011F7B] px-4 pt-3 pb-32 relative w-full flex-shrink-0 rounded-b-[40px]" 
         style={{ zIndex: 30 }}
       >
         <div className="flex flex-col gap-4 max-w-[480px] mx-auto">
@@ -211,9 +209,7 @@ export default function NativeScanner({
       </div>
 
       <div 
-        className={`scan-main-column px-4 relative pb-24 max-w-[480px] mx-auto w-full flex-shrink-0 flex flex-col gap-6 transition-all duration-300 ${
-          isScanning ? "-mt-5 overflow-visible" : "-mt-24 overflow-y-auto"
-        }`}
+        className="scan-main-column px-4 relative pb-24 max-w-[480px] mx-auto w-full flex-shrink-0 flex flex-col gap-6 -mt-24 overflow-y-auto"
       >
         {/* ── Scanner Card Wrapper ── */}
         <div className="w-full relative rounded-[28px]">

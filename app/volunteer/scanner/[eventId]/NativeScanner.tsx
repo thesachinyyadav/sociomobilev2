@@ -1,7 +1,15 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
-import { ArrowLeftIcon, BellIcon, FlashlightIcon } from "@/components/icons";
+import { useEffect } from "react";
+import Image from "next/image";
+import Link from "next/link";
+import {
+  ArrowLeftIcon,
+  QrCodeIcon,
+  BellIcon,
+  FlashlightIcon,
+} from "@/components/icons";
+import { formatDateShort, formatTime } from "@/lib/dateUtils";
 import type { VolunteerEvent } from "@/context/AuthContext";
 import type { HistoryRow } from "./WebScanner";
 
@@ -21,6 +29,13 @@ interface NativeScannerProps {
   toggleTorch: () => Promise<void>;
   router: any;
   setSelectedRow: (row: HistoryRow) => void;
+  userData: any;
+  session: any;
+  unreadCount: number;
+  integrity: any;
+  integrityLabel: (level: any) => string;
+  imgError: boolean;
+  setImgError: (val: boolean) => void;
 }
 
 export default function NativeScanner({
@@ -39,8 +54,14 @@ export default function NativeScanner({
   toggleTorch,
   router,
   setSelectedRow,
+  userData,
+  session,
+  unreadCount,
+  integrity,
+  integrityLabel,
+  imgError,
+  setImgError,
 }: NativeScannerProps) {
-  
   // Clean up backgrounds for native scanning
   useEffect(() => {
     if (isScanning) {
@@ -56,217 +77,325 @@ export default function NativeScanner({
     };
   }, [isScanning]);
 
-  const lastScan = useMemo(() => {
-    if (history.length === 0) return null;
-    return history[0];
-  }, [history]);
-
   const handleBack = () => {
     void stopScanner();
     router.replace("/volunteer");
   };
 
-  // Viewport borders and glows depending on state
-  const cutoutStatusClasses = useMemo(() => {
-    switch (viewportStatus) {
-      case "success":
-        return "border-emerald-500 shadow-[0_0_25px_rgba(16,185,129,0.6)]";
-      case "duplicate":
-        return "border-amber-500 shadow-[0_0_25px_rgba(245,158,11,0.6)]";
-      case "error":
-        return "border-rose-500 shadow-[0_0_25px_rgba(239,68,68,0.6)]";
-      default:
-        return "border-white/20";
-    }
-  }, [viewportStatus]);
+  const getInitials = (name: string) => {
+    const parts = name.trim().split(" ");
+    if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+    return name.substring(0, 2).toUpperCase();
+  };
+
+  const borderClass =
+    viewportStatus === "success" ? "border-emerald-500 border-2" :
+    viewportStatus === "duplicate" ? "border-amber-500 border-2" :
+    viewportStatus === "error" ? "border-rose-500 border-2" :
+    isScanning ? "border-white/20 border" : "border-[#F1F5F9] border";
 
   return (
-    <div className={`fixed inset-0 z-50 flex flex-col justify-between bg-transparent select-none pt-[var(--safe-top)] pb-[var(--safe-bottom)]`}>
-      
-      {/* ── Top Safe Area HUD Navigation ── */}
-      <div className="w-full px-4 flex flex-col gap-2 z-50">
-        <div className="flex items-center justify-between h-14">
-          {/* Close/Back button */}
-          <button
-            onClick={handleBack}
-            className="w-11 h-11 rounded-full bg-black/40 backdrop-blur-md text-white flex items-center justify-center active:scale-95 transition-transform border border-white/10"
-            aria-label="Exit scanner"
-          >
-            <span className="text-xl">✕</span>
-          </button>
-
-          {/* Immersive Event Label */}
-          <div className="flex flex-col items-center max-w-[60vw]">
-            <span className="text-[14px] font-bold text-white tracking-wide truncate w-full text-center drop-shadow-md">
-              Scan Ticket
-            </span>
-            <span className="text-[10px] font-medium text-slate-300 truncate w-full text-center drop-shadow-md">
-              {event.title}
-            </span>
-          </div>
-
-          {/* Flashlight toggle */}
-          {torchAvailable ? (
-            <button
-              onClick={toggleTorch}
-              className={`w-11 h-11 rounded-full flex items-center justify-center active:scale-95 transition-all border ${
-                torchEnabled
-                  ? "bg-[#FFBA09] text-[#011F7B] shadow-[0_0_15px_rgba(255,186,9,0.5)] border-[#FFBA09]/30"
-                  : "bg-black/40 text-white border-white/10 backdrop-blur-md"
-              }`}
-              aria-label={torchEnabled ? "Disable flashlight" : "Enable flashlight"}
-            >
-              <FlashlightIcon size={20} className={torchEnabled ? "fill-current" : ""} />
-            </button>
-          ) : (
-            <div className="w-11" /> // Spacer for alignment
-          )}
-        </div>
-      </div>
-
-      {/* ── Immersive Cutout Center Section ── */}
-      <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none z-10">
-        <div 
-          className={`w-[260px] h-[260px] rounded-[36px] border-[2px] transition-all duration-300 relative pointer-events-auto ${cutoutStatusClasses}`}
-          style={{ boxShadow: "0 0 0 9999px rgba(1, 13, 59, 0.72)" }} // Premium Deep Navy translucent mask
+    <div className={`scan-page ${isScanning ? "scan-native-active" : ""}`} style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
+      {/* ── Standard TopBar (White) ── */}
+      <header
+        className="sticky top-0 left-0 right-0 bg-white border-b border-[#E2E8F0]"
+        style={{ paddingTop: "var(--safe-top)", backfaceVisibility: "hidden", zIndex: 40 }}
+      >
+        <div
+          className="relative flex items-center px-4"
+          style={{ height: "var(--nav-height)" }}
         >
-          {/* Laser animated scan sweep line */}
-          {isScanning && (
-            <div className="absolute left-4 right-4 h-[2px] bg-gradient-to-r from-transparent via-[#FFBA09] to-transparent animate-scanner-laser shadow-[0_0_8px_#FFBA09]" />
-          )}
-
-          {/* Outer yellow corner brackets */}
-          <div className="absolute -top-1.5 -left-1.5 w-7 h-7 border-t-[4px] border-l-[4px] border-[#FFBA09] rounded-tl-[16px] pointer-events-none" />
-          <div className="absolute -top-1.5 -right-1.5 w-7 h-7 border-t-[4px] border-r-[4px] border-[#FFBA09] rounded-tr-[16px] pointer-events-none" />
-          <div className="absolute -bottom-1.5 -left-1.5 w-7 h-7 border-b-[4px] border-l-[4px] border-[#FFBA09] rounded-bl-[16px] pointer-events-none" />
-          <div className="absolute -bottom-1.5 -right-1.5 w-7 h-7 border-b-[4px] border-r-[4px] border-[#FFBA09] rounded-br-[16px] pointer-events-none" />
-        </div>
-
-        {cameraError ? (
-          <p className="mt-8 text-rose-400 text-sm font-semibold tracking-wide text-center drop-shadow-md px-6">
-            {cameraError}
-          </p>
-        ) : (
-          <p className="mt-8 text-white/80 text-[12px] font-semibold tracking-wider uppercase text-center drop-shadow-md px-6">
-            Align QR Code Inside Frame
-          </p>
-        )}
-      </div>
-
-      {/* ── Glassmorphic Bottom Sheet Panel ── */}
-      <div className="w-full bg-[#0B122C]/90 border-t border-white/10 backdrop-blur-xl rounded-t-[32px] px-6 pt-5 pb-[calc(16px+var(--safe-bottom))] space-y-4 shadow-[0_-12px_40px_rgba(0,0,0,0.5)] z-50">
-        
-        {/* Drag handle line indicator */}
-        <div className="w-12 h-1 bg-white/20 rounded-full mx-auto -mt-2 mb-2" />
-
-        {/* Checked-in stats row */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <h3 className="text-sm font-bold text-white tracking-wide">
-              Scanned Attendees
-            </h3>
-            {syncQueueLength > 0 && (
-              <span className="text-[#FFBA09] text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#FFBA09]/10 border border-[#FFBA09]/20 animate-pulse">
-                ● {syncQueueLength} Syncing
-              </span>
-            )}
+          {/* Left: Profile Avatar */}
+          <div className="flex-1 flex justify-start">
+            <Link href="/profile" className="shrink-0 block">
+              <div className="w-[34px] h-[34px] rounded-full overflow-hidden ring-[2.5px] ring-[#000103] shadow-sm bg-[#011F7B] flex items-center justify-center">
+                {userData?.avatar_url && !imgError ? (
+                  <Image
+                    src={userData.avatar_url}
+                    alt={userData.name || "User"}
+                    width={34}
+                    height={34}
+                    className="w-full h-full object-cover"
+                    onError={() => setImgError(true)}
+                    referrerPolicy="no-referrer"
+                  />
+                ) : (
+                  <span className="text-[13px] font-black text-white drop-shadow-sm">
+                    {userData?.name?.[0]?.toUpperCase() || session?.user?.email?.[0]?.toUpperCase() || "U"}
+                  </span>
+                )}
+              </div>
+            </Link>
           </div>
           
-          <div className="flex items-center gap-3">
-            <span className="bg-[#FFBA09]/10 text-[#FFBA09] border border-[#FFBA09]/25 px-2.5 py-0.5 rounded-full text-[11px] font-black">
-              {scanCount} Checked In
-            </span>
-            <button
-              onClick={() => setIsViewingAll(true)}
-              className="text-[12px] font-bold text-slate-300 hover:text-white active:scale-95 transition-all"
+          {/* Center: SOCIO in Blue */}
+          <span className="absolute left-1/2 -translate-x-1/2 text-[18px] font-black tracking-tight text-[#011F7B]">
+            SOCIO
+          </span>
+          
+          {/* Right: Notification Bell in Blue */}
+          <div className="flex-1 flex justify-end">
+            <Link href="/notifications" className="relative text-[#011F7B] p-1.5 -mr-1.5 active:scale-95 transition-transform">
+              <BellIcon size={24} />
+              {unreadCount > 0 && (
+                <span className="absolute top-0 right-0 min-w-[16px] h-4 bg-[#011F7B] text-white rounded-full text-[10px] flex items-center justify-center font-bold px-1 ring-2 ring-white">
+                  {unreadCount > 99 ? "99+" : unreadCount}
+                </span>
+              )}
+            </Link>
+          </div>
+        </div>
+      </header>
+
+      {/* Time-integrity banner */}
+      {integrity && integrity.level !== "trusted" && integrity.level !== "no-anchor" && (
+        <div
+          className={`scan-status-row scan-status-${
+            integrity.level === "compromised" ? "error"
+            : integrity.level === "expired-anchor" ? "error"
+            : integrity.level === "stale-anchor" ? "warning"
+            : "info"
+          }`}
+          role="status"
+          aria-live="polite"
+          style={{ position: "relative", zIndex: 35 }}
+        >
+          <span className="scan-status-dot" />
+          <span className="scan-status-text">{integrityLabel(integrity.level)}</span>
+        </div>
+      )}
+
+      {/* ── Navy Event Header ── */}
+      <div className="bg-[#011F7B] px-4 pt-3 pb-32 relative w-full flex-shrink-0 rounded-b-[40px]" style={{ zIndex: 30 }}>
+        <div className="flex flex-col gap-4 max-w-[480px] mx-auto">
+          {/* Top row: Back button, Title, Pill */}
+          <div className="flex items-center justify-between w-full gap-3">
+            <button 
+              className="flex-shrink-0 w-10 h-10 bg-[rgba(255,255,255,0.1)] rounded-xl flex items-center justify-center text-white active:bg-[rgba(255,255,255,0.2)] transition-colors"
+              onClick={handleBack}
             >
-              View All
+              <ArrowLeftIcon size={20} />
+            </button>
+            <h1 className="text-white text-[17px] font-semibold leading-tight flex-1">{event.title}</h1>
+            <div className="flex-shrink-0 border border-[rgba(255,255,255,0.14)] bg-[rgba(255,255,255,0.08)] rounded-[14px] px-3 py-1.5 text-white text-[12px] font-semibold whitespace-nowrap">
+              {scanCount} scanned
+            </div>
+          </div>
+          
+          {/* Bottom row: Metadata */}
+          <div className="flex items-center gap-2 text-[11px] text-[#cbd5e1] font-medium flex-wrap px-1">
+             {/* Date */}
+             <span className="flex items-center gap-1.5">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                {formatDateShort(event.event_date)}
+             </span>
+             <span className="w-[3px] h-[3px] rounded-full bg-[#94A3B8]" />
+             {/* Time */}
+             <span className="flex items-center gap-1.5">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                {event.event_time ? formatTime(event.event_time) : "Time TBD"}
+             </span>
+             <span className="w-[3px] h-[3px] rounded-full bg-[#94A3B8]" />
+             {/* Venue */}
+             <span className="flex items-center gap-1.5">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+                {event.venue || event.campus_hosted_at || "Venue TBD"}
+             </span>
+          </div>
+        </div>
+      </div>
+
+      <div 
+        className={`scan-main-column px-4 -mt-24 relative pb-24 max-w-[480px] mx-auto w-full flex-shrink-0 flex flex-col gap-6 ${isScanning ? "overflow-visible" : "overflow-y-auto"}`}
+        style={{ zIndex: 20 }}
+      >
+        {/* ── Scanner Card Wrapper ── */}
+        <div 
+          className="w-full relative rounded-[28px]"
+          style={{
+            boxShadow: isScanning
+              ? '0 12px 40px rgba(1,31,123,0.08), 0 0 0 9999px #F8FAFF'
+              : '0 12px 40px rgba(1,31,123,0.08)',
+            zIndex: isScanning ? 10 : 'auto',
+          }}
+        >
+          {/* Inner Card (provides padding and overflow clipping for the viewport's shadow) */}
+          <div 
+            className="w-full relative rounded-[28px] overflow-hidden p-5 flex flex-col items-center"
+            style={{
+              backgroundColor: isScanning ? 'transparent' : '#ffffff',
+            }}
+          >
+            <section
+              id="scan-viewport"
+              className={`w-full relative rounded-[20px] overflow-hidden scan-viewport-${viewportStatus} ${borderClass}`}
+              style={{ 
+                aspectRatio: '1',
+                backgroundColor: isScanning ? 'transparent' : '#ffffff',
+                boxShadow: isScanning ? '0 0 0 9999px #ffffff' : 'none',
+                zIndex: isScanning ? 15 : 'auto',
+              }}
+              aria-label="Camera scanner"
+            >
+              {/* Live Camera Viewport - transparent space overlay */}
+              {isScanning && <div className="absolute inset-0 bg-transparent pointer-events-none" aria-hidden="true" />}
+
+              {/* Corner brackets + sweep line */}
+              {isScanning && (
+                <div className="scan-frame" aria-hidden="true">
+                  <div className="scan-corner scan-corner-tl" />
+                  <div className="scan-corner scan-corner-tr" />
+                  <div className="scan-corner scan-corner-bl" />
+                  <div className="scan-corner scan-corner-br" />
+                  <div className="scan-line" />
+
+                  {/* Stop scanning button */}
+                  <button
+                    className="absolute top-4 left-4 w-10 h-10 bg-black/40 backdrop-blur-md text-white rounded-full flex items-center justify-center z-50 pointer-events-auto active:scale-95 transition-transform"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      void stopScanner();
+                    }}
+                    aria-label="Stop scanning"
+                  >
+                    <span className="text-[18px]">✕</span>
+                  </button>
+
+                  {/* Flashlight toggle */}
+                  {torchAvailable && (
+                    <button
+                      className={`absolute top-4 right-4 w-10 h-10 rounded-full flex items-center justify-center z-50 pointer-events-auto active:scale-95 transition-all ${
+                        torchEnabled
+                          ? "bg-[#FFBA09] text-[#011F7B] shadow-[0_0_12px_rgba(255,186,9,0.6)]"
+                          : "bg-black/40 text-white backdrop-blur-md"
+                      }`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        void toggleTorch();
+                      }}
+                      aria-label={torchEnabled ? "Disable flashlight" : "Enable flashlight"}
+                    >
+                      <FlashlightIcon size={18} className={torchEnabled ? "fill-current" : ""} />
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {/* Idle state inside viewport */}
+              {!isScanning && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center bg-white z-30">
+                  {/* Dotted grid background */}
+                  <div className="absolute inset-0" style={{ backgroundImage: 'radial-gradient(#CBD5E1 1px, transparent 1px)', backgroundSize: '16px 16px', opacity: 0.4 }} />
+                  
+                  {/* Yellow brackets */}
+                  <div className="absolute inset-0 pointer-events-none z-10 p-6">
+                     <div className="absolute top-6 left-6 w-10 h-10 border-t-[3px] border-l-[3px] border-[#FFBA09] rounded-tl-[16px]" />
+                     <div className="absolute top-6 right-6 w-10 h-10 border-t-[3px] border-r-[3px] border-[#FFBA09] rounded-tr-[16px]" />
+                     <div className="absolute bottom-6 left-6 w-10 h-10 border-b-[3px] border-l-[3px] border-[#FFBA09] rounded-bl-[16px]" />
+                     <div className="absolute bottom-6 right-6 w-10 h-10 border-b-[3px] border-r-[3px] border-[#FFBA09] rounded-br-[16px]" />
+                  </div>
+
+                  {/* Center elements */}
+                  <div className="z-20 flex flex-col items-center">
+                    <div className="mb-6">
+                      <svg width="72" height="72" viewBox="0 0 24 24" fill="none" className="text-[#94A3B8] opacity-40">
+                        <path d="M3 3h8v8H3V3zm2 2v4h4V5H5zm8-2h8v8h-8V3zm2 2v4h4V5h-4zM3 13h8v8H3v-8zm2 2v4h4v-4H5zm13-2h3v2h-3v-2zm-3 0h2v2h-2v-2zm3 3h3v2h-3v-2zm-3 0h2v2h-2v-2zm3 3h3v2h-3v-2zm-3 0h2v2h-2v-2z" fill="currentColor"/>
+                      </svg>
+                    </div>
+                    <p className="text-[#64748B] text-[12px] font-medium tracking-wide">Position QR code within the frame</p>
+                  </div>
+                </div>
+              )}
+            </section>
+
+            {/* Error Message */}
+            {cameraError && !isScanning && (
+               <p className="text-[12px] font-semibold text-red-500 mt-4 text-center z-25 relative">{cameraError}</p>
+            )}
+
+            {/* Start Scanning Button */}
+            {!isScanning && (
+              <button
+                id="start-scanning-btn"
+                className="mt-5 w-full max-w-[320px] h-[52px] bg-[#011F7B] text-white rounded-[14px] font-semibold text-[15px] flex items-center justify-center gap-3 active:scale-[0.98] transition-transform shadow-[0_8px_20px_rgba(1,31,123,0.2)]"
+                onClick={() => void startScanner()}
+              >
+                <QrCodeIcon size={20} className="text-[#FFBA09]" /> Start Scanning
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* ── Recent Scans ── */}
+        <section 
+          className="bg-white rounded-[24px] border border-[#F1F5F9] shadow-[0_4px_24px_rgba(15,23,42,0.03)] flex flex-col overflow-hidden" 
+          aria-label="Recent scans"
+          style={{ position: 'relative', zIndex: 25 }}
+        >
+          <div className="flex items-center justify-between px-5 py-4 border-b border-[#F8FAFC]">
+            <h3 className="text-[12px] font-bold text-[#0F172A] tracking-wider uppercase m-0 flex items-center gap-2">
+              RECENT SCANS
+              {syncQueueLength > 0 && (
+                <span className="text-[#F59E0B] text-[9px]">● {syncQueueLength} pending</span>
+              )}
+            </h3>
+            <button 
+              onClick={() => setIsViewingAll(true)}
+              className="text-[12px] font-bold text-[#011F7B] hover:opacity-70 transition-opacity"
+            >
+              View all
             </button>
           </div>
-        </div>
 
-        {/* Scan feedback card */}
-        <div className="w-full">
-          {lastScan ? (
-            <div 
-              onClick={() => setSelectedRow(lastScan)}
-              className={`p-3 rounded-2xl flex items-center justify-between border cursor-pointer active:scale-[0.99] transition-transform ${
-                lastScan.status === "success"
-                  ? "bg-emerald-500/10 border-emerald-500/25 text-emerald-300"
-                  : lastScan.status === "duplicate"
-                  ? "bg-amber-500/10 border-amber-500/25 text-amber-300"
-                  : "bg-rose-500/10 border-rose-500/25 text-rose-300"
-              }`}
-            >
-              <div className="flex items-center gap-3 overflow-hidden min-w-0">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${
-                  lastScan.status === "success"
-                    ? "bg-emerald-500/20 text-emerald-200"
-                    : lastScan.status === "duplicate"
-                    ? "bg-amber-500/20 text-amber-200"
-                    : "bg-rose-500/20 text-rose-200"
-                }`}>
-                  {lastScan.name.substring(0, 2).toUpperCase()}
-                </div>
-                <div className="flex flex-col min-w-0">
-                  <span className="text-[14px] font-bold text-white truncate">{lastScan.name}</span>
-                  <span className={`text-[11px] font-semibold ${
-                    lastScan.status === "success" ? "text-emerald-400" : lastScan.status === "duplicate" ? "text-amber-400" : "text-rose-400"
-                  }`}>
-                    {lastScan.status === "success"
-                      ? "✓ Verified Checked-In"
-                      : lastScan.status === "duplicate"
-                      ? "⚠️ Already Checked-In"
-                      : "✕ Invalid Ticket"}
-                  </span>
-                </div>
+          <div className="flex flex-col">
+            {history.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-8 text-[#94A3B8]">
+                <span className="text-[13px] font-medium">No scans yet</span>
               </div>
-              
-              <div className="flex items-center gap-1 text-slate-400 text-xs shrink-0 ml-2">
-                <span className="font-mono">{lastScan.time.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}</span>
-                <span className="text-sm">›</span>
-              </div>
-            </div>
-          ) : (
-            <div className="p-3.5 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-[#FFBA09] animate-ping" />
-              <p className="text-slate-400 text-xs font-medium">
-                Point camera at participant QR code
-              </p>
-            </div>
-          )}
-        </div>
+            ) : (
+              history.slice(0, 5).map(row => {
+                const statusLabel =
+                  row.status === "success" ? "Verified" :
+                  row.status === "duplicate" ? "Recheck" :
+                  row.status === "offline" ? "Pending" :
+                  row.status === "unauthorized" ? "Not assigned" :
+                  "Error";
 
-        {/* Compact history overlay (last 2 rows) */}
-        {history.length > 1 && (
-          <div className="flex flex-col gap-1.5 border-t border-white/5 pt-3">
-            {history.slice(1, 3).map((row) => (
-              <div
-                key={row.id}
-                onClick={() => setSelectedRow(row)}
-                className="flex items-center justify-between py-1 px-1 cursor-pointer hover:bg-white/5 rounded-lg"
-              >
-                <span className="text-xs text-slate-300 truncate max-w-[60vw]">
-                  {row.name}
-                </span>
-                <div className="flex items-center gap-2">
-                  <span className={`text-[10px] font-semibold ${
-                    row.status === "success"
-                      ? "text-emerald-400"
-                      : row.status === "duplicate"
-                      ? "text-[#FFBA09]"
-                      : "text-rose-400"
-                  }`}>
-                    {row.status === "success" ? "Verified" : row.status === "duplicate" ? "Recheck" : "Invalid"}
-                  </span>
-                  <span className="text-[10px] font-mono text-slate-400">
-                    {row.time.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                  </span>
-                </div>
-              </div>
-            ))}
+                const statusIcon =
+                  row.status === "success" ? "✓" :
+                  row.status === "duplicate" ? "!" :
+                  row.status === "offline" ? "↑" :
+                  "✕";
+                
+                return (
+                  <div key={row.id} className="flex items-center justify-between py-3 px-4 border-b border-[#F8FAFC] last:border-0" onClick={() => setSelectedRow(row)}>
+                    <div className="flex items-center gap-4 overflow-hidden min-w-0 flex-1">
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center text-[14px] font-bold shrink-0 ${row.status === 'success' ? 'bg-[#D1FAE5] text-[#10B981]' : row.status === 'duplicate' ? 'bg-[#FEF3C7] text-[#F59E0B]' : row.status === 'error' ? 'bg-[#FEE2E2] text-[#EF4444]' : 'bg-[#E0E7FF] text-[#3B82F6]'}`}>
+                        {getInitials(row.name)}
+                      </div>
+                      <div className="flex flex-col min-w-0">
+                        <span className="text-[14px] font-bold text-[#0F172A] truncate">{row.name}</span>
+                        <span className="text-[12px] font-medium text-[#64748B] truncate">GA – Main Entrance</span>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center gap-4 shrink-0 ml-2">
+                      <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold ${row.status === 'success' ? 'bg-[#D1FAE5] text-[#10B981]' : row.status === 'duplicate' ? 'bg-[#FEF3C7] text-[#F59E0B]' : row.status === 'error' ? 'bg-[#FEE2E2] text-[#EF4444]' : 'bg-[#E0E7FF] text-[#3B82F6]'}`}>
+                        <span>{statusIcon}</span> {statusLabel}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[12px] font-medium text-[#94A3B8] font-variant-numeric: tabular-nums">
+                          {row.time.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+                        </span>
+                        <span className="text-[#CBD5E1] text-[16px]">›</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            )}
           </div>
-        )}
+        </section>
       </div>
     </div>
   );

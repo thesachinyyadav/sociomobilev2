@@ -982,6 +982,13 @@ export default function ScannerClient() {
           toggleTorch={toggleTorch}
           router={router}
           setSelectedRow={setSelectedRow}
+          userData={userData}
+          session={session}
+          unreadCount={unreadCount}
+          integrity={integrity}
+          integrityLabel={integrityLabel}
+          imgError={imgError}
+          setImgError={setImgError}
         />
         {selectedRow && (
           <ScannerParticipantSheet row={selectedRow} eventTitle={event.title} onClose={() => setSelectedRow(null)} />

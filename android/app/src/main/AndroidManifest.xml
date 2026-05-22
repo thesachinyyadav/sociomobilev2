@@ -48,10 +48,14 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <!-- Required for ML Kit barcode scanning -->
     <uses-permission android:name="android.permission.CAMERA" />
+    <!-- Required for torch / flashlight usage -->
+    <uses-permission android:name="android.permission.FLASHLIGHT" />
     <!-- Required for haptics / vibration feedback -->
     <uses-permission android:name="android.permission.VIBRATE" />
     <!-- Required for Android 13+ push notifications -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Required for OneSignal background notifications wake lock -->
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
     <!-- Required for geolocation/campus selection -->
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />

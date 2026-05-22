@@ -12,9 +12,11 @@ dependencies {
     implementation project(':capacitor-mlkit-barcode-scanning')
     implementation project(':capacitor-app')
     implementation project(':capacitor-browser')
+    implementation project(':capacitor-camera')
     implementation project(':capacitor-haptics')
     implementation project(':capacitor-screen-orientation')
     implementation project(':capacitor-share')
+    implementation project(':capawesome-capacitor-torch')
     implementation "com.onesignal:OneSignal:5.9.1"
 }
 apply from: "../../node_modules/onesignal-cordova-plugin/build-extras-onesignal.gradle"

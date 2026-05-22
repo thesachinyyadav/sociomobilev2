@@ -42,6 +42,8 @@ interface Diagnostic {
   serverConfig: any;
   collectedAt: string;
   userEmail: string;
+  nativePushPermission?: boolean;
+  nativeTorchAvailable?: boolean;
 }
 
 const APP_VERSION = process.env.NEXT_PUBLIC_APP_VERSION || "dev";
@@ -53,6 +55,8 @@ export default function DiagnosticsPage() {
   const [diag, setDiag] = useState<Diagnostic | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [lastResult, setLastResult] = useState<any>(null);
+  const [nativeTorchEnabled, setNativeTorchEnabled] = useState(false);
+  const [capturedPhotoUri, setCapturedPhotoUri] = useState<string | null>(null);
 
   const collect = useCallback(async () => {
     let permission = "n/a";
@@ -62,6 +66,8 @@ export default function DiagnosticsPage() {
     const swList: string[] = [];
     const swScope: string[] = [];
     let serverConfig: any = null;
+    let nativePushPermission = false;
+    let nativeTorchAvailable = false;
 
     try {
       if (typeof Notification !== "undefined") permission = Notification.permission;
@@ -100,6 +106,22 @@ export default function DiagnosticsPage() {
       serverConfig = { error: e?.message || "unreachable" };
     }
 
+    if (Capacitor.isNativePlatform()) {
+      try {
+        const { getNativePushPermissionState } = await import("@/lib/nativeOneSignal");
+        nativePushPermission = await getNativePushPermissionState();
+      } catch (e) {
+        console.warn("[Diagnostics] Native push status query failed", e);
+      }
+      try {
+        const { Torch } = await import("@capawesome/capacitor-torch");
+        const { available } = await Torch.isAvailable();
+        nativeTorchAvailable = available;
+      } catch (e) {
+        console.warn("[Diagnostics] Native torch query failed", e);
+      }
+    }
+
     setDiag({
       appVersion: APP_VERSION,
       platform: Capacitor.getPlatform(),
@@ -117,8 +139,57 @@ export default function DiagnosticsPage() {
       serverConfig,
       collectedAt: new Date().toISOString(),
       userEmail: userData?.email || "(signed out)",
+      nativePushPermission,
+      nativeTorchAvailable,
     });
   }, [userData?.email]);
+
+  const handleTestCamera = async () => {
+    setBusy("camera");
+    try {
+      const { Camera, CameraResultType, CameraSource } = await import("@capacitor/camera");
+      const image = await Camera.getPhoto({
+        quality: 90,
+        allowEditing: false,
+        resultType: CameraResultType.Uri,
+        source: CameraSource.Prompt
+      });
+      setCapturedPhotoUri(image.webPath || image.path || null);
+      toast.success("Camera photo captured successfully!");
+    } catch (e: any) {
+      if (e?.message !== "User cancelled photos app") {
+        toast.error(e?.message || "Camera test failed");
+      }
+      console.warn("[Diagnostics] Camera capture failed", e);
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const handleToggleTorch = async () => {
+    setBusy("torch");
+    try {
+      const { Torch } = await import("@capawesome/capacitor-torch");
+      const { available } = await Torch.isAvailable();
+      if (!available) {
+        toast.error("Torch is not available on this device");
+        return;
+      }
+      const newState = !nativeTorchEnabled;
+      if (newState) {
+        await Torch.enable();
+      } else {
+        await Torch.disable();
+      }
+      setNativeTorchEnabled(newState);
+      toast.success(newState ? "Torch enabled!" : "Torch disabled!");
+    } catch (e: any) {
+      toast.error(e?.message || "Torch toggle failed");
+      console.warn("[Diagnostics] Torch toggle failed", e);
+    } finally {
+      setBusy(null);
+    }
+  };
 
   useEffect(() => {
     collect();
@@ -292,6 +363,44 @@ export default function DiagnosticsPage() {
           </Button>
         </div>
       </div>
+
+      {/* Native Diagnostics Panel */}
+      {diag?.isNative && (
+        <div className="card p-4 bg-slate-900 border border-slate-800 rounded-2xl space-y-4">
+          <h2 className="text-sm font-bold text-white flex items-center gap-2">
+            🤖 Native Capacitor Hardware Diagnostics
+          </h2>
+          
+          <div className="grid grid-cols-2 gap-2">
+            <Button onClick={handleTestCamera} isLoading={busy === "camera"} fullWidth variant="primary">
+              Test Native Camera
+            </Button>
+            <Button onClick={handleToggleTorch} isLoading={busy === "torch"} fullWidth variant={nativeTorchEnabled ? "accent" : "secondary"}>
+              {nativeTorchEnabled ? "Disable Flashlight" : "Enable Flashlight"}
+            </Button>
+          </div>
+
+          {capturedPhotoUri && (
+            <div className="border border-slate-800 p-2 rounded-xl bg-slate-950 text-center space-y-2">
+              <p className="text-[10px] text-slate-400 font-mono break-all">
+                Captured URI: {capturedPhotoUri}
+              </p>
+              <div className="relative aspect-video max-w-xs mx-auto rounded-lg overflow-hidden border border-slate-850 bg-black">
+                <img src={capturedPhotoUri} alt="Captured preview" className="w-full h-full object-cover" />
+              </div>
+              <Button onClick={() => setCapturedPhotoUri(null)} size="sm" variant="ghost">
+                Clear Photo
+              </Button>
+            </div>
+          )}
+
+          <div className="text-xs font-mono text-slate-300 space-y-1 bg-slate-950/50 p-3 rounded-xl border border-slate-850">
+            <Row label="Native Platform" value={diag.platform} />
+            <Row label="OneSignal Push State" value={diag.nativePushPermission ? "Granted" : "Not Granted/Requested"} good={diag.nativePushPermission} />
+            <Row label="Flashlight Available" value={diag.nativeTorchAvailable ? "Yes" : "No"} good={diag.nativeTorchAvailable} />
+          </div>
+        </div>
+      )}
 
       {/* Live VAPID state */}
       <div className="card p-4 bg-slate-900 border border-slate-800 rounded-2xl space-y-2 text-xs font-mono text-slate-300">

@@ -22,7 +22,7 @@ const NativeLaunchController = dynamic(() => import("@/components/native/NativeL
 const DesktopGate = dynamic(() => import("@/components/DesktopGate"), { ssr: false });
 
 
-const NO_BOTTOM_NAV = ["/auth", "/auth/callback", "/offline"];
+const NO_BOTTOM_NAV = ["/auth", "/auth/callback", "/offline", "/volunteer/scanner"];
 const NO_TOP_BAR = ["/auth/callback", "/offline", "/notifications", "/volunteer/scanner"];
 
 export default function AppShell({ children }: { children: React.ReactNode }) {

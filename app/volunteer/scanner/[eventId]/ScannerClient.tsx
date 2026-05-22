@@ -35,6 +35,8 @@ import { Haptics, ImpactStyle, NotificationType } from "@capacitor/haptics";
 import { startRecoveryTransition, stopRecoveryTransition } from "@/lib/nativeLaunchState";
 import { logCapacitorPerfAudit, logMemorySnapshot, startPerfSpan, withPerfSpan } from "@/lib/capacitorPerfAudit";
 import ScannerSkeleton from "@/components/skeletons/ScannerSkeleton";
+import WebScanner from "./WebScanner";
+import NativeScanner from "./NativeScanner";
 import { db, syncEngine } from "@/lib/offline";
 import { useLiveQuery } from "dexie-react-hooks";
 import {
@@ -623,7 +625,7 @@ export default function ScannerClient() {
   }, [processScan]);
 
   const startScanner = useCallback(async () => {
-    if (!videoRef.current) return;
+    if (!isNative && !videoRef.current) return;
     setCameraError(null);
     try {
       await withPerfSpan("scanner.client.start", async () => {
@@ -636,7 +638,7 @@ export default function ScannerClient() {
         }
         // Stable ref-based dispatch — the scanner never sees a new function,
         // so library-internal teardown/setup is never triggered by React renders.
-        await scannerRef.current.start(videoRef.current!, (r) => processScanRef.current(r));
+        await scannerRef.current.start(videoRef.current as any, (r) => processScanRef.current(r));
         if (isNative) {
           const available = await scannerRef.current.isTorchAvailable();
           setTorchAvailable(available);
@@ -883,388 +885,141 @@ export default function ScannerClient() {
     );
   }
 
-  /* ── Main render ── */
-  return (
-    <div className={`scan-page${isNative && isScanning ? " scan-native-active" : ""}`}>
-
-      {/* ── Main TopBar Area Removed from Scan Toasts ── */}
-
-      {/* ── Standard TopBar (White) ── */}
-      <header
-        className="sticky top-0 left-0 right-0 z-50 bg-white border-b border-[#E2E8F0]"
-        style={{ paddingTop: "var(--safe-top)", backfaceVisibility: "hidden" }}
-      >
-        <div
-          className="relative flex items-center px-4"
-          style={{ height: "var(--nav-height)" }}
-        >
-          {/* Left: Profile Avatar */}
-          <div className="flex-1 flex justify-start">
-            <Link href="/profile" className="shrink-0 block">
-              <div className="w-[34px] h-[34px] rounded-full overflow-hidden ring-[2.5px] ring-[#000103] shadow-sm bg-[#011F7B] flex items-center justify-center">
-                {userData?.avatar_url && !imgError ? (
-                  <Image
-                    src={userData.avatar_url}
-                    alt={userData.name || "User"}
-                    width={34}
-                    height={34}
-                    className="w-full h-full object-cover"
-                    onError={() => setImgError(true)}
-                    referrerPolicy="no-referrer"
-                  />
-                ) : (
-                  <span className="text-[13px] font-black text-white drop-shadow-sm">
-                    {userData?.name?.[0]?.toUpperCase() || session?.user?.email?.[0]?.toUpperCase() || "U"}
-                  </span>
-                )}
-              </div>
-            </Link>
-          </div>
-          
-          {/* Center: SOCIO in Blue */}
-          <span className="absolute left-1/2 -translate-x-1/2 text-[18px] font-black tracking-tight text-[#011F7B]">
-            SOCIO
-          </span>
-          
-          {/* Right: Notification Bell in Blue */}
-          <div className="flex-1 flex justify-end">
-            <Link href="/notifications" className="relative text-[#011F7B] p-1.5 -mr-1.5 active:scale-95 transition-transform">
-              <BellIcon size={24} />
-              {unreadCount > 0 && (
-                <span className="absolute top-0 right-0 min-w-[16px] h-4 bg-[#011F7B] text-white rounded-full text-[10px] flex items-center justify-center font-bold px-1 ring-2 ring-white">
-                  {unreadCount > 99 ? "99+" : unreadCount}
-                </span>
-              )}
-            </Link>
-          </div>
-        </div>
+  const renderHistoryModal = () => (
+    <div className="fixed inset-0 z-[100] bg-white flex flex-col pwa-safe-top">
+      <header className="flex items-center justify-between px-4 h-[var(--nav-height)] border-b border-[#F1F5F9]">
+        <button onClick={() => setIsViewingAll(false)} className="p-2 -ml-2 text-[#0F172A]">
+          <ArrowLeftIcon size={20} />
+        </button>
+        <h2 className="text-[16px] font-bold text-[#0F172A]">All Scans</h2>
+        <div className="w-10" />
       </header>
 
-      {/* Time-integrity banner */}
-      {integrity && integrity.level !== "trusted" && integrity.level !== "no-anchor" && (
-        <div
-          className={`scan-status-row scan-status-${
-            integrity.level === "compromised" ? "error"
-            : integrity.level === "expired-anchor" ? "error"
-            : integrity.level === "stale-anchor" ? "warning"
-            : "info"
-          }`}
-          role="status"
-          aria-live="polite"
-        >
-          <span className="scan-status-dot" />
-          <span className="scan-status-text">{integrityLabel(integrity.level)}</span>
-        </div>
-      )}
+      <div className="flex-1 overflow-y-auto px-4 py-4">
+        <div className="flex flex-col gap-1">
+          {history.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE).map(row => {
+            const getInitials = (name: string) => {
+              const parts = name.trim().split(' ');
+              if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+              return name.substring(0, 2).toUpperCase();
+            };
 
-      {/* ── Navy Event Header ── */}
-      <div className="bg-[#011F7B] px-4 pt-3 pb-32 relative z-10 w-full flex-shrink-0 rounded-b-[40px]">
-        <div className="flex flex-col gap-4 max-w-[480px] mx-auto">
-          {/* Top row: Back button, Title, Pill */}
-          <div className="flex items-center justify-between w-full gap-3">
-            <button 
-              className="flex-shrink-0 w-10 h-10 bg-[rgba(255,255,255,0.1)] rounded-xl flex items-center justify-center text-white active:bg-[rgba(255,255,255,0.2)] transition-colors"
-              onClick={() => { void stopScanner(); router.replace("/volunteer"); }}
-            >
-              <ArrowLeftIcon size={20} />
-            </button>
-            <h1 className="text-white text-[17px] font-semibold leading-tight flex-1">{event.title}</h1>
-            <div className="flex-shrink-0 border border-[rgba(255,255,255,0.14)] bg-[rgba(255,255,255,0.08)] rounded-[14px] px-3 py-1.5 text-white text-[12px] font-semibold whitespace-nowrap">
-              {scanCount} scanned
-            </div>
-          </div>
-          
-          {/* Bottom row: Metadata */}
-          <div className="flex items-center gap-2 text-[11px] text-[#cbd5e1] font-medium flex-wrap px-1">
-             {/* Date */}
-             <span className="flex items-center gap-1.5">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
-                {formatDateShort(event.event_date)}
-             </span>
-             <span className="w-[3px] h-[3px] rounded-full bg-[#94A3B8]" />
-             {/* Time */}
-             <span className="flex items-center gap-1.5">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
-                {event.event_time ? formatTime(event.event_time) : "Time TBD"}
-             </span>
-             <span className="w-[3px] h-[3px] rounded-full bg-[#94A3B8]" />
-             {/* Venue */}
-             <span className="flex items-center gap-1.5">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
-                {event.venue || event.campus_hosted_at || "Venue TBD"}
-             </span>
-          </div>
+            const statusLabel =
+              row.status === "success" ? "Verified" :
+              row.status === "duplicate" ? "Recheck" :
+              row.status === "offline" ? "Pending" :
+              row.status === "unauthorized" ? "Not assigned" :
+              "Error";
+
+            const statusIcon =
+              row.status === "success" ? "✓" :
+              row.status === "duplicate" ? "!" :
+              row.status === "offline" ? "↑" :
+              "✕";
+
+            return (
+              <div key={row.id} className="flex items-center justify-between py-4 border-b border-[#F8FAFC] last:border-0" onClick={() => setSelectedRow(row)}>
+                <div className="flex items-center gap-4 overflow-hidden min-w-0 flex-1">
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center text-[14px] font-bold shrink-0 ${row.status === 'success' ? 'bg-[#D1FAE5] text-[#10B981]' : row.status === 'duplicate' ? 'bg-[#FEF3C7] text-[#F59E0B]' : row.status === 'error' ? 'bg-[#FEE2E2] text-[#EF4444]' : 'bg-[#E0E7FF] text-[#3B82F6]'}`}>
+                    {getInitials(row.name)}
+                  </div>
+                  <div className="flex flex-col min-w-0">
+                    <span className="text-[14px] font-bold text-[#0F172A] truncate">{row.name}</span>
+                    <span className="text-[12px] font-medium text-[#64748B]">{row.time.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}</span>
+                  </div>
+                </div>
+                <div className={`flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-bold ${row.status === 'success' ? 'bg-[#D1FAE5] text-[#10B981]' : row.status === 'duplicate' ? 'bg-[#FEF3C7] text-[#F59E0B]' : row.status === 'error' ? 'bg-[#FEE2E2] text-[#EF4444]' : 'bg-[#E0E7FF] text-[#3B82F6]'}`}>
+                  {statusIcon} {statusLabel}
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
 
-      <div className="scan-main-column px-4 -mt-24 relative z-20 pb-24 max-w-[480px] mx-auto w-full flex-shrink-0 flex flex-col gap-6">
-        
-        {/* ── Scanner Card ── */}
-        <div className="w-full bg-white relative rounded-[28px] shadow-[0_12px_40px_rgba(1,31,123,0.08)] p-5 flex flex-col items-center">
-          <section
-            id="scan-viewport"
-            className={`w-full relative rounded-[20px] overflow-hidden bg-white border border-[#F1F5F9] shadow-inner scan-viewport-${viewportStatus}`}
-            style={{ aspectRatio: '1' }}
-            aria-label="Camera scanner"
+      {/* Pagination Controls */}
+      {history.length > ITEMS_PER_PAGE && (
+        <div className="p-4 border-t border-[#F1F5F9] bg-white flex items-center justify-between">
+          <button 
+            disabled={currentPage === 1}
+            onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+            className="px-4 py-2 text-[13px] font-bold text-[#011F7B] disabled:opacity-30 disabled:grayscale transition-all flex items-center gap-2"
           >
-            <video
-              ref={videoRef}
-              className={`w-full h-full object-cover${isNative ? " opacity-0" : ""}`}
-              style={{ filter: isNative ? "none" : "brightness(1.15) contrast(1.1) saturate(1.05)" }}
-              muted
-              playsInline
-              autoPlay
-            />
-
-            {/* If scanning, show dark gradient over camera */}
-            {isScanning && <div className="absolute inset-0 bg-gradient-to-b from-[rgba(0,0,0,0.2)] to-[rgba(0,0,0,0.6)] pointer-events-none" aria-hidden="true" />}
-
-            {/* Corner brackets + sweep line */}
-            {isScanning && (
-              <div className="scan-frame" aria-hidden="true">
-                <div className="scan-corner scan-corner-tl" />
-                <div className="scan-corner scan-corner-tr" />
-                <div className="scan-corner scan-corner-bl" />
-                <div className="scan-corner scan-corner-br" />
-                <div className="scan-line" />
-
-                {/* Torch Toggle Button - Right Side (STRICTLY NATIVE ONLY) */}
-                {isNative && torchAvailable && (
-                  <button
-                    className={`absolute top-4 right-4 w-[44px] h-[44px] rounded-full flex items-center justify-center z-50 pointer-events-auto active:scale-90 transition-all shadow-lg backdrop-blur-[8px] border border-white/20 ${
-                      torchEnabled 
-                        ? "bg-[#FFBA09] text-[#011F7B] shadow-[0_0_20px_rgba(255,186,9,0.45)] border-[#FFBA09]/40" 
-                        : "bg-[#011F7B]/40 text-white"
-                    }`}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      void toggleTorch();
-                    }}
-                    aria-label={torchEnabled ? "Disable flashlight" : "Enable flashlight"}
-                  >
-                    <FlashlightIcon 
-                      size={20} 
-                      strokeWidth={2.5} 
-                      className={torchEnabled ? "drop-shadow-[0_0_3px_rgba(1,31,123,0.3)]" : ""} 
-                    />
-                  </button>
-                )}
-
-                {/* Stop scanning button - Left Side for better accessibility when torch is present */}
-                <button
-                  className="absolute top-4 left-4 w-10 h-10 bg-black/40 backdrop-blur-md text-white rounded-full flex items-center justify-center z-50 pointer-events-auto active:scale-95 transition-transform"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    void stopScanner();
-                  }}
-                  aria-label="Stop scanning"
-                >
-                  <span className="text-[18px]">✕</span>
-                </button>
-              </div>
-            )}
-
-            {/* Idle state inside viewport */}
-            {!isScanning && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center bg-white z-30">
-                {/* Dotted grid background */}
-                <div className="absolute inset-0" style={{ backgroundImage: 'radial-gradient(#CBD5E1 1px, transparent 1px)', backgroundSize: '16px 16px', opacity: 0.4 }} />
-                
-                {/* Yellow brackets (styled specifically for idle to match thin rounded look) */}
-                <div className="absolute inset-0 pointer-events-none z-10 p-6">
-                   <div className="absolute top-6 left-6 w-10 h-10 border-t-[3px] border-l-[3px] border-[#FFBA09] rounded-tl-[16px]" />
-                   <div className="absolute top-6 right-6 w-10 h-10 border-t-[3px] border-r-[3px] border-[#FFBA09] rounded-tr-[16px]" />
-                   <div className="absolute bottom-6 left-6 w-10 h-10 border-b-[3px] border-l-[3px] border-[#FFBA09] rounded-bl-[16px]" />
-                   <div className="absolute bottom-6 right-6 w-10 h-10 border-b-[3px] border-r-[3px] border-[#FFBA09] rounded-br-[16px]" />
-                </div>
-
-                {/* Center elements */}
-                <div className="z-20 flex flex-col items-center">
-                  <div className="mb-6">
-                    <svg width="72" height="72" viewBox="0 0 24 24" fill="none" className="text-[#94A3B8] opacity-40">
-                      <path d="M3 3h8v8H3V3zm2 2v4h4V5H5zm8-2h8v8h-8V3zm2 2v4h4V5h-4zM3 13h8v8H3v-8zm2 2v4h4v-4H5zm13-2h3v2h-3v-2zm-3 0h2v2h-2v-2zm3 3h3v2h-3v-2zm-3 0h2v2h-2v-2zm3 3h3v2h-3v-2zm-3 0h2v2h-2v-2z" fill="currentColor"/>
-                    </svg>
-                  </div>
-                  <p className="text-[#64748B] text-[12px] font-medium tracking-wide">Position QR code within the frame</p>
-                </div>
-              </div>
-            )}
-            
-            {/* No explicit stop scanning button overlay to match the clean design */}
-          </section>
-
-          {/* Error Message */}
-          {cameraError && !isScanning && (
-             <p className="text-[12px] font-semibold text-red-500 mt-4 text-center">{cameraError}</p>
-          )}
-
-          {/* Start Scanning Button */}
-          {!isScanning && (
-            <button
-              id="start-scanning-btn"
-              className="mt-5 w-full max-w-[320px] h-[52px] bg-[#011F7B] text-white rounded-[14px] font-semibold text-[15px] flex items-center justify-center gap-3 active:scale-[0.98] transition-transform shadow-[0_8px_20px_rgba(1,31,123,0.2)]"
-              onClick={() => void startScanner()}
-            >
-              <QrCodeIcon size={20} className="text-[#FFBA09]" /> Start Scanning
-            </button>
-          )}
-        </div>
-
-        {/* ── Recent Scans ── */}
-        <section className="bg-white rounded-[24px] border border-[#F1F5F9] shadow-[0_4px_24px_rgba(15,23,42,0.03)] flex flex-col overflow-hidden" aria-label="Recent scans">
-          <div className="flex items-center justify-between px-5 py-4 border-b border-[#F8FAFC]">
-            <h3 className="text-[12px] font-bold text-[#0F172A] tracking-wider uppercase m-0 flex items-center gap-2">
-              RECENT SCANS
-              {syncQueue.length > 0 && (
-                <span className="text-[#F59E0B] text-[9px]">● {syncQueue.length} pending</span>
-              )}
-            </h3>
-            <button 
-              onClick={() => { setIsViewingAll(true); setCurrentPage(1); }}
-              className="text-[12px] font-bold text-[#011F7B] hover:opacity-70 transition-opacity"
-            >
-              View all
-            </button>
-          </div>
-
-          <div className="flex flex-col">
-            {history.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-8 text-[#94A3B8]">
-                <span className="text-[13px] font-medium">No scans yet</span>
-              </div>
-            ) : (
-              history.slice(0, 5).map(row => {
-                const getInitials = (name: string) => {
-                  const parts = name.split(' ');
-                  if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
-                  return name.substring(0, 2).toUpperCase();
-                };
-
-                const statusLabel =
-                  row.status === "success" ? "Verified" :
-                  row.status === "duplicate" ? "Recheck" :
-                  row.status === "offline" ? "Pending" :
-                  row.status === "unauthorized" ? "Not assigned" :
-                  "Error";
-
-                const statusIcon =
-                  row.status === "success" ? "✓" :
-                  row.status === "duplicate" ? "!" :
-                  row.status === "offline" ? "↑" :
-                  "✕";
-                
-                return (
-                  <div key={row.id} className="flex items-center justify-between py-3 px-4 border-b border-[#F8FAFC] last:border-0" onClick={() => setSelectedRow(row)}>
-                    <div className="flex items-center gap-4 overflow-hidden min-w-0 flex-1">
-                      <div className={`w-10 h-10 rounded-full flex items-center justify-center text-[14px] font-bold shrink-0 ${row.status === 'success' ? 'bg-[#D1FAE5] text-[#10B981]' : row.status === 'duplicate' ? 'bg-[#FEF3C7] text-[#F59E0B]' : row.status === 'error' ? 'bg-[#FEE2E2] text-[#EF4444]' : 'bg-[#E0E7FF] text-[#3B82F6]'}`}>
-                        {getInitials(row.name)}
-                      </div>
-                      <div className="flex flex-col min-w-0">
-                        <span className="text-[14px] font-bold text-[#0F172A] truncate">{row.name}</span>
-                        <span className="text-[12px] font-medium text-[#64748B] truncate">GA – Main Entrance</span>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center gap-4 shrink-0 ml-2">
-                      <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold ${row.status === 'success' ? 'bg-[#D1FAE5] text-[#10B981]' : row.status === 'duplicate' ? 'bg-[#FEF3C7] text-[#F59E0B]' : row.status === 'error' ? 'bg-[#FEE2E2] text-[#EF4444]' : 'bg-[#E0E7FF] text-[#3B82F6]'}`}>
-                        <span>{statusIcon}</span> {statusLabel}
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-[12px] font-medium text-[#94A3B8] font-variant-numeric: tabular-nums">
-                          {row.time.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
-                        </span>
-                        <span className="text-[#CBD5E1] text-[16px]">›</span>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </div>
-        </section>
-      </div>
-
-      {selectedRow && (
-        <ScannerParticipantSheet row={selectedRow} eventTitle={event.title} onClose={() => setSelectedRow(null)} />
-      )}
-
-      {/* ── Full History View All Modal ── */}
-      {isViewingAll && (
-        <div className="fixed inset-0 z-[100] bg-white flex flex-col pwa-safe-top">
-          <header className="flex items-center justify-between px-4 h-[var(--nav-height)] border-b border-[#F1F5F9]">
-            <button onClick={() => setIsViewingAll(false)} className="p-2 -ml-2 text-[#0F172A]">
-              <ArrowLeftIcon size={20} />
-            </button>
-            <h2 className="text-[16px] font-bold text-[#0F172A]">All Scans</h2>
-            <div className="w-10" /> {/* Spacer */}
-          </header>
-
-          <div className="flex-1 overflow-y-auto px-4 py-4">
-            <div className="flex flex-col gap-1">
-              {history.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE).map(row => {
-                const getInitials = (name: string) => {
-                  const parts = name.trim().split(' ');
-                  if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
-                  return name.substring(0, 2).toUpperCase();
-                };
-
-                const statusLabel =
-                  row.status === "success" ? "Verified" :
-                  row.status === "duplicate" ? "Recheck" :
-                  row.status === "offline" ? "Pending" :
-                  row.status === "unauthorized" ? "Not assigned" :
-                  "Error";
-
-                const statusIcon =
-                  row.status === "success" ? "✓" :
-                  row.status === "duplicate" ? "!" :
-                  row.status === "offline" ? "↑" :
-                  "✕";
-
-                return (
-                  <div key={row.id} className="flex items-center justify-between py-4 border-b border-[#F8FAFC] last:border-0" onClick={() => setSelectedRow(row)}>
-                    <div className="flex items-center gap-4 overflow-hidden min-w-0 flex-1">
-                      <div className={`w-10 h-10 rounded-full flex items-center justify-center text-[14px] font-bold shrink-0 ${row.status === 'success' ? 'bg-[#D1FAE5] text-[#10B981]' : row.status === 'duplicate' ? 'bg-[#FEF3C7] text-[#F59E0B]' : row.status === 'error' ? 'bg-[#FEE2E2] text-[#EF4444]' : 'bg-[#E0E7FF] text-[#3B82F6]'}`}>
-                        {getInitials(row.name)}
-                      </div>
-                      <div className="flex flex-col min-w-0">
-                        <span className="text-[14px] font-bold text-[#0F172A] truncate">{row.name}</span>
-                        <span className="text-[12px] font-medium text-[#64748B]">{row.time.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}</span>
-                      </div>
-                    </div>
-                    <div className={`flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-bold ${row.status === 'success' ? 'bg-[#D1FAE5] text-[#10B981]' : row.status === 'duplicate' ? 'bg-[#FEF3C7] text-[#F59E0B]' : row.status === 'error' ? 'bg-[#FEE2E2] text-[#EF4444]' : 'bg-[#E0E7FF] text-[#3B82F6]'}`}>
-                      {statusIcon} {statusLabel}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Pagination Controls */}
-          {history.length > ITEMS_PER_PAGE && (
-            <div className="p-4 border-t border-[#F1F5F9] bg-white flex items-center justify-between">
-              <button 
-                disabled={currentPage === 1}
-                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                className="px-4 py-2 text-[13px] font-bold text-[#011F7B] disabled:opacity-30 disabled:grayscale transition-all flex items-center gap-2"
-              >
-                <ArrowLeftIcon size={14} /> Previous
-              </button>
-              <span className="text-[13px] font-bold text-[#64748B]">
-                Page {currentPage} of {Math.ceil(history.length / ITEMS_PER_PAGE)}
-              </span>
-              <button 
-                disabled={currentPage >= Math.ceil(history.length / ITEMS_PER_PAGE)}
-                onClick={() => setCurrentPage(prev => prev + 1)}
-                className="px-4 py-2 text-[13px] font-bold text-[#011F7B] disabled:opacity-30 disabled:grayscale transition-all flex items-center gap-2"
-              >
-                Next <ArrowLeftIcon size={14} className="rotate-180" />
-              </button>
-            </div>
-          )}
+            <ArrowLeftIcon size={14} /> Previous
+          </button>
+          <span className="text-[13px] font-bold text-[#64748B]">
+            Page {currentPage} of {Math.ceil(history.length / ITEMS_PER_PAGE)}
+          </span>
+          <button 
+            disabled={currentPage >= Math.ceil(history.length / ITEMS_PER_PAGE)}
+            onClick={() => setCurrentPage(prev => prev + 1)}
+            className="px-4 py-2 text-[13px] font-bold text-[#011F7B] disabled:opacity-30 disabled:grayscale transition-all flex items-center gap-2"
+          >
+            Next <ArrowLeftIcon size={14} className="rotate-180" />
+          </button>
         </div>
       )}
     </div>
   );
+
+  /* ── Main render ── */
+  if (isNative) {
+    return (
+      <>
+        <NativeScanner
+          event={event}
+          scanCount={scanCount}
+          history={history}
+          isScanning={isScanning}
+          cameraError={cameraError}
+          viewportStatus={viewportStatus}
+          syncQueueLength={syncQueue.length}
+          startScanner={startScanner}
+          stopScanner={stopScanner}
+          setIsViewingAll={setIsViewingAll}
+          torchAvailable={torchAvailable}
+          torchEnabled={torchEnabled}
+          toggleTorch={toggleTorch}
+          router={router}
+          setSelectedRow={setSelectedRow}
+        />
+        {selectedRow && (
+          <ScannerParticipantSheet row={selectedRow} eventTitle={event.title} onClose={() => setSelectedRow(null)} />
+        )}
+        {isViewingAll && renderHistoryModal()}
+      </>
+    );
+  }
+
+  return (
+    <>
+      <WebScanner
+        event={event}
+        scanCount={scanCount}
+        history={history}
+        isScanning={isScanning}
+        cameraError={cameraError}
+        videoRef={videoRef}
+        viewportStatus={viewportStatus}
+        syncQueueLength={syncQueue.length}
+        startScanner={startScanner}
+        stopScanner={stopScanner}
+        setIsViewingAll={setIsViewingAll}
+        userData={userData}
+        session={session}
+        unreadCount={unreadCount}
+        integrity={integrity}
+        integrityLabel={integrityLabel}
+        router={router}
+        imgError={imgError}
+        setImgError={setImgError}
+        setSelectedRow={setSelectedRow}
+      />
+      {selectedRow && (
+        <ScannerParticipantSheet row={selectedRow} eventTitle={event.title} onClose={() => setSelectedRow(null)} />
+      )}
+      {isViewingAll && renderHistoryModal()}
+    </>
+  );
 }
+

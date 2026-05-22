@@ -16,7 +16,7 @@
     <!-- Centered app logo -->
     <item
         android:drawable="@drawable/splash_logo"
-        android:width="120dp"
-        android:height="120dp"
+        android:width="200dp"
+        android:height="200dp"
         android:gravity="center" />
 </layer-list>

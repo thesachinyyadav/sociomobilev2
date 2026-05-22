@@ -33,7 +33,13 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const hideTop = NO_TOP_BAR.some((p) => pathname.startsWith(p));
   const { userData, needsCampus, refreshUserData } = useAuth();
   const [campusDismissed, setCampusDismissed] = useState(false);
-  const [isNative, setIsNative] = useState(false);
+  const [isNative, setIsNative] = useState(() => {
+    if (typeof window !== "undefined") {
+      const cap = (window as any).Capacitor;
+      return !!(cap && cap.isNativePlatform && cap.isNativePlatform());
+    }
+    return false;
+  });
   const [showSplash, setShowSplash] = useState(true);
   const previousPathRef = useRef<string>(pathname);
   const stopFrameMonitorRef = useRef<(() => void) | null>(null);

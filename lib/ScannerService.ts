@@ -278,23 +278,24 @@ class CapacitorScanner implements IScanner {
 
   async setTorch(enabled: boolean): Promise<void> {
     try {
-      const { Torch } = await import('@capawesome/capacitor-torch');
+      const { BarcodeScanner } = await getMlKitLib();
       if (enabled) {
-        await Torch.enable();
+        await BarcodeScanner.enableTorch();
       } else {
-        await Torch.disable();
+        await BarcodeScanner.disableTorch();
       }
     } catch (err) {
-      console.warn('[CapacitorScanner] Torch not supported', err);
+      console.warn('[CapacitorScanner] Torch control failed:', err);
     }
   }
 
   async isTorchAvailable(): Promise<boolean> {
     try {
-      const { Torch } = await import('@capawesome/capacitor-torch');
-      const { available } = await Torch.isAvailable();
+      const { BarcodeScanner } = await getMlKitLib();
+      const { available } = await BarcodeScanner.isTorchAvailable();
       return available;
-    } catch {
+    } catch (err) {
+      console.warn('[CapacitorScanner] Failed to check torch availability:', err);
       return false;
     }
   }

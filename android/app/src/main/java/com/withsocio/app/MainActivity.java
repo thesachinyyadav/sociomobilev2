@@ -16,12 +16,5 @@ public class MainActivity extends BridgeActivity {
         // Install the splash screen before calling super.onCreate()
         SplashScreen.installSplashScreen(this);
         super.onCreate(savedInstanceState);
-
-        // Request POST_NOTIFICATIONS permission at runtime on Android 13+ (API 33+)
-        if (Build.VERSION.SDK_INT >= 33) {
-            if (checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
-                requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS}, 1001);
-            }
-        }
     }
 }

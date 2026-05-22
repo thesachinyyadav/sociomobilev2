@@ -20,7 +20,6 @@ const OrientationGate = dynamic(() => import("@/components/OrientationGate"), { 
 const NotificationDiagnostics = dynamic(() => import("@/components/NotificationDiagnostics"), { ssr: false });
 const NativeLaunchController = dynamic(() => import("@/components/native/NativeLaunchController"), { ssr: false });
 const DesktopGate = dynamic(() => import("@/components/DesktopGate"), { ssr: false });
-const NativeSplash = dynamic(() => import("@/components/native/NativeSplash"), { ssr: false });
 
 
 const NO_BOTTOM_NAV = ["/auth", "/auth/callback", "/offline", "/volunteer/scanner"];
@@ -33,14 +32,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const hideTop = NO_TOP_BAR.some((p) => pathname.startsWith(p));
   const { userData, needsCampus, refreshUserData } = useAuth();
   const [campusDismissed, setCampusDismissed] = useState(false);
-  const [isNative, setIsNative] = useState(() => {
-    if (typeof window !== "undefined") {
-      const cap = (window as any).Capacitor;
-      return !!(cap && cap.isNativePlatform && cap.isNativePlatform());
-    }
-    return false;
-  });
-  const [showSplash, setShowSplash] = useState(true);
+  const [isNative, setIsNative] = useState(false);
   const previousPathRef = useRef<string>(pathname);
   const stopFrameMonitorRef = useRef<(() => void) | null>(null);
 
@@ -56,9 +48,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       const { Capacitor } = await import("@capacitor/core");
       const nativePlatform = Capacitor.isNativePlatform();
       setIsNative(nativePlatform);
-      if (!nativePlatform) {
-        setShowSplash(false);
-      }
       logCapacitorPerfAudit("appshell.platform", { nativePlatform, platform: Capacitor.getPlatform() });
     });
   }, []);
@@ -183,9 +172,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex flex-col min-h-dvh overflow-hidden">
-      {isNative && showSplash && (
-        <NativeSplash onComplete={() => setShowSplash(false)} />
-      )}
 
       <NativeLaunchController />
       <OrientationGate />

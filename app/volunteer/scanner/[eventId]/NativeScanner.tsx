@@ -92,14 +92,14 @@ export default function NativeScanner({
     viewportStatus === "success" ? "border-emerald-500 border-2" :
     viewportStatus === "duplicate" ? "border-amber-500 border-2" :
     viewportStatus === "error" ? "border-rose-500 border-2" :
-    isScanning ? "border-white/20 border" : "border-[#F1F5F9] border";
+    "border-[#F1F5F9] border";
 
   return (
     <div className={`scan-page ${isScanning ? "scan-native-active" : ""}`} style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
       {/* ── Standard TopBar (White) ── */}
       <header
         className="sticky top-0 left-0 right-0 bg-white border-b border-[#E2E8F0]"
-        style={{ paddingTop: "var(--safe-top)", backfaceVisibility: "hidden", zIndex: 40 }}
+        style={{ paddingTop: "var(--safe-top)", backfaceVisibility: "hidden", zIndex: 50 }}
       >
         <div
           className="relative flex items-center px-4"
@@ -207,23 +207,25 @@ export default function NativeScanner({
 
       <div 
         className={`scan-main-column px-4 -mt-24 relative pb-24 max-w-[480px] mx-auto w-full flex-shrink-0 flex flex-col gap-6 ${isScanning ? "overflow-visible" : "overflow-y-auto"}`}
-        style={{ zIndex: 20 }}
       >
         {/* ── Scanner Card Wrapper ── */}
-        <div 
-          className="w-full relative rounded-[28px]"
-          style={{
-            boxShadow: isScanning
-              ? '0 12px 40px rgba(1,31,123,0.08), 0 0 0 9999px #F8FAFF'
-              : '0 12px 40px rgba(1,31,123,0.08)',
-            zIndex: isScanning ? 10 : 'auto',
-          }}
-        >
+        <div className="w-full relative rounded-[28px]">
+          {/* Masking Shadow (Dummy Sibling) */}
+          {isScanning && (
+            <div 
+              className="absolute inset-0 z-10 rounded-[28px] pointer-events-none"
+              style={{
+                boxShadow: '0 0 0 9999px #F8FAFF',
+              }}
+            />
+          )}
+
           {/* Inner Card (provides padding and overflow clipping for the viewport's shadow) */}
           <div 
-            className="w-full relative rounded-[28px] overflow-hidden p-5 flex flex-col items-center"
+            className="w-full relative rounded-[28px] overflow-hidden p-5 flex flex-col items-center z-40"
             style={{
               backgroundColor: isScanning ? 'transparent' : '#ffffff',
+              boxShadow: '0 12px 40px rgba(1,31,123,0.08)',
             }}
           >
             <section
@@ -238,7 +240,12 @@ export default function NativeScanner({
               aria-label="Camera scanner"
             >
               {/* Live Camera Viewport - transparent space overlay */}
-              {isScanning && <div className="absolute inset-0 bg-transparent pointer-events-none" aria-hidden="true" />}
+              {isScanning && (
+                <div 
+                  className="absolute inset-0 bg-gradient-to-b from-[rgba(0,0,0,0.2)] to-[rgba(0,0,0,0.6)] pointer-events-none" 
+                  aria-hidden="true" 
+                />
+              )}
 
               {/* Corner brackets + sweep line */}
               {isScanning && (
@@ -326,11 +333,10 @@ export default function NativeScanner({
           </div>
         </div>
 
-        {/* ── Recent Scans ── */}
         <section 
           className="bg-white rounded-[24px] border border-[#F1F5F9] shadow-[0_4px_24px_rgba(15,23,42,0.03)] flex flex-col overflow-hidden" 
           aria-label="Recent scans"
-          style={{ position: 'relative', zIndex: 25 }}
+          style={{ position: 'relative', zIndex: 30 }}
         >
           <div className="flex items-center justify-between px-5 py-4 border-b border-[#F8FAFC]">
             <h3 className="text-[12px] font-bold text-[#0F172A] tracking-wider uppercase m-0 flex items-center gap-2">

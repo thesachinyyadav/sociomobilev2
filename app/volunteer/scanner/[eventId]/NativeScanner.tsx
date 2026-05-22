@@ -168,7 +168,7 @@ export default function NativeScanner({
       {/* ── Navy Event Header ── */}
       <div 
         className={`bg-[#011F7B] px-4 pt-3 relative w-full flex-shrink-0 rounded-b-[40px] transition-all duration-300 ${
-          isScanning ? "pb-6" : "pb-32"
+          isScanning ? "pb-12" : "pb-32"
         }`} 
         style={{ zIndex: 30 }}
       >
@@ -212,7 +212,7 @@ export default function NativeScanner({
 
       <div 
         className={`scan-main-column px-4 relative pb-24 max-w-[480px] mx-auto w-full flex-shrink-0 flex flex-col gap-6 transition-all duration-300 ${
-          isScanning ? "mt-4 overflow-visible" : "-mt-24 overflow-y-auto"
+          isScanning ? "-mt-5 overflow-visible" : "-mt-24 overflow-y-auto"
         }`}
       >
         {/* ── Scanner Card Wrapper ── */}
@@ -274,24 +274,6 @@ export default function NativeScanner({
                   >
                     <span className="text-[18px]">✕</span>
                   </button>
-
-                  {/* Flashlight toggle */}
-                  {torchAvailable && (
-                    <button
-                      className={`absolute top-4 right-4 w-10 h-10 rounded-full flex items-center justify-center z-50 pointer-events-auto active:scale-95 transition-all ${
-                        torchEnabled
-                          ? "bg-[#FFBA09] text-[#011F7B] shadow-[0_0_12px_rgba(255,186,9,0.6)]"
-                          : "bg-black/40 text-white backdrop-blur-md"
-                      }`}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        void toggleTorch();
-                      }}
-                      aria-label={torchEnabled ? "Disable flashlight" : "Enable flashlight"}
-                    >
-                      <FlashlightIcon size={18} className={torchEnabled ? "fill-current" : ""} />
-                    </button>
-                  )}
                 </div>
               )}
 

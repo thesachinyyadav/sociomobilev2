@@ -34,11 +34,14 @@ export function isVolunteerEventActive(event: VolunteerEvent, now = new Date()) 
     return false;
   }
 
+  // Event end date restriction is bypassed to allow scanner access after event ends.
+  /*
   const eventEndDate = getVolunteerEventEndDate(event);
   if (eventEndDate && now >= eventEndDate) {
     console.log(`Volunteer event ${event.event_id} inactive: Event already ended at ${eventEndDate}`);
     return false;
   }
+  */
 
   return true;
 }

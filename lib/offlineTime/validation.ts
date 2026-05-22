@@ -14,9 +14,9 @@
  */
 
 import type { VolunteerEvent } from "@/context/AuthContext";
-import {
-  getVolunteerEventEndDate,
-} from "@/lib/volunteerAccess";
+// import {
+//   getVolunteerEventEndDate,
+// } from "@/lib/volunteerAccess";
 import { logTimeAudit } from "./audit";
 import { getTimeIntegrityReport } from "./integrity";
 import type { TimeIntegrityLevel, TimeIntegrityReport } from "./types";
@@ -44,6 +44,7 @@ interface DecideOptions {
   integrity?: TimeIntegrityReport;
 }
 
+/*
 function parseEventStart(event: VolunteerEvent): Date | null {
   // event_date is yyyy-mm-dd; event_time is HH:MM[:SS] in campus tz.
   // We piggyback on the same logic used in volunteerAccess for end-date
@@ -64,6 +65,7 @@ function parseEventStart(event: VolunteerEvent): Date | null {
   const parsed = new Date(utcMs);
   return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
+*/
 
 function blockFor(
   reason: OfflineRejectReason,
@@ -139,7 +141,8 @@ export function decideOfflineScan(
     );
   }
 
-  // Event window (Phase 3).
+  // Event window checks bypassed to allow scans anytime.
+  /*
   const start = parseEventStart(event);
   const end = getVolunteerEventEndDate(event);
 
@@ -162,6 +165,7 @@ export function decideOfflineScan(
       integrity,
     );
   }
+  */
 
   return { allow: true, reason: "ok", integrity };
 }

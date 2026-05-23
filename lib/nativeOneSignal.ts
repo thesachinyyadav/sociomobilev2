@@ -53,10 +53,17 @@ export async function initNativeOneSignal(email?: string, name?: string) {
     console.log("[NATIVE_PUSH] OneSignal initializing...");
     OneSignal.initialize(appId);
 
+    console.log(
+      "[ONESIGNAL_STATE]",
+      OneSignal.User.pushSubscription.id,
+      OneSignal.User.pushSubscription.token
+    );
+
     // Bind the user's email and details if they are logged in
     if (email) {
       const normalizedEmail = email.toLowerCase().trim();
       console.log(`[NATIVE_PUSH] Logging in user with external ID: ${normalizedEmail}`);
+      console.log("[ONESIGNAL_LOGIN]", normalizedEmail);
       OneSignal.login(normalizedEmail);
       OneSignal.User.addEmail(normalizedEmail);
       OneSignal.User.addTag("email", normalizedEmail);
@@ -72,6 +79,7 @@ export async function initNativeOneSignal(email?: string, name?: string) {
     // Add push subscription listener to log subscription/player IDs and FCM tokens dynamically
     OneSignal.User.pushSubscription.addEventListener("change", (event) => {
       console.log("[ONESIGNAL] Push subscription changed:", event);
+      console.log("[ONESIGNAL_SUB_CHANGE]", event);
       const current = event.current;
       if (current) {
         console.log(`[ONESIGNAL] Subscription ID: ${current.id}`);

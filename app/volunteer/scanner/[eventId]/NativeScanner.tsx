@@ -167,7 +167,9 @@ export default function NativeScanner({
 
       {/* ── Navy Event Header ── */}
       <div 
-        className="bg-[#011F7B] px-4 pt-3 pb-32 relative w-full flex-shrink-0 rounded-b-[40px]" 
+        className={`bg-[#011F7B] px-4 pt-3 relative w-full flex-shrink-0 rounded-b-[40px] transition-all duration-300 ${
+          isScanning ? "pb-12" : "pb-32"
+        }`} 
         style={{ zIndex: 30 }}
       >
         <div className="flex flex-col gap-4 max-w-[480px] mx-auto">
@@ -209,7 +211,9 @@ export default function NativeScanner({
       </div>
 
       <div 
-        className="scan-main-column px-4 relative pb-24 max-w-[480px] mx-auto w-full flex-shrink-0 flex flex-col gap-6 -mt-24 overflow-y-auto"
+        className={`scan-main-column px-4 relative pb-24 max-w-[480px] mx-auto w-full flex-shrink-0 flex flex-col gap-6 transition-all duration-300 overflow-y-auto ${
+          isScanning ? "-mt-5" : "-mt-24"
+        }`}
       >
         {/* ── Scanner Card Wrapper ── */}
         <div className="w-full relative rounded-[28px]">
@@ -270,6 +274,22 @@ export default function NativeScanner({
                   >
                     <span className="text-[18px]">✕</span>
                   </button>
+
+                  {/* Flashlight toggle button */}
+                  {torchAvailable && (
+                    <button
+                      className={`absolute top-4 right-4 w-10 h-10 backdrop-blur-md rounded-full flex items-center justify-center z-50 pointer-events-auto active:scale-95 transition-transform ${
+                        torchEnabled ? "bg-[#FFBA09] text-[#011F7B]" : "bg-black/40 text-white"
+                      }`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        void toggleTorch();
+                      }}
+                      aria-label={torchEnabled ? "Turn off flashlight" : "Turn on flashlight"}
+                    >
+                      <FlashlightIcon size={20} />
+                    </button>
+                  )}
                 </div>
               )}
 

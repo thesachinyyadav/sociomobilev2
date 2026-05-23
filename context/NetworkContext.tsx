@@ -4,6 +4,7 @@ import { createContext, useContext, useEffect, useState, useMemo, ReactNode } fr
 import { syncEngine } from "@/lib/offline";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "@/lib/offline";
+import { getStartupPhase } from "@/lib/startupLifecycle";
 
 type NetworkStatus = "online" | "unstable" | "reconnecting" | "offline" | "syncing";
 
@@ -42,13 +43,17 @@ export function NetworkProvider({ children }: { children: ReactNode }) {
       setIsOnline(true);
       
       // Attempt a lightweight heartbeat to confirm internet
-      fetch('/manifest.json', { method: 'HEAD', cache: 'no-store' })
-        .then(() => {
-          setStatus(pendingSyncCount > 0 ? "syncing" : "online");
-        })
-        .catch(() => {
-          setStatus("unstable");
-        });
+      if (getStartupPhase() >= 2) {
+        fetch('/manifest.json', { method: 'HEAD', cache: 'no-store' })
+          .then(() => {
+            setStatus(pendingSyncCount > 0 ? "syncing" : "online");
+          })
+          .catch(() => {
+            setStatus("unstable");
+          });
+      } else {
+        setStatus(pendingSyncCount > 0 ? "syncing" : "online");
+      }
     };
 
     const handleOffline = () => {
@@ -61,7 +66,7 @@ export function NetworkProvider({ children }: { children: ReactNode }) {
 
     // Heartbeat for unstable detection
     const heartbeatInterval = setInterval(() => {
-      if (isOnline && status === "online") {
+      if (getStartupPhase() >= 2 && isOnline && status === "online") {
         const start = Date.now();
         fetch('/manifest.json', { method: 'HEAD', cache: 'no-store' })
           .then(() => {

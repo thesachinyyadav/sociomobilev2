@@ -260,6 +260,11 @@ export default function ScannerClient() {
   const networkStatusRef  = useRef(networkStatus);
   networkStatusRef.current = networkStatus;
 
+  const torchEnabledRef   = useRef(torchEnabled);
+  useEffect(() => {
+    torchEnabledRef.current = torchEnabled;
+  }, [torchEnabled]);
+
   const isNative = useMemo(() => Capacitor.isNativePlatform(), []);
 
   const cachedEvent = useMemo(() =>
@@ -356,7 +361,7 @@ export default function ScannerClient() {
     const end = startPerfSpan("scanner.client.stop");
     try {
       if (scannerRef.current) {
-        if (torchEnabled) {
+        if (torchEnabledRef.current) {
           await scannerRef.current.setTorch(false).catch(() => {});
           setTorchEnabled(false);
         }
@@ -385,7 +390,7 @@ export default function ScannerClient() {
       setIsScanning(false);
       end({ status: "completed" });
     }
-  }, [isNative, torchEnabled]);
+  }, [isNative]);
 
   const toggleTorch = useCallback(async () => {
     if (!scannerRef.current || !torchAvailable || !isNative) return;
@@ -723,6 +728,7 @@ export default function ScannerClient() {
    */
   useEffect(() => {
     if (authLoading) return;
+    
     if (!eventId || !session?.access_token) {
       setIsChecking(false);
       setAccessError(DENIED_MESSAGE);

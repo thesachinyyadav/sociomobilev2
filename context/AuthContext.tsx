@@ -201,15 +201,25 @@ function getOrgType(email: string): "christ_member" | "outsider" {
     : "outsider";
 }
 
+interface AuthState {
+  session: Session | null;
+  user: User | null;
+  userData: UserData | null;
+  isLoading: boolean;
+  isHydrated: boolean;
+  isAuthReady: boolean;
+}
+
 /* ── Provider ── */
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [session, setSession] = useState<Session | null>(null);
-  const [user, setUser] = useState<User | null>(null);
-  const [userData, setUserData] = useState<UserData | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isHydrated, setIsHydrated] = useState(false);
-  // isAuthenticated is derived — no state, no extra rerender
-  const [isAuthReady, setIsAuthReady] = useState(false);
+  const [authState, setAuthState] = useState<AuthState>({
+    session: null,
+    user: null,
+    userData: null,
+    isLoading: true,
+    isHydrated: false,
+    isAuthReady: false,
+  });
   // Timing tracked via ref — zero rerenders
   const authTimingsRef = useRef({ start: 0, sessionReady: 0, profileReady: 0 });
   
@@ -290,7 +300,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       fetchedUser.volunteerEvents = volEvents || [];
-      setUserData(fetchedUser);
+      setAuthState(prev => ({ ...prev, userData: fetchedUser }));
       persistUserDataToLS(fetchedUser);
       return fetchedUser;
     } catch (e: any) {
@@ -326,8 +336,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const refreshUserData = useCallback(async () => {
-    if (user?.email) await fetchUserData(user.email);
-  }, [fetchUserData, user?.email]);
+    if (authState.user?.email) await fetchUserData(authState.user.email);
+  }, [fetchUserData, authState.user?.email]);
 
   const hydrationPromiseRef = useRef<Promise<void> | null>(null);
 
@@ -405,7 +415,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         
         if (fetchedUser) {
           authTimingsRef.current.profileReady = Date.now();
-          setIsAuthReady(true);
+          setAuthState(prev => ({ ...prev, isAuthReady: true }));
           maybeShowOutsiderWelcome(fetchedUser, supaUser.id);
         } else {
           console.warn(`🔍 [AuthDebug] ensureUser: Profile fetch failed. USING FALLBACK HYDRATION.`);
@@ -429,10 +439,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             volunteerEvents: []
           };
           
-          setUserData(fallbackUser);
           persistUserDataToLS(fallbackUser);
           authTimingsRef.current.profileReady = Date.now();
-          setIsAuthReady(true);
+          setAuthState(prev => ({
+            ...prev,
+            userData: fallbackUser,
+            isAuthReady: true,
+          }));
         }
       } finally {
         endEnsureUserSpan({ status: "completed" });
@@ -445,12 +458,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const saveOutsiderName = useCallback(
     async (name: string) => {
-      if (!userData?.email || !outsiderVisitorId) return;
+      if (!authState.userData?.email || !outsiderVisitorId) return;
 
       setIsSavingOutsiderName(true);
       setOutsiderNameError(null);
       try {
-        await apiRequest(`/users/${encodeURIComponent(userData.email)}/name`, {
+        await apiRequest(`/users/${encodeURIComponent(authState.userData.email)}/name`, {
           method: "PUT",
           body: JSON.stringify({
             name: name.trim(),
@@ -460,14 +473,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         setShowOutsiderWarning(false);
         setIsEditingOutsiderName(false);
-        await fetchUserData(userData.email);
+        await fetchUserData(authState.userData.email);
       } catch (err: any) {
         setOutsiderNameError(getFriendlyOutsiderNameError(err.message || "Network error"));
       } finally {
         setIsSavingOutsiderName(false);
       }
     },
-    [fetchUserData, outsiderVisitorId, userData?.email]
+    [fetchUserData, outsiderVisitorId, authState.userData?.email]
   );
 
   /* Note: Background 60-second role refresh was removed for mobile to ensure it only fetches once */
@@ -482,7 +495,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.log(`🔍 [AuthRaceDebug] ${now} [DeepLink] Received: ${incomingUrl}`);
       const endDeepLinkSpan = startPerfSpan("auth.handle-deeplink", { incomingUrl });
       isProcessingDeepLink.current = true;
-      setIsLoading(true);
+      setAuthState(prev => ({ ...prev, isLoading: true }));
 
       try {
         const url = new URL(incomingUrl);
@@ -490,7 +503,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (!isSocioScheme) {
           console.log(`🔍 [AuthRaceDebug] ${Date.now()} [DeepLink] Non-socio scheme. Ignoring.`);
           isProcessingDeepLink.current = false;
-          if (mounted) setIsLoading(false);
+          if (mounted) setAuthState(prev => ({ ...prev, isLoading: false }));
           return;
         }
 
@@ -503,7 +516,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (error) {
           console.error(`🔍 [AuthRaceDebug] ${Date.now()} [DeepLink] Error:`, error);
           isProcessingDeepLink.current = false;
-          setIsLoading(false);
+          setAuthState(prev => ({ ...prev, isLoading: false }));
           return;
         }
 
@@ -520,9 +533,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             console.error(`🔍 [AuthRaceDebug] ${Date.now()} [DeepLink] setSession FAIL:`, sessionErr.message);
           } else if (data.session) {
             console.log(`🔍 [AuthRaceDebug] ${Date.now()} [DeepLink] setSession SUCCESS for: ${data.user?.email}`);
-            setSession(data.session);
-            setUser(data.session.user);
             persistSessionToLS(data.session);
+            setAuthState(prev => ({
+              ...prev,
+              session: data.session,
+              user: data.session!.user,
+            }));
             await ensureUser(data.session.user);
           }
         } else if (authCode) {
@@ -535,9 +551,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             console.error(`🔍 [AuthRaceDebug] ${Date.now()} [DeepLink] Exchange FAIL:`, exchangeErr.message);
           } else if (data.session) {
             console.log(`🔍 [AuthRaceDebug] ${Date.now()} [DeepLink] Exchange SUCCESS for: ${data.user?.email}`);
-            setSession(data.session);
-            setUser(data.session.user);
             persistSessionToLS(data.session);
+            setAuthState(prev => ({
+              ...prev,
+              session: data.session,
+              user: data.session!.user,
+            }));
             await ensureUser(data.session.user);
           }
         }
@@ -546,7 +565,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } finally {
         endDeepLinkSpan({ status: "completed" });
         isProcessingDeepLink.current = false;
-        if (mounted) setIsLoading(false);
+        if (mounted) setAuthState(prev => ({ ...prev, isLoading: false }));
       }
     }
 
@@ -572,15 +591,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         
         if (lsSession?.user) {
           console.log(`🔍 [AuthRaceDebug] ${Date.now()} Bootstrap: Optimistic Restore.`);
-          setSession(lsSession);
-          setUser(lsSession.user);
-          setUserData(lsUser);
           authTimingsRef.current.sessionReady = Date.now();
-          // If we have a user name, mark auth ready for basic UI
-          if (lsUser?.name) setIsAuthReady(true);
-          // Unlock UI early
-          setIsLoading(false);
-          setIsHydrated(true);
+          setAuthState({
+            session: lsSession,
+            user: lsSession.user,
+            userData: lsUser,
+            isAuthReady: lsUser?.name ? true : false,
+            isLoading: false,
+            isHydrated: true,
+          });
         }
 
         // 2. Parallel Session & Deep Link check
@@ -606,13 +625,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (s?.user?.email) {
           if (mounted) {
             authTimingsRef.current.sessionReady = Date.now();
-            setSession(s);
-            setUser(s.user);
             persistSessionToLS(s);
             scheduleTokenRefresh(s);
-            // Unlock UI if not already unlocked
-            setIsLoading(false);
-            setIsHydrated(true);
+            setAuthState(prev => ({
+              ...prev,
+              session: s,
+              user: s.user,
+              isLoading: false,
+              isHydrated: true,
+            }));
           }
           // Profile hydration happens in background
           ensureUser(s.user);
@@ -623,7 +644,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (!lsSession && mounted) {
           persistSessionToLS(null);
           persistUserDataToLS(null);
-          setUserData(null);
+          setAuthState(prev => ({
+            ...prev,
+            userData: null,
+          }));
         }
       } catch (err) {
         console.error("Auth bootstrap failed", err);
@@ -631,8 +655,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         endBootstrapSpan({ status: "completed" });
         if (mounted) {
           console.log(`🔍 [AuthRaceDebug] ${Date.now()} Bootstrap: Sequence finished.`);
-          setIsLoading(false);
-          setIsHydrated(true);
+          setAuthState(prev => ({
+            ...prev,
+            isLoading: false,
+            isHydrated: true,
+          }));
         }
       }
     }
@@ -655,8 +682,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       logCapacitorPerfAudit("auth.state-change", { event, sessionPresent: !!s });
       emitAuthTransition(event, event === "SIGNED_OUT" ? "Switching profiles…" : event === "SIGNED_IN" ? "Restoring profile…" : "Refreshing session…");
 
-      setSession(s);
-      setUser(s?.user ?? null);
       persistSessionToLS(s);
       scheduleTokenRefresh(s);
 
@@ -664,8 +689,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (event === "SIGNED_IN") {
           // Fresh login — unlock UI immediately, hydrate profile in background
           if (mounted) {
-            setIsLoading(false);
-            setIsHydrated(true);
+            setAuthState(prev => ({
+              ...prev,
+              session: s,
+              user: s.user,
+              isLoading: false,
+              isHydrated: true,
+            }));
           }
           void ensureUser(s.user);
         } else if (event === "INITIAL_SESSION") {
@@ -674,23 +704,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           // Just fire background hydration.
           void ensureUser(s.user);
           if (mounted) {
-            setIsLoading(false);
-            setIsHydrated(true);
+            setAuthState(prev => ({
+              ...prev,
+              session: s,
+              user: s.user,
+              isLoading: false,
+              isHydrated: true,
+            }));
           }
         } else {
           void ensureUser(s.user);
           if (mounted) {
-            setIsLoading(false);
-            setIsHydrated(true);
+            setAuthState(prev => ({
+              ...prev,
+              session: s,
+              user: s.user,
+              isLoading: false,
+              isHydrated: true,
+            }));
           }
         }
       } else if (event === "SIGNED_OUT") {
-        setUserData(null);
-        setIsAuthReady(false);
         persistUserDataToLS(null);
         if (mounted) {
-          setIsLoading(false);
-          setIsHydrated(true);
+          setAuthState({
+            session: null,
+            user: null,
+            userData: null,
+            isLoading: false,
+            isHydrated: true,
+            isAuthReady: false,
+          });
         }
       }
     });
@@ -736,29 +780,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOut = useCallback(async () => {
     emitAuthTransition("SIGN_OUT_REQUESTED", "Switching profiles…");
     await supabase.auth.signOut();
-    setSession(null);
-    setUser(null);
-    setUserData(null);
     persistSessionToLS(null);
     persistUserDataToLS(null);
+    setAuthState({
+      session: null,
+      user: null,
+      userData: null,
+      isLoading: false,
+      isHydrated: true,
+      isAuthReady: false,
+    });
   }, []);
 
   // Derived — no state needed, no extra rerender
-  const isAuthenticated = !!user;
+  const isAuthenticated = !!authState.user;
 
   const needsCampus =
-    !isLoading &&
-    !!userData &&
-    userData.organization_type === "christ_member" &&
-    !userData.campus;
+    authState.isHydrated &&
+    !authState.isLoading &&
+    !!authState.userData &&
+    authState.userData.organization_type === "christ_member" &&
+    !authState.userData.campus;
 
   const contextValue = useMemo(
     () => ({
-      session,
-      user,
-      userData,
-      isLoading: !isHydrated || isLoading,
-      isAuthReady,
+      session: authState.session,
+      user: authState.user,
+      userData: authState.userData,
+      isLoading: !authState.isHydrated || authState.isLoading,
+      isAuthReady: authState.isAuthReady,
       isAuthenticated,
       needsCampus,
       signInWithGoogle,
@@ -766,12 +816,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       refreshUserData,
     }),
     [
-      session,
-      user,
-      userData,
-      isHydrated,
-      isLoading,
-      isAuthReady,
+      authState.session,
+      authState.user,
+      authState.userData,
+      authState.isHydrated,
+      authState.isLoading,
+      authState.isAuthReady,
       isAuthenticated,
       needsCampus,
       signInWithGoogle,
@@ -785,7 +835,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       {children}
 
 
-      {showOutsiderWarning && outsiderVisitorId && userData && (
+      {showOutsiderWarning && outsiderVisitorId && authState.userData && (
         <div className="modal-backdrop">
           <div className="modal-card overflow-hidden">
             <div className="bg-[var(--color-primary-dark)] px-5 py-4">
@@ -813,7 +863,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     <p className="text-[11px] font-medium text-[var(--color-text-light)] mb-1">Display Name</p>
                     {!isEditingOutsiderName ? (
                       <p className="text-sm font-semibold text-[var(--color-primary-dark)] truncate">
-                        {userData.name || session?.user?.user_metadata?.full_name || "--"}
+                        {authState.userData.name || authState.session?.user?.user_metadata?.full_name || "--"}
                       </p>
                     ) : (
                       <input
@@ -829,7 +879,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                   {!isEditingOutsiderName && !isSavingOutsiderName && (
                     <button
                       onClick={() => {
-                        setOutsiderNameInput(userData.name || session?.user?.user_metadata?.full_name || "");
+                        setOutsiderNameInput(authState.userData?.name || authState.session?.user?.user_metadata?.full_name || "");
                         setIsEditingOutsiderName(true);
                         setOutsiderNameError(null);
                       }}
@@ -849,7 +899,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
               {!isEditingOutsiderName ? (
                 <button
-                  onClick={() => saveOutsiderName(userData.name || session?.user?.user_metadata?.full_name || "")}
+                  onClick={() => saveOutsiderName(authState.userData?.name || authState.session?.user?.user_metadata?.full_name || "")}
                   disabled={isSavingOutsiderName}
                   className="btn btn-primary w-full"
                 >

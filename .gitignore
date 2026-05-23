@@ -25,7 +25,7 @@ npm-debug.log*
 next-env.d.ts
 *.txt
 *.log
-
+*.png
 # devcontext
 .devcontext/
 

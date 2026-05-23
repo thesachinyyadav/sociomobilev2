@@ -10,6 +10,7 @@ import dynamic from "next/dynamic";
 import { useAuth } from "@/context/AuthContext";
 import { isCampusDismissedRecently } from "@/components/CampusSelector";
 import { logCapacitorPerfAudit, logMemorySnapshot, startFrameMonitor, startPerfSpan, withPerfSpan } from "@/lib/capacitorPerfAudit";
+import { useStartupPhase } from "@/lib/startupLifecycle";
 
 // Lazy load heavy/secondary components
 const ChatbotFab = dynamic(() => import("@/components/ChatbotFab"), { ssr: false });
@@ -31,6 +32,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const hideBottom = NO_BOTTOM_NAV.some((p) => pathname.startsWith(p));
   const hideTop = NO_TOP_BAR.some((p) => pathname.startsWith(p));
   const { userData, needsCampus, refreshUserData } = useAuth();
+  const phase = useStartupPhase();
   const [campusDismissed, setCampusDismissed] = useState(false);
   const [isNative, setIsNative] = useState(false);
   const previousPathRef = useRef<string>(pathname);
@@ -52,9 +54,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     });
   }, []);
 
+  // Lock orientation early on native platforms
   useEffect(() => {
-    let deepLinkListener: { remove: () => Promise<void> } | null = null;
-
     const lockOrientation = async () => {
       try {
         await withPerfSpan("appshell.lock-orientation", async () => {
@@ -68,6 +69,33 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         console.warn("Capacitor orientation lock failed:", err);
       }
     };
+    lockOrientation();
+  }, []);
+
+  // Programmatically hide the native splash screen once Phase 2 is reached
+  useEffect(() => {
+    if (phase >= 2) {
+      const hideSplash = async () => {
+        try {
+          const { Capacitor } = await import("@capacitor/core");
+          if (Capacitor.isNativePlatform()) {
+            const { SplashScreen } = await import("@capacitor/splash-screen");
+            await SplashScreen.hide();
+            console.log("⚡ [AppShell] Native SplashScreen.hide() called");
+          }
+        } catch (e) {
+          console.warn("Failed to hide native splash screen:", e);
+        }
+      };
+      hideSplash();
+    }
+  }, [phase]);
+
+  // Setup Deep Links in Phase 2
+  useEffect(() => {
+    if (phase < 2) return;
+
+    let deepLinkListener: { remove: () => Promise<void> } | null = null;
 
     const setupDeepLinks = async () => {
       try {
@@ -124,7 +152,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       }
     };
 
-    lockOrientation();
     setupDeepLinks();
 
     return () => {
@@ -132,8 +159,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         deepLinkListener.remove().catch(() => {});
       }
     };
-
-  }, [router]);
+  }, [router, phase]);
 
   useEffect(() => {
     const prev = previousPathRef.current;

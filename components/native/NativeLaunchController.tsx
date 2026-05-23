@@ -17,6 +17,7 @@ import {
 import { BlueprintFossilLoader } from "@/components/loading";
 import type { OperationKey } from "@/components/loading";
 import { logCapacitorPerfAudit, startFrameMonitor, startPerfSpan } from "@/lib/capacitorPerfAudit";
+import { setStartupPhase } from "@/lib/startupLifecycle";
 
 type TransitionMode = "pending" | "none" | "micro-splash" | "full-intro" | "account-transition" | "micro-recovery";
 
@@ -396,6 +397,24 @@ export default function NativeLaunchController() {
       if (pendingEventsTimerRef.current) clearTimeout(pendingEventsTimerRef.current);
     };
   }, []);
+
+  useEffect(() => {
+    if (mode === "none") {
+      setStartupPhase(2);
+      
+      const schedulePhase3 = () => {
+        setStartupPhase(3);
+      };
+
+      if (typeof window !== "undefined") {
+        if ("requestIdleCallback" in window) {
+          (window as any).requestIdleCallback(() => schedulePhase3(), { timeout: 3000 });
+        } else {
+          setTimeout(schedulePhase3, 2000);
+        }
+      }
+    }
+  }, [mode]);
 
   if (mode === "none" || mode === "pending" || mode === "micro-splash") return null;
 

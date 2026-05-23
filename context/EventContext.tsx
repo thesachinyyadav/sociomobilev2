@@ -4,6 +4,7 @@ import { createContext, useContext, useState, useEffect, type ReactNode, useCall
 import { apiRequest } from "@/lib/apiClient";
 import { startPerfSpan } from "@/lib/capacitorPerfAudit";
 import { db } from "@/lib/offline";
+import { useStartupPhase } from "@/lib/startupLifecycle";
 
 /* ── Types ── */
 export interface FetchedEvent {
@@ -182,6 +183,7 @@ export function EventProvider({
   children: ReactNode;
 }) {
   const [allEvents, setAllEvents] = useState<FetchedEvent[]>(initialEvents);
+  const phase = useStartupPhase();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<number | null>(null);
@@ -235,6 +237,7 @@ export function EventProvider({
   // Fetch events on mount if we have none OR if they are older than 5 minutes
   useEffect(() => {
     const loadCacheThenFetch = async () => {
+      // Phase 1 (or any phase): Load cache immediately if empty
       if (allEvents.length === 0) {
         try {
           const offlineEvents = await db.events.toArray();
@@ -244,14 +247,17 @@ export function EventProvider({
         } catch (e) {}
       }
       
-      const shouldRefresh = allEvents.length === 0 || (lastUpdated && Date.now() - lastUpdated > 300000);
-      if (shouldRefresh) {
-        void refreshEvents(allEvents.length > 0);
+      // Phase 2 or later: Trigger background refresh if needed
+      if (phase >= 2) {
+        const shouldRefresh = allEvents.length === 0 || !lastUpdated || (Date.now() - lastUpdated > 300000);
+        if (shouldRefresh) {
+          void refreshEvents(allEvents.length > 0);
+        }
       }
     };
     
     void loadCacheThenFetch();
-  }, [allEvents.length, lastUpdated, refreshEvents]);
+  }, [allEvents.length, lastUpdated, refreshEvents, phase]);
 
   const contextValue = useMemo(
     () => ({ allEvents, isLoading, error, refreshEvents, lastUpdated }),

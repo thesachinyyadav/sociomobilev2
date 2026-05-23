@@ -15,6 +15,7 @@ import {
   optInNativePush,
   optOutNativePush,
 } from "@/lib/nativeOneSignal";
+import { useStartupPhase } from "@/lib/startupLifecycle";
 
 export interface Notification {
   id: string;
@@ -108,6 +109,7 @@ import { App } from "@capacitor/app";
 
 export function NotificationProvider({ children }: { children: ReactNode }) {
   const { userData, isAuthReady } = useAuth();
+  const phase = useStartupPhase();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
@@ -146,7 +148,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
   // Native OneSignal and Platform Registration initialization
   useEffect(() => {
-    if (typeof window === "undefined" || !isAuthReady || !userData?.email) return;
+    if (typeof window === "undefined" || !isAuthReady || !userData?.email || phase < 2) return;
 
     const email = userData.email;
     const isNative = Capacitor.isNativePlatform();
@@ -174,7 +176,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       console.warn("[PUSH] Failed to register active platform with backend:", err);
     });
 
-  }, [userData?.email, isAuthReady]);
+  }, [userData?.email, isAuthReady, phase]);
 
   // 1. Push subsystem initialization
   //    • Web/PWA  → register /sw.js for VAPID web push
@@ -277,22 +279,26 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
     // Web / PWA SW registration:
     if ("serviceWorker" in navigator && !Capacitor.isNativePlatform()) {
-      navigator.serviceWorker
-        .register("/sw.js")
-        .then((reg) => {
-          console.log("[PUSH] Service worker registered (scope:", reg.scope, ")");
-          setIsPushReady(true);
-          // Re-register subscription after SW is ready — ensures backend in-memory
-          // store is populated even after server restarts.
-          reRegisterSubscriptionOnBoot();
-        })
-        .catch((err) => {
-          console.error("[PUSH] Service worker registration failed:", err);
-          setIsPushReady(true);
-        });
+      if (phase >= 2) {
+        navigator.serviceWorker
+          .register("/sw.js")
+          .then((reg) => {
+            console.log("[PUSH] Service worker registered (scope:", reg.scope, ")");
+            setIsPushReady(true);
+            // Re-register subscription after SW is ready — ensures backend in-memory
+            // store is populated even after server restarts.
+            reRegisterSubscriptionOnBoot();
+          })
+          .catch((err) => {
+            console.error("[PUSH] Service worker registration failed:", err);
+            setIsPushReady(true);
+          });
+      }
       navigator.serviceWorker.addEventListener("message", handleSwMessage);
     } else {
-      setIsPushReady(true);
+      if (phase >= 2) {
+        setIsPushReady(true);
+      }
     }
 
     return () => {
@@ -301,7 +307,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         navigator.serviceWorker.removeEventListener("message", handleSwMessage);
       }
     };
-  }, [router]);
+  }, [router, phase]);
   const enablePushNotifications = useCallback(async () => {
     if (typeof window === "undefined") return;
 
@@ -548,7 +554,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
    * - Hydrates immediately on App resume (background -> foreground)
    * ─────────────────────────────────────────────────────────────────── */
   useEffect(() => {
-    if (!isAuthReady || !userData?.email || !isPushReady) return;
+    if (!isAuthReady || !userData?.email || !isPushReady || phase < 2) return;
     
     console.log("[Notifications] Starting hydration...");
     
@@ -577,7 +583,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         appStateListener.remove();
       }
     };
-  }, [userData?.email, isAuthReady, isPushReady]);
+  }, [userData?.email, isAuthReady, isPushReady, phase]);
 
   const loadMore = useCallback(() => {
     if (!isLoading && hasMore) {

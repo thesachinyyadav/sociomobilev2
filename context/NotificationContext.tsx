@@ -175,7 +175,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
     if (isNative) {
       console.log(`[NATIVE PUSH] Boot: initializing OneSignal for ${email}`);
-      initNativeOneSignal(email);
+      initNativeOneSignal(email, userData.name);
 
       // Verify native permission and update local state
       getNativePushPermissionState().then((hasPermission) => {

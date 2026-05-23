@@ -35,7 +35,7 @@ export function ensureCordovaReady(): Promise<void> {
  * Initializes OneSignal push notifications for Capacitor native Android (or iOS) platforms.
  * This function is fully guarded and safe to import during SSR and on web browsers.
  */
-export async function initNativeOneSignal(email?: string) {
+export async function initNativeOneSignal(email?: string, name?: string) {
   if (typeof window === "undefined" || !Capacitor.isNativePlatform()) {
     return;
   }
@@ -53,12 +53,20 @@ export async function initNativeOneSignal(email?: string) {
     console.log("[NATIVE_PUSH] OneSignal initializing...");
     OneSignal.initialize(appId);
 
-    // Bind the user's email if they are logged in
+    // Bind the user's email and details if they are logged in
     if (email) {
       const normalizedEmail = email.toLowerCase().trim();
       console.log(`[NATIVE_PUSH] Logging in user with external ID: ${normalizedEmail}`);
       OneSignal.login(normalizedEmail);
+      OneSignal.User.addEmail(normalizedEmail);
       OneSignal.User.addTag("email", normalizedEmail);
+      
+      if (name) {
+        const cleanName = name.trim();
+        console.log(`[NATIVE_PUSH] Adding user name tag: ${cleanName}`);
+        OneSignal.User.addTag("name", cleanName);
+      }
+      console.log("[ONESIGNAL] Linked user:", normalizedEmail);
     }
 
     // Add push subscription listener to log subscription/player IDs and FCM tokens dynamically

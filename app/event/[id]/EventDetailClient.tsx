@@ -289,12 +289,12 @@ export default function EventDetailClient({ eventId }: { eventId: string }) {
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-black/10" />
         {/* Interactive Top Row (Tags + Share) */}
-        <div className="absolute top-[calc(var(--safe-top)+var(--nav-height)+12px)] left-0 right-0 px-4 flex items-center justify-between z-10">
+        <div className="absolute top-[calc(var(--safe-top)+var(--nav-height))] left-0 right-0 px-4 flex items-center justify-between z-10">
           <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
-            <div className={`shrink-0 px-3 py-1.5 rounded-full shadow-md flex items-center gap-1.5 transition-all ${
+            <div className={`shrink-0 px-3 py-1.5 rounded-full flex items-center gap-1.5 transition-all ${
               isFree 
-                ? "bg-emerald-500 text-white animate-badge-pulse" 
-                : "bg-[#FFBA09] text-[#011F7B]"
+                ? "bg-emerald-500 text-white" 
+                : "bg-[#FFBA09] text-[#011F7B] shadow-md"
             }`}>
               <Ticket size={12} className={isFree ? "text-white opacity-90" : "text-[#011F7B] opacity-80"} />
               <span className="text-[10px] font-black uppercase tracking-wider whitespace-nowrap">

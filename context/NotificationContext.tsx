@@ -82,16 +82,7 @@ const LS_READ_KEY = "socio_read_notifications";
 const LS_DISMISSED_KEY = "socio_dismissed_notifications";
 const LS_PUSH_STATUS_KEY = "socio_push_status";
 
-function getLocalSet(key: string): Set<string> {
-  if (typeof window === "undefined") return new Set();
-  const raw = localStorage.getItem(key);
-  return new Set(raw ? JSON.parse(raw) : []);
-}
-
-function saveLocalSet(key: string, set: Set<string>) {
-  if (typeof window === "undefined") return;
-  localStorage.setItem(key, JSON.stringify(Array.from(set)));
-}
+// Removed outer getLocalSet/saveLocalSet (moved to inner user-scoped helper callbacks inside the provider)
 
 function urlBase64ToUint8Array(base64String: string) {
   if (typeof window === "undefined") return new Uint8Array();
@@ -124,22 +115,51 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   const pageRef = useRef(1);
   const [hasMore, setHasMore] = useState(true);
 
-  // Load initial status
+  // Helper to get user-scoped LocalStorage keys
+  const getLSKey = useCallback((baseKey: string) => {
+    if (!userData?.email) return baseKey;
+    return `${baseKey}_${userData.email.toLowerCase().trim()}`;
+  }, [userData?.email]);
+
+  const getLocalSet = useCallback((baseKey: string) => {
+    if (typeof window === "undefined") return new Set<string>();
+    const key = getLSKey(baseKey);
+    const raw = localStorage.getItem(key);
+    return new Set<string>(raw ? JSON.parse(raw) : []);
+  }, [getLSKey]);
+
+  const saveLocalSet = useCallback((baseKey: string, set: Set<string>) => {
+    if (typeof window === "undefined") return;
+    const key = getLSKey(baseKey);
+    localStorage.setItem(key, JSON.stringify(Array.from(set)));
+  }, [getLSKey]);
+
+  // Synchronize user-scoped local storage state when auth changes
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const pStatus = localStorage.getItem(LS_PUSH_STATUS_KEY) as PushStatus;
-    if (pStatus) setPushStatus(pStatus);
+    
+    if (!userData?.email) {
+      setPushStatus("not_requested");
+      setPromptStatus("not_shown");
+      return;
+    }
 
-    const prStatus = localStorage.getItem(LS_PROMPT_STATUS_KEY) as NotificationPromptStatus;
-    if (prStatus) setPromptStatus(prStatus);
-  }, []);
+    const userPushStatusKey = getLSKey(LS_PUSH_STATUS_KEY);
+    const userPromptStatusKey = getLSKey(LS_PROMPT_STATUS_KEY);
+
+    const pStatus = localStorage.getItem(userPushStatusKey) as PushStatus;
+    setPushStatus(pStatus || "not_requested");
+
+    const prStatus = localStorage.getItem(userPromptStatusKey) as NotificationPromptStatus;
+    setPromptStatus(prStatus || "not_shown");
+  }, [userData?.email, getLSKey]);
 
   const updatePromptStatus = useCallback((status: NotificationPromptStatus) => {
     setPromptStatus(status);
-    if (typeof window !== "undefined") {
-      localStorage.setItem(LS_PROMPT_STATUS_KEY, status);
+    if (typeof window !== "undefined" && userData?.email) {
+      localStorage.setItem(getLSKey(LS_PROMPT_STATUS_KEY), status);
     }
-  }, []);
+  }, [userData?.email, getLSKey]);
 
   const triggerPrompt = useCallback(() => {
     if (promptStatus === "accepted" || promptStatus === "denied") return;
@@ -161,7 +181,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       getNativePushPermissionState().then((hasPermission) => {
         const status: PushStatus = hasPermission ? "granted" : "not_requested";
         setPushStatus(status);
-        localStorage.setItem(LS_PUSH_STATUS_KEY, status);
+        localStorage.setItem(getLSKey(LS_PUSH_STATUS_KEY), status);
       });
     }
 
@@ -317,7 +337,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         if (granted) {
           await optInNativePush();
           setPushStatus("granted");
-          localStorage.setItem(LS_PUSH_STATUS_KEY, "granted");
+          localStorage.setItem(getLSKey(LS_PUSH_STATUS_KEY), "granted");
           updatePromptStatus("accepted");
           toast.success("Notifications enabled!");
 
@@ -330,7 +350,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
           }
         } else {
           setPushStatus("denied");
-          localStorage.setItem(LS_PUSH_STATUS_KEY, "denied");
+          localStorage.setItem(getLSKey(LS_PUSH_STATUS_KEY), "denied");
           updatePromptStatus("denied");
           toast.error("Notification permission denied");
         }
@@ -366,7 +386,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       const granted = permission === "granted";
       if (!granted) {
         setPushStatus(permission === "denied" ? "denied" : "not_requested");
-        localStorage.setItem(LS_PUSH_STATUS_KEY, permission === "denied" ? "denied" : "not_requested");
+        localStorage.setItem(getLSKey(LS_PUSH_STATUS_KEY), permission === "denied" ? "denied" : "not_requested");
         updatePromptStatus(permission === "denied" ? "denied" : "not_shown");
         if (permission === "denied") {
           toast.error("Notifications are blocked in browser settings");
@@ -416,7 +436,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
       const newStatus = "granted";
       setPushStatus(newStatus);
-      localStorage.setItem(LS_PUSH_STATUS_KEY, newStatus);
+      localStorage.setItem(getLSKey(LS_PUSH_STATUS_KEY), newStatus);
       updatePromptStatus("accepted");
 
       toast.success("Notifications enabled!");
@@ -425,7 +445,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       console.error("[PUSH] Enable error", e);
       toast.error(msg);
     }
-  }, [updatePromptStatus, userData?.email]);
+  }, [updatePromptStatus, userData?.email, getLSKey]);
 
   const disablePushNotifications = useCallback(async () => {
     if (typeof window === "undefined") return;
@@ -434,7 +454,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       if (Capacitor.isNativePlatform()) {
         await optOutNativePush();
         setPushStatus("not_requested");
-        localStorage.setItem(LS_PUSH_STATUS_KEY, "not_requested");
+        localStorage.setItem(getLSKey(LS_PUSH_STATUS_KEY), "not_requested");
         updatePromptStatus("not_shown");
         toast.success("Notifications turned off");
         return;
@@ -475,7 +495,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       localStorage.removeItem("socio_vapid_subscription_created_at");
 
       setPushStatus("not_requested");
-      localStorage.setItem(LS_PUSH_STATUS_KEY, "not_requested");
+      localStorage.setItem(getLSKey(LS_PUSH_STATUS_KEY), "not_requested");
       updatePromptStatus("not_shown");
       toast.success("Notifications turned off");
     } catch (e: unknown) {
@@ -483,7 +503,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       console.error("[PUSH] Disable error", e);
       toast.error(msg);
     }
-  }, [updatePromptStatus, userData?.email]);
+  }, [updatePromptStatus, userData?.email, getLSKey]);
   /* ── Fetch notifications ──────────────────────────────────────────────
    * IMPORTANT: `unreadCount` and `page` are intentionally NOT in the dep
    * array. Reading them via functional setState or pageRef prevents the

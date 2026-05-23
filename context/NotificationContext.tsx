@@ -323,7 +323,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
     return () => {
       window.removeEventListener("socio:notificationClick", handleNotificationClick);
-      if (typeof navigator !== "undefined" && "serviceWorker" in navigator) {
+      if (typeof navigator !== "undefined" && "serviceWorker" in navigator && !Capacitor.isNativePlatform()) {
         navigator.serviceWorker.removeEventListener("message", handleSwMessage);
       }
     };

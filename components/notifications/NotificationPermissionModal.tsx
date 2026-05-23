@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
+import { Capacitor } from "@capacitor/core";
 
 interface NotificationPermissionModalProps {
   isOpen: boolean;
@@ -100,8 +101,8 @@ export default function NotificationPermissionModal({
 
     try {
       // First check if browser natively blocked notifications already
-      if (typeof window !== "undefined" && "Notification" in window) {
-        if (Notification.permission === "denied") {
+      if (typeof window !== "undefined" && !Capacitor.isNativePlatform() && "Notification" in window) {
+        if (typeof Notification !== "undefined" && Notification.permission === "denied") {
           throw new Error("Notifications are blocked in your browser settings. Please enable them manually.");
         }
       }

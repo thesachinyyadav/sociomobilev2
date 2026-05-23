@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { usePathname } from "next/navigation";
 import { useNotifications } from "@/context/NotificationContext";
 import { useAuth } from "@/context/AuthContext";
+import { Capacitor } from "@capacitor/core";
 import NotificationPermissionModal from "@/components/notifications/NotificationPermissionModal";
 
 export default function SmartNotificationPrompt() {
@@ -13,20 +14,23 @@ export default function SmartNotificationPrompt() {
   const [dismissed, setDismissed] = useState(false);
 
   const supported = useMemo(
-    () => typeof window !== "undefined" && "Notification" in window,
+    () => typeof window !== "undefined" && (Capacitor.isNativePlatform() || "Notification" in window),
     []
   );
 
   // Reflect browser permission back into the persisted status so the rest
   // of the app knows when it's already enabled.
   useEffect(() => {
-    if (!supported) return;
-    if (Notification.permission === "granted") {
-      updatePromptStatus("accepted");
-    } else if (Notification.permission === "denied") {
-      updatePromptStatus("denied");
+    if (!supported || Capacitor.isNativePlatform()) return;
+    if (typeof Notification !== "undefined") {
+      if (Notification.permission === "granted") {
+        updatePromptStatus("accepted");
+      } else if (Notification.permission === "denied") {
+        updatePromptStatus("denied");
+      }
     }
   }, [supported, updatePromptStatus]);
+
 
   // If pushStatus flips (most importantly: user turned notifications off on
   // /profile), reset the local dismissed flag so the popup reappears

@@ -16,7 +16,6 @@ import { useStartupPhase } from "@/lib/startupLifecycle";
 const ChatbotFab = dynamic(() => import("@/components/ChatbotFab"), { ssr: false });
 const SmartNotificationPrompt = dynamic(() => import("@/components/SmartNotificationPrompt"), { ssr: false });
 const CampusSelector = dynamic(() => import("@/components/CampusSelector"), { ssr: false });
-const InstallPrompt = dynamic(() => import("@/components/InstallPrompt"), { ssr: false });
 const OrientationGate = dynamic(() => import("@/components/OrientationGate"), { ssr: false });
 const NotificationDiagnostics = dynamic(() => import("@/components/NotificationDiagnostics"), { ssr: false });
 const NativeLaunchController = dynamic(() => import("@/components/native/NativeLaunchController"), { ssr: false });
@@ -207,7 +206,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         <PageTransition>{children}</PageTransition>
       </main>
       {!hideBottom && <BottomNav />}
-      {!hideBottom && !isNative && <InstallPrompt />}
+      {/* Install prompt removed per request */}
       {!hideBottom && <ChatbotFab />}
       {!hideBottom && userData && <SmartNotificationPrompt />}
       {/* <ShakeToScanListener /> */}

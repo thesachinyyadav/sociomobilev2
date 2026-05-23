@@ -206,22 +206,24 @@ export default function ClubDetailClient({ id }: { id: string }) {
       };
       const updatedApplicants = [...existingApplicants, newApplicant];
 
-      const { error: updateError } = await supabase
-        .from("clubs")
-        .update({
-          clubs_applicants: updatedApplicants,
-          clubs_applicant: updatedApplicants,
-        })
-        .eq("club_id", club.club_id);
+      // Use a server API route that uses the Supabase service role key
+      // to perform the update — client-side anon keys are blocked by RLS.
+      const res = await fetch("/api/clubs/apply", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ club_id: club.club_id, applicants: updatedApplicants }),
+      });
 
-      if (updateError) throw updateError;
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body?.error || `Update failed (${res.status})`);
+      }
 
       setClub((prev) => {
         if (!prev) return prev;
         return {
           ...prev,
           clubs_applicants: updatedApplicants,
-          clubs_applicant: updatedApplicants,
         };
       });
 

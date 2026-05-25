@@ -1,10 +1,14 @@
 [
   {
-    "relation": ["delegate_permission/common.handle_all_urls"],
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
     "target": {
       "namespace": "android_app",
-      "package_name": "com.socioapp.mobile",
-      "sha256_cert_fingerprints": ["FA:C6:17:45:DC:09:03:78:6C:B9:ED:E6:2A:96:2B:39:9F:73:48:F0:BB:6F:89:9B:83:32:66:75:91:03:3B:9C"]
+      "package_name": "com.withsocio.app",
+      "sha256_cert_fingerprints": [
+        "30:1A:71:08:16:F7:BF:88:88:59:4D:E1:F7:08:C0:83:9F:44:5A:AC:30:B4:49:CC:83:6D:65:F7:C1:63:60:F1"
+      ]
     }
   }
 ]

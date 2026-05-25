@@ -755,17 +755,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const platform = Capacitor.getPlatform();
     const isNative = Capacitor.isNativePlatform();
     const isApp = isNative || platform === "android" || platform === "ios";
-    const currentOrigin = window.location.origin;
-    
+    const currentOrigin = APP_URL;
+
     console.log("🔍 [AuthDebug] Full Platform Analysis:", {
       isAppResult: isApp,
       isNativePlatform: isNative,
       getPlatform: platform,
       userAgent: navigator.userAgent,
       origin: currentOrigin,
-      location: window.location.href
+      location: typeof window !== "undefined" ? window.location.href : APP_URL
     });
-
     if (isApp) {
       console.log("🚀 [AuthDebug] >>> EXECUTING NATIVE AUTH BRANCH <<<");
       console.log("📍 [AuthDebug] Forced Redirect: socio://auth/callback");

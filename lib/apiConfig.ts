@@ -25,5 +25,8 @@ export const API_BASE = getApiBase().replace(/\/api\/?$/, "").replace(/\/$/, "")
 
 export const PWA_API_URL = `${API_BASE}/api`;
 
-export const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://app.withsocio.com";
+const rawAppUrl = process.env.NEXT_PUBLIC_APP_URL || "https://app.withsocio.com";
+// Force HTTPS globally to ensure deep links, App Links, and sharing always use the secure context.
+// This prevents issues if the user accidentally configures Vercel with an http:// domain.
+export const APP_URL = rawAppUrl.replace(/^http:\/\/(?!localhost|127\.0\.0\.1|192\.168\.)/, "https://");
 

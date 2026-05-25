@@ -131,8 +131,11 @@ export default function DiagnosticsPage() {
       subscriptionCreatedAt: subCreatedAt,
       subscriptionKeys: subKeys,
       serviceWorkers: swList,
+import { APP_URL } from "@/lib/apiConfig";
+
+// Add APP_URL usage to origin
       swScope,
-      origin: typeof window !== "undefined" ? window.location.origin : "ssr",
+      origin: typeof window !== "undefined" ? APP_URL : "ssr",
       isSecureContext: typeof window !== "undefined" ? window.isSecureContext : false,
       lastHydration: new Date().toLocaleString(),
       analytics: getNotificationAnalyticsSummary(),

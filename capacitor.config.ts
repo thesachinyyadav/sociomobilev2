@@ -9,6 +9,7 @@ const config: CapacitorConfig = {
 
   server: {
     androidScheme: 'https',
+    hostname: 'app.withsocio.com',
     url: 'https://app.withsocio.com',
     allowNavigation: ['app.withsocio.com'],
     cleartext: false

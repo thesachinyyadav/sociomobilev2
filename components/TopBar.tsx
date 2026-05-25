@@ -28,6 +28,7 @@ export default function TopBar() {
 
   const showBack = BACK_PAGES.some((p) => pathname.startsWith(p));
   const isProfile = pathname === "/profile";
+  const isImmersiveDetail = pathname.startsWith("/event/") || pathname.startsWith("/fest/");
 
   // Use user/isAuthenticated for login check, userData for profile enrichment
   const isUserLoggedIn = !!user || isAuthenticated;
@@ -36,10 +37,12 @@ export default function TopBar() {
     <>
       <header
         className={`sticky top-0 left-0 right-0 z-50 will-change-none transition-colors duration-200 ${
-          isProfile && userData
+          isImmersiveDetail
+            ? "bg-transparent text-[var(--color-text)]"
+            : isProfile && userData
             ? "bg-[var(--color-primary-dark)] text-white"
             : "glass border-b border-[var(--color-border)] text-[var(--color-text)]"
-        } ${showBack ? "border-none shadow-none" : ""}`}
+        } ${showBack || isImmersiveDetail ? "border-none shadow-none" : ""}`}
         style={{ paddingTop: "var(--safe-top)", backfaceVisibility: "hidden" }}
       >
         <div

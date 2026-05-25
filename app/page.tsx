@@ -204,7 +204,7 @@ export default function HomePage() {
   const firstName = userData?.name?.split(" ")?.[0] || (isVisitor ? "Visitor" : "there");
   const notificationCount = 0;
   const activeVolunteerEvents = getActiveVolunteerEvents(userData?.volunteerEvents);
-  const isCaterer = !!(userData?.roles?.catering || userData?.is_masteradmin || (userData?.caters?.length ?? 0) > 0);
+  const isCaterer = !!(userData?.roles?.catering || (userData?.caters?.length ?? 0) > 0);
   const quickActions = getQuickActions(notificationCount, activeVolunteerEvents.length, isCaterer);
 
   return (

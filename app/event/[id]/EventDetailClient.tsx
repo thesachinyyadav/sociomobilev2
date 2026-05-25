@@ -288,48 +288,50 @@ export default function EventDetailClient({ eventId }: { eventId: string }) {
           alt={event.title} fill className="object-cover" priority sizes="100vw"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-black/10" />
-        {/* Interactive Top Row (Tags + Share) */}
-        <div className="absolute top-[calc(var(--safe-top)+var(--nav-height))] left-0 right-0 px-3 flex items-center justify-between z-10">
-          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
-            <div className={`shrink-0 px-2.5 py-1 rounded-full flex items-center gap-1.5 transition-all ${
-              isFree 
-                ? "bg-emerald-500 text-white" 
-                : "bg-[#FFBA09] text-[#011F7B] shadow-md"
-            }`}>
-              <Ticket size={12} className={isFree ? "text-white opacity-90" : "text-[#011F7B] opacity-80"} />
-              <span className="text-[9px] font-black uppercase tracking-wider whitespace-nowrap">
-                {isFree ? "Free Entry" : `₹${event.registration_fee}`}
-              </span>
+        {/* Quick actions overlay */}
+        <div className="absolute top-0 left-0 right-0 px-4 pt-3 z-20">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex flex-wrap items-center gap-2 min-w-0">
+              <div className={`shrink-0 px-2.5 py-1 rounded-full flex items-center gap-1.5 transition-all ${
+                isFree
+                  ? "bg-emerald-500 text-white"
+                  : "bg-[#FFBA09] text-[#011F7B] shadow-md"
+              }`}>
+                <Ticket size={12} className={isFree ? "text-white opacity-90" : "text-[#011F7B] opacity-80"} />
+                <span className="text-[9px] font-black uppercase tracking-wider whitespace-nowrap">
+                  {isFree ? "Free Entry" : `₹${event.registration_fee}`}
+                </span>
+              </div>
+              {event.allow_outsiders && (
+                <div className="shrink-0 px-2.5 py-1 rounded-full bg-white/95 text-[var(--color-primary)] shadow-sm flex items-center gap-1.5 border border-white/20 backdrop-blur-md">
+                  <Globe size={12} className="opacity-80" />
+                  <span className="text-[9px] font-black uppercase tracking-wider whitespace-nowrap">Open to all</span>
+                </div>
+              )}
+              {event.claims_applicable && (
+                <div className="shrink-0 px-2.5 py-1 rounded-full bg-[var(--color-primary)] text-white shadow-sm flex items-center gap-1.5 border border-white/20">
+                  <Award size={12} className="opacity-90 text-[var(--color-accent)]" />
+                  <span className="text-[9px] font-black uppercase tracking-wider whitespace-nowrap">Claims Info</span>
+                </div>
+              )}
             </div>
-            {event.allow_outsiders && (
-              <div className="shrink-0 px-2.5 py-1 rounded-full bg-white/95 text-[var(--color-primary)] shadow-md flex items-center gap-1.5 border border-white/20">
-                <Globe size={12} className="opacity-80" />
-                <span className="text-[9px] font-black uppercase tracking-wider whitespace-nowrap">Open to all</span>
-              </div>
-            )}
-            {event.claims_applicable && (
-              <div className="shrink-0 px-2.5 py-1 rounded-full bg-[var(--color-primary)] text-white shadow-md flex items-center gap-1.5 border border-white/20">
-                <Award size={12} className="opacity-90 text-[var(--color-accent)]" />
-                <span className="text-[9px] font-black uppercase tracking-wider whitespace-nowrap">Claims Info</span>
-              </div>
-            )}
-          </div>
 
-          <button
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              void shareEvent({
-                title: event.title,
-                text: `Check out this event: ${event.title}`,
-                url: `/event/${event.event_id}`,
-              });
-            }}
-            className="shrink-0 w-9 h-9 rounded-full bg-black/30 backdrop-blur-md border border-white/20 flex items-center justify-center text-white active:scale-90 transition-transform shadow-lg"
-            aria-label="Share Event"
-          >
-            <ShareIcon size={16} />
-          </button>
+            <button
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                void shareEvent({
+                  title: event.title,
+                  text: `Check out this event: ${event.title}`,
+                  url: `/event/${event.event_id}`,
+                });
+              }}
+              className="shrink-0 w-10 h-10 rounded-full bg-[var(--color-primary)]/95 backdrop-blur-md text-white flex items-center justify-center active:scale-90 transition-transform shadow-md"
+              aria-label="Share Event"
+            >
+              <ShareIcon size={16} />
+            </button>
+          </div>
         </div>
         {/* title area with extra bottom padding to prevent overlap */}
         <div className="absolute bottom-0 left-0 right-0 px-4 pb-12 pt-20 z-10">

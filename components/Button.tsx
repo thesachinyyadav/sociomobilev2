@@ -32,9 +32,9 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       "inline-flex items-center justify-center font-bold rounded-xl transition-all duration-200 active:scale-[0.97] disabled:opacity-50 disabled:pointer-events-none";
 
     const sizeClasses = {
-      sm: "px-3 py-1.5 text-xs",
-      md: "px-4 py-2 text-sm",
-      lg: "px-6 py-3 text-base",
+      sm: "h-9 px-3 text-xs",
+      md: "h-10 px-4 text-sm",
+      lg: "h-11 px-5 text-sm",
     };
 
     const variantClasses = {

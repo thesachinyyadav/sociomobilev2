@@ -64,7 +64,7 @@ export default function FestCard({ fest, isTrending }: { fest: Fest; isTrending?
       href={href}
       onMouseEnter={prefetchFestData}
       onTouchStart={prefetchFestData}
-      className="card-elevated relative block w-full h-[220px] group cursor-pointer border border-white/40"
+      className="card-elevated relative block w-full h-[190px] group cursor-pointer border border-white/40"
     >
       <ShimmerImage
         src={
@@ -101,43 +101,43 @@ export default function FestCard({ fest, isTrending }: { fest: Fest; isTrending?
             url: href,
           });
         }}
-        className="absolute top-2 right-2 z-20 w-8 h-8 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center text-[var(--color-primary)] shadow-sm border border-white/20 active:scale-90 transition-transform"
+        className="absolute top-2 right-2 z-20 w-7 h-7 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center text-[var(--color-primary)] shadow-sm border border-white/20 active:scale-90 transition-transform"
         aria-label="Share Fest"
       >
-        <ShareIcon size={16} />
+        <ShareIcon size={14} />
       </button>
 
 
-      <div className="absolute inset-0 p-5 flex flex-col justify-between">
-        <div className="flex justify-between items-start">
-          {fest.category ? (
-          <span className="bg-[var(--color-primary)] text-white px-3 py-1 rounded-full text-xs font-bold uppercase tracking-widest shadow-sm">
-              {fest.category}
-            </span>
-          ) : (
-            <div />
-          )}
-          {attendeeCount > 0 && (
-            <span className="bg-black/50 backdrop-blur text-white/90 px-3 py-1 rounded-full text-[11px] font-bold tracking-wide flex items-center gap-1.5 shadow-sm">
-              <UsersIcon size={12} />
+        <div className="absolute inset-0 p-4 flex flex-col justify-between">
+          <div className="flex justify-between items-start">
+            {fest.category ? (
+          <span className="bg-[var(--color-primary)] text-white px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-widest shadow-sm">
+                {fest.category}
+              </span>
+            ) : (
+              <div />
+            )}
+            {attendeeCount > 0 && (
+            <span className="bg-black/50 backdrop-blur text-white/90 px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wide flex items-center gap-1.5 shadow-sm">
+              <UsersIcon size={11} />
               {attendeeLabel} going
             </span>
-          )}
-        </div>
-        <div>
-          {dept && (
-            <p className="text-[#dae2ff] font-semibold text-xs uppercase tracking-wider mb-1">
-              {dept}
-            </p>
-          )}
-          <h3 className="text-2xl font-bold text-white leading-tight mb-1 drop-shadow-md">
-            {title}
-          </h3>
-          <div className="flex items-center gap-2 text-[#e2e2e2] text-xs font-medium">
-            <CalendarIcon size={16} className="opacity-80" />
-            <span>
-              {formatDateRange(
-                fest.opening_date || fest.start_date,
+            )}
+          </div>
+          <div>
+            {dept && (
+              <p className="text-[#dae2ff] font-semibold text-[10px] uppercase tracking-wider mb-0.5">
+                {dept}
+              </p>
+            )}
+            <h3 className="text-xl font-bold text-white leading-tight mb-1 drop-shadow-md">
+              {title}
+            </h3>
+            <div className="flex items-center gap-1.5 text-[#e2e2e2] text-[11px] font-medium">
+              <CalendarIcon size={14} className="opacity-80" />
+              <span>
+                {formatDateRange(
+                  fest.opening_date || fest.start_date,
                 fest.closing_date || fest.end_date
               )}
             </span>

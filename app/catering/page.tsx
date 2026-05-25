@@ -168,12 +168,12 @@ export default function CateringDashboardPage() {
 
   if (!userData?.is_masteradmin && !userData?.roles?.catering) {
     return (
-      <div className="pwa-page-center bg-[var(--color-bg)] px-6">
-        <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mb-4">
-          <AlertTriangleIcon className="text-red-500" size={32} />
+      <div className="pwa-page-center bg-[var(--color-bg)] px-4">
+        <div className="w-14 h-14 bg-red-50 rounded-full flex items-center justify-center mb-3">
+          <AlertTriangleIcon className="text-red-500" size={28} />
         </div>
-        <h1 className="text-xl font-bold mb-2">Access Denied</h1>
-        <p className="text-[var(--color-text-muted)] mb-6">{DENIED_MESSAGE}</p>
+        <h1 className="text-[16px] font-bold mb-1.5">Access Denied</h1>
+        <p className="text-[12px] text-[var(--color-text-muted)] mb-4">{DENIED_MESSAGE}</p>
         <Button onClick={() => router.push("/profile")}>Back to Profile</Button>
       </div>
     );
@@ -183,17 +183,17 @@ export default function CateringDashboardPage() {
     <div className="pwa-page bg-[#F8FAFC]">
       {/* Sticky Sub-Header — aligns perfectly below global TopBar */}
       <div className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-slate-100 pt-2 px-4">
-        <div className="flex items-center gap-3 mb-6">
+        <div className="flex items-center gap-2.5 mb-4">
           <button
             onClick={() => router.back()}
             aria-label="Go back"
             title="Go back"
-            className="w-10 h-10 rounded-2xl bg-white shadow-sm border border-slate-100 flex items-center justify-center text-[var(--color-text)] active:scale-90 transition-transform"
+            className="w-9 h-9 rounded-xl bg-white shadow-sm border border-slate-100 flex items-center justify-center text-[var(--color-text)] active:scale-90 transition-transform"
           >
-            <ArrowLeftIcon size={20} />
+            <ArrowLeftIcon size={18} />
           </button>
           <div className="flex-1 min-w-0">
-            <h1 className="text-xl font-black tracking-tight text-slate-900 leading-tight">Catering Orders</h1>
+            <h1 className="text-[16px] font-black tracking-tight text-slate-900 leading-tight">Catering Orders</h1>
             {vendors.length > 1 ? (
               <div className="relative mt-0.5 inline-block">
                 <select
@@ -204,7 +204,7 @@ export default function CateringDashboardPage() {
                   }}
                   aria-label="Select catering shop"
                   title="Select catering shop"
-                  className="appearance-none bg-blue-50 border-none text-[11px] font-bold text-blue-700 py-1 pl-2 pr-6 rounded-lg focus:ring-1 focus:ring-blue-200 outline-none cursor-pointer uppercase tracking-wider"
+                  className="appearance-none bg-blue-50 border-none text-[10px] font-bold text-blue-700 py-1 pl-2 pr-6 rounded-lg focus:ring-1 focus:ring-blue-200 outline-none cursor-pointer uppercase tracking-wider"
                 >
                   <option value="">All Shops</option>
                   {vendors.map((v) => (
@@ -252,14 +252,14 @@ export default function CateringDashboardPage() {
         </div>
       </div>
 
-      <div className="px-4 pb-4 pt-6 max-w-2xl mx-auto">
+      <div className="px-4 pb-4 pt-4 max-w-2xl mx-auto">
         {error ? (
-          <div className="bg-white rounded-2xl p-8 text-center flex flex-col items-center mt-10 shadow-sm border border-slate-100">
-            <div className="w-14 h-14 bg-red-50 rounded-full flex items-center justify-center mb-4">
-              <AlertTriangleIcon className="text-red-500" size={28} />
+          <div className="bg-white rounded-xl p-5 text-center flex flex-col items-center mt-6 shadow-sm border border-slate-100">
+            <div className="w-12 h-12 bg-red-50 rounded-full flex items-center justify-center mb-3">
+              <AlertTriangleIcon className="text-red-500" size={24} />
             </div>
-            <p className="text-[14px] font-bold text-red-600 mb-1">Failed to Load Orders</p>
-            <p className="text-[12px] text-[var(--color-text-muted)] mb-6">{error}</p>
+            <p className="text-[13px] font-bold text-red-600 mb-1">Failed to Load Orders</p>
+            <p className="text-[11px] text-[var(--color-text-muted)] mb-4">{error}</p>
             <Button size="md" variant="primary" onClick={() => fetchBookings(page, activeTab)}>
               Retry
             </Button>
@@ -270,16 +270,16 @@ export default function CateringDashboardPage() {
              Loading orders...
           </div>
         ) : bookings.length === 0 ? (
-          <div className="bg-white rounded-2xl p-12 text-center flex flex-col items-center mt-6 shadow-sm border border-slate-100">
-            <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4">
+          <div className="bg-white rounded-xl p-6 text-center flex flex-col items-center mt-4 shadow-sm border border-slate-100">
+            <div className="w-12 h-12 bg-slate-50 rounded-full flex items-center justify-center mb-3">
               {activeTab === "pending" ? (
-                <Clock3 className="text-slate-400" size={32} />
+                <Clock3 className="text-slate-400" size={24} />
               ) : (
-                <CheckCircle className="text-slate-400" size={32} />
+                <CheckCircle className="text-slate-400" size={24} />
               )}
             </div>
-            <h3 className="font-bold text-[16px] text-[#0F172A] mb-1">No Orders Found</h3>
-            <p className="text-[12px] text-[var(--color-text-muted)] max-w-[200px] mx-auto leading-relaxed">
+            <h3 className="font-bold text-[14px] text-[#0F172A] mb-1">No Orders Found</h3>
+            <p className="text-[11px] text-[var(--color-text-muted)] max-w-[200px] mx-auto leading-relaxed">
               {activeTab === "pending" 
                 ? "You have no pending orders to review right now." 
                 : "Your past accepted and declined orders will appear here."}

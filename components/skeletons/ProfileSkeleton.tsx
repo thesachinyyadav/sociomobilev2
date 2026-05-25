@@ -5,31 +5,31 @@ import { ChevronRightIcon as ChevronRight } from "@/components/icons";
 
 export default function ProfileSkeleton() {
   return (
-    <div className="pwa-page pb-[calc(var(--bottom-nav)+var(--safe-bottom)+100px)] animate-fade-in">
+    <div className="pwa-page pb-[calc(var(--bottom-nav)+var(--safe-bottom)+80px)] animate-fade-in">
       {/* Profile header skeleton */}
-      <div className="relative overflow-hidden text-white px-5 pt-12 pb-10">
+      <div className="relative overflow-hidden text-white px-4 pt-8 pb-6">
         <div className="absolute inset-0 z-0 bg-gradient-to-br from-[var(--color-primary-dark)] via-[var(--color-primary)] to-[#3b5bdb]" />
         
-        <div className="flex items-center gap-4 relative z-10">
-          <div className="w-[60px] h-[60px] rounded-full skeleton shrink-0" />
+        <div className="flex items-center gap-3 relative z-10">
+          <div className="w-[52px] h-[52px] rounded-full skeleton shrink-0" />
           <div className="flex-1 min-w-0 space-y-2">
-            <div className="w-48 h-5 skeleton rounded" />
+            <div className="w-44 h-4 skeleton rounded" />
             <div className="w-32 h-3 skeleton rounded opacity-50" />
-            <div className="mt-2 w-20 h-5 skeleton rounded-full" />
+            <div className="mt-2 w-20 h-4 skeleton rounded-full" />
           </div>
         </div>
       </div>
 
       {/* Quick links skeleton */}
-      <div className="px-4 -mt-5 relative z-10 grid grid-cols-1 gap-3 mb-4">
+      <div className="px-4 -mt-4 relative z-10 grid grid-cols-1 gap-2.5 mb-3">
         {[...Array(3)].map((_, i) => (
           <div key={i} className="flex-1 card p-3 flex items-center gap-3">
-            <div className="w-9 h-9 rounded-full skeleton shrink-0" />
+            <div className="w-8 h-8 rounded-full skeleton shrink-0" />
             <div className="flex-1 space-y-2">
               <div className="w-24 h-3 skeleton rounded" />
               {i > 0 && <div className="w-32 h-2 skeleton rounded" />}
             </div>
-            <ChevronRight size={15} className="text-[var(--color-text-light)]" />
+            <ChevronRight size={14} className="text-[var(--color-text-light)]" />
           </div>
         ))}
       </div>

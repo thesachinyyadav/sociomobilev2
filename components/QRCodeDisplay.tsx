@@ -350,14 +350,14 @@ export default function QRCodeDisplay({
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.96, y: 10 }}
         transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-        className="pass-panel relative w-[calc(100vw-32px)] max-w-[420px] bg-[#F8FAFC] rounded-[36px] shadow-[0_30px_80px_rgba(1,31,123,0.22)] flex flex-col overflow-hidden"
+        className="pass-panel relative w-[calc(100vw-32px)] max-w-[420px] bg-[#F8FAFC] rounded-[20px] shadow-[0_30px_80px_rgba(1,31,123,0.22)] flex flex-col overflow-hidden"
         style={{
           maxHeight: "calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 24px)",
         }}
       >
         {/* Header Section */}
         <div
-          className="pass-header relative z-10 shrink-0 overflow-hidden bg-gradient-to-br from-[#011F7B] to-[#1E3FAB] px-6 pt-6 pb-10 rounded-t-[36px] min-h-[190px] flex flex-col justify-between"
+          className="pass-header relative z-10 shrink-0 overflow-hidden bg-gradient-to-br from-[#011F7B] to-[#1E3FAB] px-4 pt-4 pb-5 rounded-t-[20px] min-h-[148px] flex flex-col justify-between"
         >
           {/* Subtle Blueprint Dots */}
           <div className="absolute inset-0 opacity-[0.05] pointer-events-none" 
@@ -375,8 +375,8 @@ export default function QRCodeDisplay({
           <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.28)_0%,transparent_55%)] pointer-events-none" />
           <div className="absolute inset-x-0 top-0 h-28 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.12)_0%,transparent_72%)] pointer-events-none" />
 
-          <div className="relative z-10 pr-12 flex-1 flex flex-col justify-start gap-3 pt-1">
-            <div className="flex items-center gap-2.5">
+          <div className="relative z-10 pr-10 flex-1 flex flex-col justify-start gap-2 pt-1">
+            <div className="flex items-center gap-2">
               <span className="h-2 w-2 rounded-full bg-[#FFBA09] shadow-[0_0_8px_rgba(255,186,9,0.9)] shrink-0" />
               <div className="flex items-center gap-2">
                 <svg viewBox="0 0 319 94" className="h-[13px] w-auto fill-white/85 shrink-0 select-none pointer-events-none">
@@ -386,17 +386,17 @@ export default function QRCodeDisplay({
                   <path d="M216 6V68H196V6H216Z" />
                   <path d="M258.5 74.5C251.6 74.5 245.3 72.9 239.6 69.7C233.8 66.5 229.3 62 226 56.3C222.6 50.6 221 44.1 221 36.8C221 29.6 222.6 23.1 226 17.4C229.3 11.7 233.8 7.2 239.6 4C245.3 0.8 251.6 0 258.5 0C265.3 0 271.6 0.8 277.3 4C283.1 7.2 287.6 11.7 290.9 17.4C294.2 23.1 295.9 29.6 295.9 36.8C295.9 44.1 294.2 50.6 290.9 56.3C287.6 62 283.1 66.5 277.3 69.7C271.6 72.9 265.3 74.5 258.5 74.5ZM258.5 56.5C263.5 56.5 267.5 54.9 270.5 51.7C273.5 48.4 275 44.1 275 38.7C275 33.2 273.5 28.8 270.5 25.7C267.5 22.5 263.5 20.9 258.5 20.9C253.5 20.9 249.6 22.5 246.6 25.7C243.6 28.8 242.1 33.2 242.1 38.7C242.1 44.1 243.6 48.4 246.6 51.7C249.6 54.9 253.5 56.5 258.5 56.5Z" />
                 </svg>
-                <span className="text-white/30 text-[10px] select-none pointer-events-none">•</span>
-                <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/90 select-none pointer-events-none">EVENT PASS</span>
+                <span className="text-white/30 text-[9px] select-none pointer-events-none">•</span>
+                <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/90 select-none pointer-events-none">EVENT PASS</span>
               </div>
             </div>
 
             <div className="min-w-0">
-              <h3 className="pass-title max-w-full text-[clamp(18px,4.5vw,23px)] font-[800] tracking-[-0.04em] text-white leading-[1.0] pr-4">
+              <h3 className="pass-title max-w-full text-[clamp(16px,4vw,20px)] font-[800] tracking-[-0.04em] text-white leading-[1.05] pr-4">
                 {eventTitle}
               </h3>
 
-              <p className="mt-1.5 text-[11px] font-medium text-white/60">
+              <p className="mt-1 text-[10px] font-medium text-white/60">
                 Your pass to an amazing experience
               </p>
             </div>
@@ -404,43 +404,43 @@ export default function QRCodeDisplay({
 
           <button
             onClick={onClose}
-            className="absolute right-5 top-5 flex h-9 w-9 items-center justify-center rounded-full border border-white/18 bg-white/12 text-white backdrop-blur-[12px] transition-transform duration-200 hover:bg-white/18 active:scale-95 z-20"
+            className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-full border border-white/18 bg-white/12 text-white backdrop-blur-[12px] transition-transform duration-200 hover:bg-white/18 active:scale-95 z-20"
             aria-label="Close"
           >
-            <XIcon size={15} strokeWidth={2.5} />
+            <XIcon size={14} strokeWidth={2.5} />
           </button>
         </div>
 
         {/* Main Content Area */}
-        <div className="pass-modal-content flex flex-col items-center justify-between flex-1 min-h-0 relative z-20 -mt-6 pb-4">
+        <div className="pass-modal-content flex flex-col items-center justify-between flex-1 min-h-0 relative z-20 -mt-4 pb-3">
           
           {/* Floating Info Card */}
-          <div className="mx-4 bg-white/98 rounded-[24px] p-4 shadow-[0_12px_30px_rgba(15,23,42,0.08)] border border-slate-100/50 backdrop-blur-sm w-[calc(100%-32px)]">
+          <div className="mx-4 bg-white/98 rounded-[18px] p-3 shadow-[0_12px_30px_rgba(15,23,42,0.08)] border border-slate-100/50 backdrop-blur-sm w-[calc(100%-32px)]">
             <div className="grid grid-cols-3 divide-x divide-slate-100">
               {/* Date Column */}
               <div className="flex flex-col items-center text-center px-1 min-w-0">
-                <CalendarIcon size={13} className="text-[#FFBA09] mb-1" />
-                <span className="text-[9px] font-bold uppercase tracking-[0.15em] text-[#94A3B8]">Date</span>
-                <span className="mt-1 text-[11px] font-extrabold text-[#0F172A] leading-tight w-full break-words">{dateInfo.main}</span>
-                <span className="text-[9px] font-medium text-[#64748B] mt-0.5">{dateInfo.sub}</span>
+                <CalendarIcon size={12} className="text-[#FFBA09] mb-1" />
+                <span className="text-[8.5px] font-bold uppercase tracking-[0.15em] text-[#94A3B8]">Date</span>
+                <span className="mt-1 text-[10px] font-extrabold text-[#0F172A] leading-tight w-full break-words">{dateInfo.main}</span>
+                <span className="text-[8.5px] font-medium text-[#64748B] mt-0.5">{dateInfo.sub}</span>
               </div>
 
               {/* Time Column */}
               <div className="flex flex-col items-center text-center px-1 min-w-0">
-                <ClockIcon size={13} className="text-[#FFBA09] mb-1" />
-                <span className="text-[9px] font-bold uppercase tracking-[0.15em] text-[#94A3B8]">Time</span>
-                <span className="mt-1 text-[11px] font-extrabold text-[#0F172A] leading-tight w-full break-words">{time || "12:00 PM"}</span>
-                <span className="text-[9px] font-medium text-[#64748B] mt-0.5">IST</span>
+                <ClockIcon size={12} className="text-[#FFBA09] mb-1" />
+                <span className="text-[8.5px] font-bold uppercase tracking-[0.15em] text-[#94A3B8]">Time</span>
+                <span className="mt-1 text-[10px] font-extrabold text-[#0F172A] leading-tight w-full break-words">{time || "12:00 PM"}</span>
+                <span className="text-[8.5px] font-medium text-[#64748B] mt-0.5">IST</span>
               </div>
 
               {/* Venue Column */}
               <div className="flex flex-col items-center text-center px-1 min-w-0">
-                <MapPinIcon size={13} className="text-[#FFBA09] mb-1" />
-                <span className="text-[9px] font-bold uppercase tracking-[0.15em] text-[#94A3B8]">Venue</span>
-                <span className="mt-1 text-[11px] font-extrabold text-[#0F172A] leading-tight w-full line-clamp-2 break-words" title={venue}>
+                <MapPinIcon size={12} className="text-[#FFBA09] mb-1" />
+                <span className="text-[8.5px] font-bold uppercase tracking-[0.15em] text-[#94A3B8]">Venue</span>
+                <span className="mt-1 text-[10px] font-extrabold text-[#0F172A] leading-tight w-full line-clamp-2 break-words" title={venue}>
                   {venueInfo.main}
                 </span>
-                <span className="text-[9px] font-medium text-[#64748B] mt-0.5 truncate w-full" title={venueInfo.sub}>
+                <span className="text-[8.5px] font-medium text-[#64748B] mt-0.5 truncate w-full" title={venueInfo.sub}>
                   {venueInfo.sub}
                 </span>
               </div>
@@ -450,21 +450,21 @@ export default function QRCodeDisplay({
           {/* QR Code Container */}
           <div className="flex justify-center w-full mt-3 px-4">
             {loading ? (
-              <div className="flex aspect-square w-full max-w-[clamp(190px,26dvh,240px)] items-center justify-center rounded-[28px] border border-slate-100 bg-white p-6 shadow-[0_10px_30px_rgba(15,23,42,0.05)]">
-                <Loader2Icon size={28} className="animate-spin text-[#011F7B] opacity-35" />
+              <div className="flex aspect-square w-full max-w-[clamp(180px,24dvh,220px)] items-center justify-center rounded-[20px] border border-slate-100 bg-white p-5 shadow-[0_10px_30px_rgba(15,23,42,0.05)]">
+                <Loader2Icon size={24} className="animate-spin text-[#011F7B] opacity-35" />
               </div>
             ) : error ? (
-              <div className="flex aspect-square w-full max-w-[clamp(190px,26dvh,240px)] flex-col items-center justify-center rounded-[28px] border border-red-100 bg-red-50 p-6 text-center shadow-[0_10px_30px_rgba(15,23,42,0.05)]">
-                <AlertCircleIcon size={22} className="mb-2 text-red-500" />
-                <p className="text-[12px] font-semibold text-red-600 leading-snug">{error}</p>
+              <div className="flex aspect-square w-full max-w-[clamp(180px,24dvh,220px)] flex-col items-center justify-center rounded-[20px] border border-red-100 bg-red-50 p-5 text-center shadow-[0_10px_30px_rgba(15,23,42,0.05)]">
+                <AlertCircleIcon size={20} className="mb-2 text-red-500" />
+                <p className="text-[11px] font-semibold text-red-600 leading-snug">{error}</p>
               </div>
             ) : (
-              <div className="relative flex aspect-square w-full max-w-[clamp(190px,26dvh,240px)] items-center justify-center rounded-[28px] p-5 overflow-hidden qr-card-container">
+              <div className="relative flex aspect-square w-full max-w-[clamp(180px,24dvh,220px)] items-center justify-center rounded-[20px] p-4 overflow-hidden qr-card-container">
                 {/* Luxury Scanner Corners */}
-                <div className="absolute top-5 left-5 w-3.5 h-3.5 border-t-2 border-l-2 border-[#011F7B]/16 rounded-tl-[6px]" />
-                <div className="absolute top-5 right-5 w-3.5 h-3.5 border-t-2 border-r-2 border-[#011F7B]/16 rounded-tr-[6px]" />
-                <div className="absolute bottom-5 left-5 w-3.5 h-3.5 border-b-2 border-l-2 border-[#011F7B]/16 rounded-bl-[6px]" />
-                <div className="absolute bottom-5 right-5 w-3.5 h-3.5 border-b-2 border-r-2 border-[#011F7B]/16 rounded-br-[6px]" />
+                <div className="absolute top-4 left-4 w-3 h-3 border-t-2 border-l-2 border-[#011F7B]/16 rounded-tl-[6px]" />
+                <div className="absolute top-4 right-4 w-3 h-3 border-t-2 border-r-2 border-[#011F7B]/16 rounded-tr-[6px]" />
+                <div className="absolute bottom-4 left-4 w-3 h-3 border-b-2 border-l-2 border-[#011F7B]/16 rounded-bl-[6px]" />
+                <div className="absolute bottom-4 right-4 w-3 h-3 border-b-2 border-r-2 border-[#011F7B]/16 rounded-br-[6px]" />
 
                 {/* Embossed Detail */}
                 <div className="absolute top-4 inset-x-0 flex justify-center opacity-[0.12] pointer-events-none">
@@ -491,13 +491,13 @@ export default function QRCodeDisplay({
             <button
               onClick={downloadAsPDF}
               disabled={pdfLoading || loading}
-              className="flex h-14 w-full items-center justify-center gap-2.5 rounded-[20px] bg-[#FFBA09] text-[#011F7B] font-bold text-[14px] shadow-[0_8px_24px_rgba(255,186,9,0.25)] transition-all duration-200 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 hover:brightness-105"
+              className="flex h-11 w-full items-center justify-center gap-2.5 rounded-[14px] bg-[#FFBA09] text-[#011F7B] font-bold text-[12px] shadow-[0_8px_24px_rgba(255,186,9,0.25)] transition-all duration-200 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 hover:brightness-105"
             >
               {pdfLoading ? (
-                <Loader2Icon size={18} className="animate-spin" />
+                <Loader2Icon size={16} className="animate-spin" />
               ) : (
                 <>
-                  <DownloadIcon size={20} strokeWidth={3} className="shrink-0" />
+                  <DownloadIcon size={18} strokeWidth={3} className="shrink-0" />
                   <span>Download Pass (PDF)</span>
                 </>
               )}
@@ -505,7 +505,7 @@ export default function QRCodeDisplay({
           </div>
 
           {/* Subtle Footer Closure */}
-          <div className="flex flex-col items-center justify-center mt-7 mb-2 opacity-[0.45] gap-1">
+          <div className="flex flex-col items-center justify-center mt-5 mb-2 opacity-[0.45] gap-1">
             <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-[#0F172A] leading-normal text-center">VERIFIED EVENT CREDENTIAL</span>
             <span className="text-[8px] font-semibold text-[#64748B] leading-normal text-center">Secured by SOCIO</span>
           </div>

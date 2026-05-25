@@ -22,19 +22,19 @@ export default function BottomNav() {
   return (
     <nav
       className="fixed bottom-0 left-0 right-0 z-50 pointer-events-none"
-      style={{ paddingBottom: "calc(var(--safe-bottom) + 10px)" }}
+      style={{ paddingBottom: "calc(var(--safe-bottom) + 6px)" }}
     >
       <div
-        className="mx-auto w-[min(92vw,360px)] rounded-[22px] border border-[var(--color-border)] bg-[rgba(255,255,255,0.94)] shadow-[0_12px_34px_rgba(17,24,39,0.14)] backdrop-blur-xl pointer-events-auto"
+        className="mx-auto w-[min(92vw,360px)] rounded-[18px] border border-[var(--color-border)] bg-[rgba(255,255,255,0.94)] shadow-[0_10px_28px_rgba(17,24,39,0.12)] backdrop-blur-xl pointer-events-auto"
       >
-        <div className="grid grid-cols-4 gap-1 p-1.5" style={{ minHeight: "var(--bottom-nav)" }}>
+        <div className="grid grid-cols-4 gap-1 p-1" style={{ minHeight: "var(--bottom-nav)" }}>
         {tabs.map(({ href, icon: Icon, label }) => {
           const active = isActive(href);
           return (
             <Link
               key={href}
               href={href}
-              className={`relative btn-active-state flex flex-col items-center justify-center gap-0.5 rounded-[14px] py-2 transition-all duration-200 ${
+              className={`relative btn-active-state flex flex-col items-center justify-center gap-0.5 rounded-[12px] py-1.5 transition-all duration-200 ${
                 active
                   ? "text-[var(--color-primary)] bg-[var(--color-primary-light)] shadow-[var(--shadow-sm)]"
                   : "text-[var(--color-text-light)]"
@@ -43,7 +43,7 @@ export default function BottomNav() {
 
               <div className={`relative transition-transform duration-200 ${active ? "scale-110" : ""}`}>
                 <Icon
-                  size={20}
+                  size={19}
                   strokeWidth={active ? 2.4 : 1.6}
                 />
               </div>

@@ -128,13 +128,13 @@ export default function EventsPage() {
   const hasMore = currentPage < totalPages;
 
   return (
-    <div className="pwa-page pt-2 pb-8 bg-[#f9fafb] max-w-[420px] mx-auto">
+    <div className="pwa-page pt-2 pb-6 bg-[#f9fafb] max-w-[420px] mx-auto">
       {/* Search Bar Row — Only visible when searching */}
       {isSearchOpen && (
-        <div className="px-5 h-[48px] flex flex-col justify-center animate-fade-in">
+        <div className="px-4 h-[44px] flex flex-col justify-center animate-fade-in">
           <div className="flex-1 flex items-center gap-2">
             <div className="relative flex-1 min-w-0">
-              <SearchIcon size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] pointer-events-none z-[1]" />
+              <SearchIcon size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] pointer-events-none z-[1]" />
               <input
                 ref={searchInputRef}
                 type="text"
@@ -144,7 +144,7 @@ export default function EventsPage() {
                   setSearch(e.target.value);
                   setCurrentPage(1);
                 }}
-                className="w-full h-[38px] pl-9 pr-8 text-[13px] bg-[#e8e9ec] border-none rounded-xl outline-none transition-all placeholder:text-[var(--color-text-muted)] font-medium"
+                className="w-full h-[34px] pl-9 pr-8 text-[12px] bg-[#e8e9ec] border-none rounded-lg outline-none transition-all placeholder:text-[var(--color-text-muted)] font-medium"
               />
               {search && (
                 <button 
@@ -164,7 +164,7 @@ export default function EventsPage() {
                 setSearch("");
                 setCurrentPage(1);
               }}
-              className="text-[12px] font-bold text-[var(--color-primary-dark)] shrink-0 px-1"
+              className="text-[11px] font-bold text-[var(--color-primary-dark)] shrink-0 px-1"
             >
               Cancel
             </button>
@@ -173,15 +173,15 @@ export default function EventsPage() {
       )}
 
       {/* Filter chips row */}
-      <div className="flex overflow-x-auto mb-1 gap-2.5 items-center no-scrollbar snap-x snap-mandatory h-[48px]">
+      <div className="flex overflow-x-auto mb-1 gap-2 items-center no-scrollbar snap-x snap-mandatory h-[40px]">
         <div className="shrink-0 w-4 snap-start" aria-hidden />
         {!isSearchOpen && (
           <button
             onClick={() => setIsSearchOpen(true)}
-            className="shrink-0 p-2 -ml-2 mr-1 flex items-center justify-center text-[var(--color-text)] transition-transform active:scale-95 snap-center"
+            className="shrink-0 p-1.5 -ml-2 mr-1 flex items-center justify-center text-[var(--color-text)] transition-transform active:scale-95 snap-center"
             aria-label="Open search"
           >
-            <SearchIcon size={20} strokeWidth={2.5} />
+            <SearchIcon size={18} strokeWidth={2.5} />
           </button>
         )}
         
@@ -190,7 +190,7 @@ export default function EventsPage() {
             setOnlyOpen(!onlyOpen);
             setCurrentPage(1);
           }}
-          className={`px-4 py-2 rounded-full text-[13px] font-bold transition-all whitespace-nowrap snap-center ${
+          className={`px-3 py-1.5 rounded-full text-[12px] font-bold transition-all whitespace-nowrap snap-center ${
             onlyOpen
               ? "bg-[var(--color-accent)] text-[var(--color-primary-dark)] shadow-sm"
               : "bg-[#f3f4f6] text-[var(--color-text-muted)] hover:bg-[#e5e7eb]"
@@ -206,7 +206,7 @@ export default function EventsPage() {
               setSort(key);
               setCurrentPage(1);
             }}
-            className={`px-4 py-2 rounded-full text-[13px] font-bold transition-all whitespace-nowrap snap-center flex items-center gap-1.5 ${
+            className={`px-3 py-1.5 rounded-full text-[12px] font-bold transition-all whitespace-nowrap snap-center flex items-center gap-1.5 ${
               sort === key
                 ? "bg-[var(--color-accent)] text-[var(--color-primary-dark)] shadow-sm"
                 : "bg-[#f3f4f6] text-[var(--color-text-muted)] hover:bg-[#e5e7eb]"
@@ -234,17 +234,17 @@ export default function EventsPage() {
         />
       ) : (
         <>
-          <div className="space-y-6">
+          <div className="space-y-4">
             {isDefaultView ? (
               <>
                 {happeningSoonEvents.length > 0 && (
-                  <section className="space-y-3 animate-fade-up">
-                    <div className="px-5">
-                      <h2 className="text-[20px] font-extrabold tracking-[-0.02em]">Happening Soon</h2>
+                  <section className="space-y-2.5 animate-fade-up">
+                    <div className="px-4">
+                      <h2 className="text-[16px] font-extrabold tracking-[-0.02em]">Happening Soon</h2>
                     </div>
 
-                    <div className="px-5">
-                      <div className="space-y-4">
+                    <div className="px-4">
+                      <div className="space-y-3">
                         {happeningSoonEvents.map((event) => (
                           <EventCard key={event.event_id} event={event} featured showAction isTrending={(event.total_participants ?? 0) >= trendingThreshold} />
                         ))}
@@ -255,7 +255,7 @@ export default function EventsPage() {
 
                 {trendingEvents.length > 0 && (
                   <SectionContainer title="Trending Events" className="pt-2">
-                    <div className="space-y-3 stagger">
+                    <div className="space-y-2.5 stagger">
                       {trendingEvents.map((e) => (
                         <EventCard key={e.event_id} event={e} showAction isTrending={(e.total_participants ?? 0) >= trendingThreshold} />
                       ))}
@@ -264,7 +264,7 @@ export default function EventsPage() {
                 )}
               </>
             ) : (
-              <div className="px-5 space-y-4 pt-2">
+              <div className="px-4 space-y-3 pt-2">
                 {events.map((event) => (
                   <EventCard key={event.event_id} event={event} showAction isTrending={(event.total_participants ?? 0) >= trendingThreshold} />
                 ))}
@@ -274,8 +274,8 @@ export default function EventsPage() {
 
           {/* Pagination info and load more button */}
           {allFilteredEvents.length > ITEMS_PER_PAGE && (
-            <div className="px-4 py-4 flex items-center justify-between">
-              <p className="text-[12px] text-[var(--color-text-muted)] font-semibold">
+            <div className="px-4 py-3 flex items-center justify-between">
+              <p className="text-[11px] text-[var(--color-text-muted)] font-semibold">
                 Showing {Math.min(startIdx + ITEMS_PER_PAGE, allFilteredEvents.length)} of {allFilteredEvents.length}
               </p>
               {hasMore && (

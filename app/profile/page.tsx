@@ -246,9 +246,9 @@ export default function ProfilePage() {
   ].filter(Boolean) as { icon: any; label: string; value: string }[];
 
   return (
-    <div className="pwa-page pb-[calc(var(--bottom-nav)+var(--safe-bottom)+100px)]">
+    <div className="pwa-page pb-[calc(var(--bottom-nav)+var(--safe-bottom)+80px)]">
       {/* Profile header */}
-      <div className="relative overflow-hidden text-white px-5 pt-12 pb-10">
+      <div className="relative overflow-hidden text-white px-4 pt-8 pb-6">
         {/* Cover background */}
         {userData && (
           <div className="absolute inset-0 z-0 bg-gradient-to-br from-[var(--color-primary-dark)] via-[var(--color-primary)] to-[#3b5bdb]">
@@ -258,23 +258,23 @@ export default function ProfilePage() {
           </div>
         )}
         
-        <div className="flex items-center gap-4 relative z-10">
+        <div className="flex items-center gap-3 relative z-10">
           {userData.avatar_url ? (
             <Image
               src={userData.avatar_url}
               alt={userData.name}
-              width={60}
-              height={60}
+              width={52}
+              height={52}
               className="rounded-full ring-4 ring-offset-2 ring-offset-[#0a1428] ring-[#1a3a7a] object-cover shadow-2xl"
             />
           ) : (
-            <div className="w-[60px] h-[60px] rounded-full bg-white/20 flex items-center justify-center text-xl font-bold ring-4 ring-offset-2 ring-offset-[#0a1428] ring-[#1a3a7a] shadow-xl">
+            <div className="w-[52px] h-[52px] rounded-full bg-white/20 flex items-center justify-center text-lg font-bold ring-4 ring-offset-2 ring-offset-[#0a1428] ring-[#1a3a7a] shadow-xl">
               {userData.name?.[0]?.toUpperCase() || "U"}
             </div>
           )}
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
-              <h1 className="text-[17px] font-extrabold truncate">{userData.name}</h1>
+              <h1 className="text-[15px] font-extrabold truncate">{userData.name}</h1>
               {canEditName && (
                 <button
                   type="button"
@@ -283,18 +283,18 @@ export default function ProfilePage() {
                     setIsEditingName(true);
                     setNameEditError(null);
                   }}
-                  className="w-7 h-7 rounded-full bg-white/15 flex items-center justify-center shrink-0"
+                  className="w-6 h-6 rounded-full bg-white/15 flex items-center justify-center shrink-0"
                   aria-label="Edit display name"
                 >
-                  <Pencil size={13} />
+                  <Pencil size={12} />
                 </button>
               )}
             </div>
-            <p className="text-[12px] opacity-75 mt-0.5">
+            <p className="text-[11px] opacity-75 mt-0.5">
               {isVisitor ? "External Visitor" : "Christ University"}
             </p>
             {isVisitor && visitorId && (
-              <div className="mt-2 inline-flex items-center gap-1 rounded-full bg-[var(--color-accent)] px-2.5 py-1 text-[var(--color-primary-dark)] text-[11px] font-extrabold tracking-wide">
+              <div className="mt-2 inline-flex items-center gap-1 rounded-full bg-[var(--color-accent)] px-2 py-0.5 text-[var(--color-primary-dark)] text-[10px] font-extrabold tracking-wide">
                 {visitorId}
               </div>
             )}
@@ -303,20 +303,20 @@ export default function ProfilePage() {
       </div>
 
       {/* Quick links */}
-      <div className="px-4 -mt-5 relative z-10 grid grid-cols-1 gap-3 mb-4">
+      <div className="px-4 -mt-4 relative z-10 grid grid-cols-1 gap-2.5 mb-3">
         <Link href="/profile/settings" className="flex-1 card p-3 flex items-center gap-3">
-          <div className="w-9 h-9 rounded-full bg-slate-50 flex items-center justify-center">
-            <SettingsIcon size={17} className="text-[var(--color-text-muted)]" />
+          <div className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center">
+            <SettingsIcon size={16} className="text-[var(--color-text-muted)]" />
           </div>
           <div className="text-left flex-1 min-w-0">
-            <p className="text-[13px] font-bold">Settings</p>
+            <p className="text-[12px] font-bold">Settings</p>
           </div>
-          <ChevronRight size={15} className="text-[var(--color-text-light)]" />
+          <ChevronRight size={14} className="text-[var(--color-text-light)]" />
         </Link>
         {((userData?.volunteerEvents?.length ?? 0) > 0) && (
           <Link href="/volunteer" className="flex-1 card p-3 flex items-center gap-3">
-            <div className="w-9 h-9 rounded-full bg-blue-50 flex items-center justify-center">
-              <QrCode size={17} className="text-[var(--color-primary)]" />
+            <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center">
+              <QrCode size={16} className="text-[var(--color-primary)]" />
             </div>
             <div className="text-left flex-1 min-w-0">
               <p className="text-[13px] font-bold">Volunteer Dashboard</p>
@@ -383,9 +383,9 @@ export default function ProfilePage() {
             )}
           </div>
         ) : (
-          <div className="flex items-center gap-2 mb-3 animate-fade-in">
+          <div className="flex items-center gap-2 mb-2.5 animate-fade-in">
             <div className="relative flex-1">
-              <SearchIcon size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] pointer-events-none" />
+              <SearchIcon size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] pointer-events-none" />
               <input
                 ref={searchInputRef}
                 type="text"
@@ -395,7 +395,7 @@ export default function ProfilePage() {
                   setSearchQuery(e.target.value);
                   setCurrentPage(1);
                 }}
-                className="w-full bg-white text-[13px] border border-[var(--color-border)] rounded-xl py-2 pl-9 pr-8 focus:ring-2 focus:ring-[var(--color-primary-light)] focus:border-transparent outline-none shadow-sm transition-all"
+                className="w-full bg-white text-[12px] border border-[var(--color-border)] rounded-lg py-1.5 pl-9 pr-8 focus:ring-2 focus:ring-[var(--color-primary-light)] focus:border-transparent outline-none shadow-sm transition-all"
               />
               {searchQuery && (
                 <button
@@ -415,7 +415,7 @@ export default function ProfilePage() {
                 setSearchQuery("");
                 setCurrentPage(1);
               }}
-              className="text-[13px] font-bold text-[var(--color-primary)] px-2 shrink-0"
+              className="text-[12px] font-bold text-[var(--color-primary)] px-2 shrink-0"
             >
               Cancel
             </button>
@@ -427,18 +427,18 @@ export default function ProfilePage() {
             <Skeleton className="h-20 w-full rounded-[var(--radius)]" count={2} />
           </div>
         ) : uniqueRegistrations.length === 0 ? (
-          <div className="card p-6 text-center">
-            <CalendarDays size={28} className="mx-auto text-[var(--color-text-light)] mb-2" />
-            <p className="text-[13px] font-semibold text-[var(--color-text-muted)]">
+          <div className="card p-4 text-center">
+            <CalendarDays size={24} className="mx-auto text-[var(--color-text-light)] mb-2" />
+            <p className="text-[12px] font-semibold text-[var(--color-text-muted)]">
               No registrations yet
             </p>
-            <p className="text-[12px] text-[var(--color-text-light)] mt-0.5">
+            <p className="text-[11px] text-[var(--color-text-light)] mt-0.5">
               Browse events and register to see them here
             </p>
           </div>
         ) : filteredRegistrations.length === 0 ? (
-          <div className="card p-6 text-center">
-            <p className="text-[13px] font-semibold text-[var(--color-text-muted)]">
+          <div className="card p-4 text-center">
+            <p className="text-[12px] font-semibold text-[var(--color-text-muted)]">
               No matching events found
             </p>
           </div>
@@ -453,27 +453,27 @@ export default function ProfilePage() {
                 <div key={r.registration_id} className="card p-3">
                   <div className="flex items-start gap-3">
                     <div
-                      className={`w-10 h-10 rounded-[var(--radius-sm)] flex items-center justify-center ${
+                      className={`w-9 h-9 rounded-[var(--radius-sm)] flex items-center justify-center ${
                         isUpcoming ? "bg-blue-100 text-[var(--color-primary)]" : "bg-emerald-100 text-emerald-700"
                       }`}
                     >
-                      {isUpcoming ? <Clock3 size={16} /> : <CheckCircle2 size={16} />}
+                      {isUpcoming ? <Clock3 size={15} /> : <CheckCircle2 size={15} />}
                     </div>
 
                     <div className="flex-1 min-w-0">
-                      <Link href={`/event/${r.event_id}`} className="text-[13px] font-bold text-[var(--color-primary)] hover:underline block truncate">
+                      <Link href={`/event/${r.event_id}`} className="text-[12px] font-bold text-[var(--color-primary)] hover:underline block truncate">
                         {eventTitle}
                       </Link>
-                      <p className="text-[11px] text-[var(--color-text-muted)] mt-0.5">
+                      <p className="text-[10px] text-[var(--color-text-muted)] mt-0.5">
                         {formatDate(r.raw_date)}
                       </p>
-                      <p className="text-[11px] text-[var(--color-text-light)] truncate">
+                      <p className="text-[10px] text-[var(--color-text-light)] truncate">
                         {r.department || "Department TBA"}
                       </p>
                     </div>
 
                     <span
-                      className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                      className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${
                         isUpcoming ? "bg-blue-50 text-[var(--color-primary)]" : "bg-emerald-50 text-emerald-700"
                       }`}
                     >
@@ -481,7 +481,7 @@ export default function ProfilePage() {
                     </span>
                   </div>
 
-                  <div className="mt-3 flex gap-2">
+                  <div className="mt-2.5 flex gap-2">
                     <Button
                       variant="primary"
                       size="sm"
@@ -561,11 +561,11 @@ export default function ProfilePage() {
       {isEditingName && (
         <div className="modal-backdrop">
           <div className="modal-card overflow-hidden">
-            <div className="bg-[var(--color-primary-dark)] px-5 py-4">
+            <div className="bg-[var(--color-primary-dark)] px-4 py-3.5">
               <h3 className="text-lg font-bold text-white">Edit Your Name</h3>
               <p className="text-blue-100 text-xs mt-0.5">This can only be done once</p>
             </div>
-            <div className="p-5">
+            <div className="p-4">
               <label className="block text-xs font-semibold text-[var(--color-text-muted)] mb-2">
                 Display Name
               </label>

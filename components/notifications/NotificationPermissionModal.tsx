@@ -137,7 +137,7 @@ export default function NotificationPermissionModal({
           {/* Scrollable Container for Modal Card */}
           <div
             onClick={onClose}
-            className="absolute inset-0 flex items-center justify-center p-4 overflow-x-hidden overflow-y-auto pt-6 pb-6"
+            className="absolute inset-0 flex items-center justify-center p-4 overflow-x-hidden overflow-y-auto pt-4 pb-4"
           >
             {/* Modal Container */}
             <motion.div
@@ -146,7 +146,7 @@ export default function NotificationPermissionModal({
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 16 }}
               transition={{ type: "spring", duration: 0.4, bounce: 0.12 }}
-              className="relative w-[92%] max-w-[360px] bg-white rounded-[28px] p-6 text-center z-10 shadow-[0_24px_64px_rgba(0,0,0,0.12)] border border-gray-100 my-auto"
+              className="relative w-[92%] max-w-[360px] bg-white rounded-2xl p-4 text-center z-10 shadow-[0_24px_64px_rgba(0,0,0,0.12)] border border-gray-100 my-auto"
               role="dialog"
               aria-modal="true"
               aria-labelledby="modal-title"
@@ -155,7 +155,7 @@ export default function NotificationPermissionModal({
               <div className="flex justify-end">
                 <button
                   onClick={onClose}
-                  className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-800 flex items-center justify-center transition-colors focus:outline-none focus:ring-2 focus:ring-[#FFB800]"
+                  className="w-7 h-7 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-800 flex items-center justify-center transition-colors focus:outline-none focus:ring-2 focus:ring-[#FFB800]"
                   aria-label="Close modal"
                 >
                   <svg
@@ -177,18 +177,18 @@ export default function NotificationPermissionModal({
               </div>
 
               {/* Content Section */}
-              <div className="mt-4 space-y-3">
+              <div className="mt-3 space-y-2.5">
                 {/* Headline */}
                 <h2
                   id="modal-title"
-                  className="text-[22px] sm:text-[24px] font-extrabold text-[#0B1020] leading-snug tracking-tight"
+                  className="text-[18px] sm:text-[20px] font-extrabold text-[#0B1020] leading-snug tracking-tight"
                 >
                   Stay updated with{" "}
                   <span className="text-[#FFB800]">event alerts</span> & registrations
                 </h2>
 
                 {/* Subtext */}
-                <p className="text-[14px] sm:text-[15px] text-gray-500 leading-relaxed max-w-[340px] mx-auto">
+                <p className="text-[12px] sm:text-[13px] text-gray-500 leading-relaxed max-w-[320px] mx-auto">
                   Get notified instantly about event updates, registrations, and important announcements.
                 </p>
               </div>
@@ -220,14 +220,14 @@ export default function NotificationPermissionModal({
               )}
 
               {/* Buttons Area */}
-              <div className="mt-6 flex flex-col gap-3">
+              <div className="mt-4 flex flex-col gap-2.5">
                 {/* Primary Enable CTA */}
                 <motion.button
                   onClick={handleEnableClick}
                   disabled={isLoading}
                   whileHover={{ scale: 1.01 }}
                   whileTap={{ scale: 0.98 }}
-                  className="w-full h-[52px] flex items-center justify-center font-bold text-[15px] sm:text-[16px] rounded-[16px] bg-[#FFB800] hover:bg-[#E6A400] text-[#0B1020] focus:outline-none focus:ring-2 focus:ring-[#FFB800] shadow-md shadow-amber-950/5 transition-all select-none"
+                  className="w-full h-[44px] flex items-center justify-center font-bold text-[13px] sm:text-[14px] rounded-[12px] bg-[#FFB800] hover:bg-[#E6A400] text-[#0B1020] focus:outline-none focus:ring-2 focus:ring-[#FFB800] shadow-md shadow-amber-950/5 transition-all select-none"
                 >
                   {isLoading ? (
                     <div className="flex items-center gap-2">
@@ -261,7 +261,7 @@ export default function NotificationPermissionModal({
                 <button
                   onClick={onClose}
                   disabled={isLoading}
-                  className="w-full h-[52px] flex items-center justify-center font-bold text-[15px] sm:text-[16px] rounded-[16px] border border-[#FFB800] hover:bg-[#FFB800]/5 text-[#0B1020] bg-transparent focus:outline-none focus:ring-2 focus:ring-[#FFB800] transition-colors select-none"
+                  className="w-full h-[44px] flex items-center justify-center font-bold text-[13px] sm:text-[14px] rounded-[12px] border border-[#FFB800] hover:bg-[#FFB800]/5 text-[#0B1020] bg-transparent focus:outline-none focus:ring-2 focus:ring-[#FFB800] transition-colors select-none"
                 >
                   Maybe Later
                 </button>

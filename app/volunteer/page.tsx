@@ -107,13 +107,13 @@ export default function VolunteerDashboardPage() {
   /* Guard: Christ University members only */
   if (!isLoading && userData && !userData.register_number) {
     return (
-      <div className="pwa-page-center bg-[var(--color-bg)] px-6">
+      <div className="pwa-page-center bg-[var(--color-bg)] px-4">
         <div className="text-center max-w-[300px]">
-          <div className="mx-auto mb-4 h-16 w-16 rounded-2xl bg-[var(--color-primary-light)] flex items-center justify-center">
-            <ShieldCheckIcon size={28} className="text-[var(--color-primary)]" />
+          <div className="mx-auto mb-3 h-14 w-14 rounded-xl bg-[var(--color-primary-light)] flex items-center justify-center">
+            <ShieldCheckIcon size={24} className="text-[var(--color-primary)]" />
           </div>
-          <h1 className="text-lg font-bold text-[var(--color-text)]">Members only</h1>
-          <p className="mt-2 text-sm text-[var(--color-text-muted)] leading-relaxed">
+          <h1 className="text-[16px] font-bold text-[var(--color-text)]">Members only</h1>
+          <p className="mt-1.5 text-[12px] text-[var(--color-text-muted)] leading-relaxed">
             Only verified university members with a registration ID can volunteer at events.
           </p>
           <button
@@ -138,48 +138,48 @@ export default function VolunteerDashboardPage() {
     <div className="pwa-page bg-[var(--color-bg)]">
 
       {/* ── Header ── */}
-      <header className="sticky top-0 z-20 bg-white border-b border-[var(--color-border)]">
-        <div className="flex items-center gap-3 px-4 h-14">
-          <button
-            onClick={() => router.back()}
-            className="h-9 w-9 rounded-full flex items-center justify-center -ml-1 text-[var(--color-text)] active:bg-slate-100 transition-colors"
-            aria-label="Go back"
-          >
-            <ArrowLeftIcon size={20} strokeWidth={2.2} />
-          </button>
-          
-          {/* Avatar */}
-          <div className="h-9 w-9 rounded-full bg-[var(--color-primary-light)] flex items-center justify-center shrink-0 overflow-hidden">
-            {userData?.avatar_url ? (
-              <img src={userData.avatar_url} alt="avatar" className="h-full w-full object-cover" />
-            ) : (
-              <span className="text-[13px] font-bold text-[var(--color-primary)]">
-                {getInitials(userData?.name)}
-              </span>
-            )}
-          </div>
+        <header className="sticky top-0 z-20 bg-white border-b border-[var(--color-border)]">
+          <div className="flex items-center gap-2.5 px-3 h-12">
+            <button
+              onClick={() => router.back()}
+              className="h-8 w-8 rounded-full flex items-center justify-center -ml-1 text-[var(--color-text)] active:bg-slate-100 transition-colors"
+              aria-label="Go back"
+            >
+              <ArrowLeftIcon size={18} strokeWidth={2.2} />
+            </button>
+            
+            {/* Avatar */}
+            <div className="h-8 w-8 rounded-full bg-[var(--color-primary-light)] flex items-center justify-center shrink-0 overflow-hidden">
+              {userData?.avatar_url ? (
+                <img src={userData.avatar_url} alt="avatar" className="h-full w-full object-cover" />
+              ) : (
+                <span className="text-[12px] font-bold text-[var(--color-primary)]">
+                  {getInitials(userData?.name)}
+                </span>
+              )}
+            </div>
 
           {/* Name */}
-          <div className="flex-1 min-w-0">
-            <p className="text-[14px] font-bold text-[var(--color-text)] truncate leading-tight">
-              {userData?.name || "Volunteer"}
-            </p>
+            <div className="flex-1 min-w-0">
+              <p className="text-[13px] font-bold text-[var(--color-text)] truncate leading-tight">
+                {userData?.name || "Volunteer"}
+              </p>
+            </div>
           </div>
-        </div>
-      </header>
+        </header>
 
       {/* ── Content ── */}
-      <div className="px-4 pt-5 pb-6 max-w-[480px] mx-auto space-y-5">
+        <div className="px-4 pt-4 pb-5 max-w-[480px] mx-auto space-y-4">
 
         {/* Summary line */}
         {hasActiveEvents && (
           <div className="flex items-center justify-between">
-            <h2 className="text-[15px] font-bold text-[var(--color-text)]">
+            <h2 className="text-[14px] font-bold text-[var(--color-text)]">
               {events.length === 1
                 ? "1 event assigned"
                 : `${events.length} events assigned`}
             </h2>
-            <span className="text-[11px] font-semibold text-[var(--color-primary)] bg-[var(--color-primary-light)] px-2.5 py-1 rounded-full">
+            <span className="text-[10px] font-semibold text-[var(--color-primary)] bg-[var(--color-primary-light)] px-2 py-0.5 rounded-full">
               Active
             </span>
           </div>
@@ -187,13 +187,13 @@ export default function VolunteerDashboardPage() {
 
         {/* ── Denied / error ── */}
         {showDenied && (
-          <div className="card bg-white border border-[var(--color-border)] p-6 text-center">
-            <AlertTriangleIcon size={36} className="mx-auto text-[var(--color-danger)] mb-3" />
-            <h2 className="text-[15px] font-bold text-[var(--color-text)]">No access</h2>
-            <p className="mt-1.5 text-sm text-[var(--color-text-muted)] leading-relaxed">
+          <div className="card bg-white border border-[var(--color-border)] p-4 text-center">
+            <AlertTriangleIcon size={30} className="mx-auto text-[var(--color-danger)] mb-2.5" />
+            <h2 className="text-[14px] font-bold text-[var(--color-text)]">No access</h2>
+            <p className="mt-1.5 text-[12px] text-[var(--color-text-muted)] leading-relaxed">
               {error || "You don't have active volunteer assignments."}
             </p>
-            <button onClick={() => router.replace("/")} className="btn btn-ghost w-full mt-5 text-sm">
+            <button onClick={() => router.replace("/")} className="btn btn-ghost w-full mt-4 text-[12px]">
               Go home
             </button>
           </div>
@@ -201,12 +201,12 @@ export default function VolunteerDashboardPage() {
 
         {/* ── No active events ── */}
         {showNoActive && (
-          <div className="card bg-white border border-[var(--color-border)] p-6 text-center">
-            <div className="h-14 w-14 bg-[var(--color-primary-light)] rounded-2xl flex items-center justify-center mx-auto mb-3">
-              <CalendarDaysIcon size={26} className="text-[var(--color-primary)]" />
+          <div className="card bg-white border border-[var(--color-border)] p-4 text-center">
+            <div className="h-12 w-12 bg-[var(--color-primary-light)] rounded-xl flex items-center justify-center mx-auto mb-2.5">
+              <CalendarDaysIcon size={22} className="text-[var(--color-primary)]" />
             </div>
-            <h2 className="text-[15px] font-bold text-[var(--color-text)]">No events today</h2>
-            <p className="mt-1.5 text-sm text-[var(--color-text-muted)] leading-relaxed">
+            <h2 className="text-[14px] font-bold text-[var(--color-text)]">No events today</h2>
+            <p className="mt-1.5 text-[12px] text-[var(--color-text-muted)] leading-relaxed">
               You don't have any events assigned right now.
             </p>
             <div className="mt-5 flex flex-col gap-2">

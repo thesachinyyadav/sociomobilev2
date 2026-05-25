@@ -838,13 +838,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       {showOutsiderWarning && outsiderVisitorId && authState.userData && (
         <div className="modal-backdrop">
           <div className="modal-card overflow-hidden">
-            <div className="bg-[var(--color-primary-dark)] px-5 py-4">
+            <div className="bg-[var(--color-primary-dark)] px-4 py-3.5">
               <h3 className="text-lg font-bold text-white">Welcome, Visitor</h3>
               <p className="text-blue-100 text-xs mt-0.5">External visitor access</p>
             </div>
 
-            <div className="p-5 space-y-3">
-              <div className="flex items-center justify-between rounded-xl bg-[var(--color-primary-dark)] px-4 py-3">
+            <div className="p-4 space-y-3">
+              <div className="flex items-center justify-between rounded-xl bg-[var(--color-primary-dark)] px-3.5 py-2.5">
                 <span className="text-xs text-blue-100">Visitor ID</span>
                 <span className="text-base font-bold text-[var(--color-accent)] tracking-wider">
                   {outsiderVisitorId}

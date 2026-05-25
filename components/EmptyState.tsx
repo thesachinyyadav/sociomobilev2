@@ -10,13 +10,13 @@ export default function EmptyState({
   subtitle?: string;
 }) {
   return (
-    <div className="flex flex-col items-center justify-center py-20 px-6 text-center animate-fade-up">
-      <div className="w-16 h-16 rounded-full bg-[var(--color-primary-light)] flex items-center justify-center mb-4">
+    <div className="flex flex-col items-center justify-center py-8 px-4 text-center animate-fade-up">
+      <div className="w-12 h-12 rounded-full bg-[var(--color-primary-light)] flex items-center justify-center mb-2.5">
         {icon}
       </div>
-      <p className="text-[15px] font-bold">{title}</p>
+      <p className="text-[13px] font-bold">{title}</p>
       {subtitle && (
-        <p className="text-[13px] text-[var(--color-text-muted)] mt-1 max-w-[260px]">
+        <p className="text-[12px] text-[var(--color-text-muted)] mt-0.5 max-w-[240px]">
           {subtitle}
         </p>
       )}

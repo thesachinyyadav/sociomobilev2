@@ -140,23 +140,23 @@ export default function CampusSelector({ email, onComplete, onDismiss }: CampusS
   return (
     <div className="modal-backdrop">
       <div className="modal-card">
-        <div className="px-5 pt-5 pb-2 text-center border-b border-[var(--color-border)]">
-          <div className="w-14 h-14 mx-auto mb-3 rounded-full bg-[var(--color-primary-light)] flex items-center justify-center">
-            <MapPinIcon size={24} className="text-[var(--color-primary)]" />
+        <div className="px-4 pt-4 pb-2 text-center border-b border-[var(--color-border)]">
+          <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-[var(--color-primary-light)] flex items-center justify-center">
+            <MapPinIcon size={22} className="text-[var(--color-primary)]" />
           </div>
-          <h2 className="text-lg font-extrabold">
+          <h2 className="text-[16px] font-extrabold">
             {state === "finalConfirm" ? "Final Confirmation" : "Set Your Campus"}
           </h2>
         </div>
 
         <div className="px-5 pb-5">
           {state === "detecting" && (
-            <div className="flex flex-col items-center py-6">
-              <MicroLoader size={36} tone="primary" className="mb-3" />
-              <p className="text-[13px] text-[var(--color-text-muted)] text-center font-medium">
+            <div className="flex flex-col items-center py-4">
+              <MicroLoader size={32} tone="primary" className="mb-3" />
+              <p className="text-[12px] text-[var(--color-text-muted)] text-center font-medium">
                 Detecting your location...
               </p>
-              <p className="text-[11px] text-[var(--color-text-light)] mt-1 text-center">
+              <p className="text-[10px] text-[var(--color-text-light)] mt-1 text-center">
                 Please allow location access when prompted
               </p>
             </div>
@@ -165,11 +165,11 @@ export default function CampusSelector({ email, onComplete, onDismiss }: CampusS
           {state === "confirm" && detectedCampus && (
             <>
               <div className="text-center mb-4 mt-4">
-                <p className="text-lg font-bold text-[var(--color-primary-dark)]">{detectedCampus}</p>
-                <p className="text-xs font-semibold text-[var(--color-primary)] mt-0.5">{detectedDistance} km away</p>
+                <p className="text-[16px] font-bold text-[var(--color-primary-dark)]">{detectedCampus}</p>
+                <p className="text-[10px] font-semibold text-[var(--color-primary)] mt-0.5">{detectedDistance} km away</p>
               </div>
 
-              <p className="text-sm text-[var(--color-text-muted)] text-center mb-4">
+              <p className="text-[12px] text-[var(--color-text-muted)] text-center mb-4">
                 This is <strong>permanent</strong> and cannot be changed. Wrong campus? Dismiss and retry on your campus network.
               </p>
 
@@ -191,9 +191,9 @@ export default function CampusSelector({ email, onComplete, onDismiss }: CampusS
           {state === "finalConfirm" && detectedCampus && (
             <>
               <div className="text-center mb-4 mt-4">
-                <p className="text-base font-bold text-[var(--color-primary-dark)] mb-1">Your campus will be set to</p>
-                <p className="text-xl font-extrabold text-[var(--color-primary)] mb-2">{detectedCampus.toUpperCase()}</p>
-                <p className="text-sm font-semibold text-red-600">This is permanent. Are you sure?</p>
+                <p className="text-[13px] font-bold text-[var(--color-primary-dark)] mb-1">Your campus will be set to</p>
+                <p className="text-[18px] font-extrabold text-[var(--color-primary)] mb-2">{detectedCampus.toUpperCase()}</p>
+                <p className="text-[12px] font-semibold text-red-600">This is permanent. Are you sure?</p>
               </div>
 
               <div className="mb-3">
@@ -260,21 +260,21 @@ export default function CampusSelector({ email, onComplete, onDismiss }: CampusS
           )}
 
           {state === "saving" && (
-            <div className="flex flex-col items-center py-6">
-              <MicroLoader size={36} tone="primary" className="mb-3" />
-              <p className="text-[14px] font-semibold text-center">Saving your campus...</p>
+            <div className="flex flex-col items-center py-4">
+              <MicroLoader size={32} tone="primary" className="mb-3" />
+              <p className="text-[13px] font-semibold text-center">Saving your campus...</p>
             </div>
           )}
 
           {state === "success" && detectedCampus && (
-            <div className="flex flex-col items-center py-6">
-              <div className="w-14 h-14 rounded-full bg-emerald-100 flex items-center justify-center mb-3">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <div className="flex flex-col items-center py-4">
+              <div className="w-12 h-12 rounded-full bg-emerald-100 flex items-center justify-center mb-3">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
                   <path d="M5 13l4 4L19 7" stroke="#059669" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
               </div>
-              <p className="text-[15px] font-bold text-center">{detectedCampus}</p>
-              <p className="text-[12px] text-[var(--color-text-muted)] mt-1">Saved successfully</p>
+              <p className="text-[13px] font-bold text-center">{detectedCampus}</p>
+              <p className="text-[11px] text-[var(--color-text-muted)] mt-1">Saved successfully</p>
             </div>
           )}
 

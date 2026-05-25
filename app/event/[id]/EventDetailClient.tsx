@@ -188,37 +188,37 @@ export default function EventDetailClient({ eventId }: { eventId: string }) {
 
   if (loading || ctxLoading) {
     return (
-      <div className="pwa-page bg-[#F5F7FA] overflow-y-auto !pb-[calc(var(--bottom-nav)+var(--safe-bottom)+140px)]">
+      <div className="pwa-page bg-[#F5F7FA] overflow-y-auto !pb-[calc(var(--bottom-nav)+var(--safe-bottom)+110px)]">
         {/* Hero Skeleton */}
-        <div className="relative w-full overflow-hidden skeleton" style={{ minHeight: "75vw", maxHeight: 460 }}>
-          <div className="absolute bottom-0 left-0 right-0 px-5 pb-16 pt-24 z-10">
+        <div className="relative w-full overflow-hidden skeleton" style={{ minHeight: "75vw", maxHeight: 420 }}>
+          <div className="absolute bottom-0 left-0 right-0 px-4 pb-12 pt-20 z-10">
             <div className="w-24 h-3 bg-white/20 rounded mb-3" />
             <div className="w-3/4 h-8 bg-white/30 rounded" />
           </div>
         </div>
 
         {/* Meta card skeleton */}
-        <div className="mx-4 -mt-10 relative z-20 mb-6 bg-white rounded-3xl overflow-hidden shadow-[0_20px_50px_rgba(1,31,123,0.12)]">
+        <div className="mx-4 -mt-8 relative z-20 mb-4 bg-white rounded-2xl overflow-hidden shadow-[0_20px_50px_rgba(1,31,123,0.12)]">
           <div className="h-[4px] w-full bg-gradient-to-r from-[#011F7B] via-[#4F6EF7] to-[#FFBA09] opacity-90" />
-          <div className="p-5 grid grid-cols-1 gap-4">
-            <div className="flex items-center gap-4">
-              <div className="w-10 h-10 rounded-2xl skeleton shrink-0" />
+          <div className="p-4 grid grid-cols-1 gap-3">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl skeleton shrink-0" />
               <div className="flex-1 space-y-2">
                 <div className="w-12 h-2 skeleton rounded" />
                 <div className="w-32 h-4 skeleton rounded" />
               </div>
             </div>
             <div className="h-px bg-gray-100 w-full" />
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-3">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl skeleton shrink-0" />
+                <div className="w-8 h-8 rounded-xl skeleton shrink-0" />
                 <div className="flex-1 space-y-2">
                   <div className="w-10 h-2 skeleton rounded" />
                   <div className="w-20 h-4 skeleton rounded" />
                 </div>
               </div>
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl skeleton shrink-0" />
+                <div className="w-8 h-8 rounded-xl skeleton shrink-0" />
                 <div className="flex-1 space-y-2">
                   <div className="w-10 h-2 skeleton rounded" />
                   <div className="w-24 h-4 skeleton rounded" />
@@ -246,71 +246,71 @@ export default function EventDetailClient({ eventId }: { eventId: string }) {
       </div>
     );
   }
-  if (error || !event) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3 px-6 text-center">
-        <AlertCircle size={40} className="text-red-400" />
-        <p className="font-bold text-lg">{error || "Event not found"}</p>
-        <Link href="/discover"><Button variant="primary" size="sm">Back to discover</Button></Link>
-      </div>
-    );
-  }
+    if (error || !event) {
+      return (
+        <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3 px-4 text-center">
+          <AlertCircle size={32} className="text-red-400" />
+          <p className="font-bold text-[16px]">{error || "Event not found"}</p>
+          <Link href="/discover"><Button variant="primary" size="sm">Back to discover</Button></Link>
+        </div>
+      );
+    }
 
-  if (showSuccess) {
-    return (
-      <div className="flex items-center justify-center min-h-screen px-6">
-        <div className="card p-8 text-center max-w-sm w-full">
-          <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-4">
-            <CheckCircle2 size={32} className="text-emerald-600" />
-          </div>
-          <h2 className="text-xl font-black text-[var(--color-text)] mb-1">You&apos;re registered!</h2>
-          <p className="text-sm text-[var(--color-text-muted)] mb-6">Successfully registered for {event.title}</p>
-          <div className="flex flex-col gap-2">
-            <Link href="/discover" className="block w-full"><Button variant="primary" size="sm" fullWidth>Back to Discover</Button></Link>
-            {event.whatsapp_invite_link && (
-              <a href={event.whatsapp_invite_link} target="_blank" rel="noopener noreferrer" className="block w-full">
-                <Button variant="ghost" size="sm" fullWidth className="text-green-600 border border-green-300" leftIcon={<MessageCircle size={16} />}>Join WhatsApp</Button>
-              </a>
-            )}
+    if (showSuccess) {
+      return (
+        <div className="flex items-center justify-center min-h-screen px-4">
+          <div className="card p-5 text-center max-w-sm w-full">
+            <div className="w-14 h-14 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-3">
+              <CheckCircle2 size={28} className="text-emerald-600" />
+            </div>
+            <h2 className="text-[16px] font-black text-[var(--color-text)] mb-1">You&apos;re registered!</h2>
+            <p className="text-[13px] text-[var(--color-text-muted)] mb-4">Successfully registered for {event.title}</p>
+            <div className="flex flex-col gap-2">
+              <Link href="/discover" className="block w-full"><Button variant="primary" size="sm" fullWidth>Back to Discover</Button></Link>
+              {event.whatsapp_invite_link && (
+                <a href={event.whatsapp_invite_link} target="_blank" rel="noopener noreferrer" className="block w-full">
+                  <Button variant="ghost" size="sm" fullWidth className="text-green-600 border border-green-300" leftIcon={<MessageCircle size={16} />}>Join WhatsApp</Button>
+                </a>
+              )}
+            </div>
           </div>
         </div>
-      </div>
-    );
-  }
+      );
+    }
 
   return (
-    <div className="pwa-page bg-[#F5F7FA] overflow-y-auto !pb-[calc(var(--bottom-nav)+var(--safe-bottom)+140px)]">
+    <div className="pwa-page bg-[#F5F7FA] overflow-y-auto !pb-[calc(var(--bottom-nav)+var(--safe-bottom)+110px)]">
 
       {/* ── Full-bleed hero ── */}
-      <div className="relative w-full overflow-hidden" style={{ minHeight: "75vw", maxHeight: 460 }}>
+      <div className="relative w-full overflow-hidden" style={{ minHeight: "75vw", maxHeight: 420 }}>
         <Image
           src={event.banner_url || event.event_image_url || "https://placehold.co/800x600/011F7B/ffffff?text=Event"}
           alt={event.title} fill className="object-cover" priority sizes="100vw"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-black/10" />
         {/* Interactive Top Row (Tags + Share) */}
-        <div className="absolute top-[calc(var(--safe-top)+var(--nav-height))] left-0 right-0 px-4 flex items-center justify-between z-10">
+        <div className="absolute top-[calc(var(--safe-top)+var(--nav-height))] left-0 right-0 px-3 flex items-center justify-between z-10">
           <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
-            <div className={`shrink-0 px-3 py-1.5 rounded-full flex items-center gap-1.5 transition-all ${
+            <div className={`shrink-0 px-2.5 py-1 rounded-full flex items-center gap-1.5 transition-all ${
               isFree 
                 ? "bg-emerald-500 text-white" 
                 : "bg-[#FFBA09] text-[#011F7B] shadow-md"
             }`}>
               <Ticket size={12} className={isFree ? "text-white opacity-90" : "text-[#011F7B] opacity-80"} />
-              <span className="text-[10px] font-black uppercase tracking-wider whitespace-nowrap">
+              <span className="text-[9px] font-black uppercase tracking-wider whitespace-nowrap">
                 {isFree ? "Free Entry" : `₹${event.registration_fee}`}
               </span>
             </div>
             {event.allow_outsiders && (
-              <div className="shrink-0 px-3 py-1.5 rounded-full bg-white/95 text-[var(--color-primary)] shadow-md flex items-center gap-1.5 border border-white/20">
+              <div className="shrink-0 px-2.5 py-1 rounded-full bg-white/95 text-[var(--color-primary)] shadow-md flex items-center gap-1.5 border border-white/20">
                 <Globe size={12} className="opacity-80" />
-                <span className="text-[10px] font-black uppercase tracking-wider whitespace-nowrap">Open to all</span>
+                <span className="text-[9px] font-black uppercase tracking-wider whitespace-nowrap">Open to all</span>
               </div>
             )}
             {event.claims_applicable && (
-              <div className="shrink-0 px-3 py-1.5 rounded-full bg-[var(--color-primary)] text-white shadow-md flex items-center gap-1.5 border border-white/20">
+              <div className="shrink-0 px-2.5 py-1 rounded-full bg-[var(--color-primary)] text-white shadow-md flex items-center gap-1.5 border border-white/20">
                 <Award size={12} className="opacity-90 text-[var(--color-accent)]" />
-                <span className="text-[10px] font-black uppercase tracking-wider whitespace-nowrap">Claims Info</span>
+                <span className="text-[9px] font-black uppercase tracking-wider whitespace-nowrap">Claims Info</span>
               </div>
             )}
           </div>
@@ -325,34 +325,34 @@ export default function EventDetailClient({ eventId }: { eventId: string }) {
                 url: `/event/${event.event_id}`,
               });
             }}
-            className="shrink-0 w-10 h-10 rounded-full bg-black/30 backdrop-blur-md border border-white/20 flex items-center justify-center text-white active:scale-90 transition-transform shadow-lg"
+            className="shrink-0 w-9 h-9 rounded-full bg-black/30 backdrop-blur-md border border-white/20 flex items-center justify-center text-white active:scale-90 transition-transform shadow-lg"
             aria-label="Share Event"
           >
-            <ShareIcon size={18} />
+            <ShareIcon size={16} />
           </button>
         </div>
         {/* title area with extra bottom padding to prevent overlap */}
-        <div className="absolute bottom-0 left-0 right-0 px-5 pb-16 pt-24 z-10">
+        <div className="absolute bottom-0 left-0 right-0 px-4 pb-12 pt-20 z-10">
           {event.organizing_dept && (
-            <p className="text-[11px] font-bold text-[var(--color-accent)] uppercase tracking-widest mb-1.5 drop-shadow-md">{event.organizing_dept}</p>
+            <p className="text-[10px] font-bold text-[var(--color-accent)] uppercase tracking-widest mb-1 drop-shadow-md">{event.organizing_dept}</p>
           )}
-          <h1 className="text-[28px] font-black text-white leading-tight drop-shadow-xl">{event.title}</h1>
+          <h1 className="text-[22px] font-black text-white leading-tight drop-shadow-xl">{event.title}</h1>
         </div>
       </div>
 
       {/* ── Meta card floats over hero ── */}
-      <div className="mx-4 -mt-10 relative z-20 mb-6 bg-white rounded-3xl overflow-hidden shadow-[0_20px_50px_rgba(1,31,123,0.12)] border border-white">
+      <div className="mx-4 -mt-8 relative z-20 mb-4 bg-white rounded-2xl overflow-hidden shadow-[0_20px_50px_rgba(1,31,123,0.12)] border border-white">
         {/* rainbow accent bar */}
         <div className="h-[4px] w-full bg-gradient-to-r from-[#011F7B] via-[#4F6EF7] to-[#FFBA09] opacity-90" />
-        <div className="p-5 grid grid-cols-1 gap-4">
+        <div className="p-4 grid grid-cols-1 gap-3">
           {/* Date */}
-          <div className="flex items-center gap-4">
-            <div className="w-10 h-10 rounded-2xl bg-blue-50 flex items-center justify-center shrink-0 shadow-inner">
-              <CalendarDays size={18} className="text-[var(--color-primary)]" />
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center shrink-0 shadow-inner">
+              <CalendarDays size={16} className="text-[var(--color-primary)]" />
             </div>
             <div className="min-w-0">
               <p className="text-[10px] font-black text-[var(--color-text-muted)] uppercase tracking-[0.1em]">Date</p>
-              <p className="text-[15px] font-black text-[var(--color-text)] mt-0.5">
+              <p className="text-[13px] font-black text-[var(--color-text)] mt-0.5">
                 {formatDateUTC(event.event_date)}{event.end_date && event.end_date !== event.event_date && <> – {formatDateUTC(event.end_date)}</>}
               </p>
             </div>
@@ -556,14 +556,14 @@ export default function EventDetailClient({ eventId }: { eventId: string }) {
       </div>
 
       {/* ── Sticky CTA ── */}
-      <div className="fixed bottom-[calc(var(--bottom-nav)+var(--safe-bottom)+10px)] left-1/2 -translate-x-1/2 w-[min(94vw,440px)] z-40">
-        <div className="bg-white/95 backdrop-blur-md shadow-[0_-1px_0_rgba(0,0,0,0.05),0_10px_40px_rgba(1,31,123,0.22)] rounded-[24px] p-3.5 border border-white/50">
+      <div className="fixed bottom-[calc(var(--bottom-nav)+var(--safe-bottom)+8px)] left-1/2 -translate-x-1/2 w-[min(92vw,420px)] z-40">
+        <div className="bg-white/95 backdrop-blur-md shadow-[0_-1px_0_rgba(0,0,0,0.05),0_10px_40px_rgba(1,31,123,0.22)] rounded-[18px] p-3 border border-white/50">
           <Button
             variant={isRegistered || isClosed ? "ghost" : "accent"}
             size="lg"
             fullWidth
             disabled={isRegistered || isClosed || isRegistering || authLoading}
-            className={`h-14 !rounded-2xl text-[15px] font-black tracking-tight transition-all active:scale-95 ${
+            className={`h-11 !rounded-xl text-[13px] font-black tracking-tight transition-all active:scale-95 ${
               isRegistered ? "!bg-emerald-50 !text-emerald-700 !border-emerald-200" :
               isClosed ? "!bg-gray-100 !text-gray-400 !border-gray-200" : ""
             }`}
@@ -573,7 +573,7 @@ export default function EventDetailClient({ eventId }: { eventId: string }) {
             {isRegistering ? "Processing..." : isRegistered ? "Successfully Registered" : isClosed ? "Registration Closed" : `Register ${event.participants_per_team > 1 ? "Team" : "Now"} — ${isFree ? "FREE" : `₹${event.registration_fee}`}`}
           </Button>
           {event.participants_per_team > 1 && !isRegistered && !isClosed && (
-            <p className="text-center text-[10px] font-bold text-[var(--color-text-muted)] uppercase tracking-wider mt-2">Registration is per team</p>
+            <p className="text-center text-[9px] font-bold text-[var(--color-text-muted)] uppercase tracking-wider mt-1.5">Registration is per team</p>
           )}
         </div>
       </div>

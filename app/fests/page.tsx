@@ -159,13 +159,13 @@ export default function FestsPage() {
   }, [featuredFest]);
 
   return (
-    <div className="pwa-page pt-2 pb-8 bg-[#f9fafb] max-w-[420px] mx-auto">
+    <div className="pwa-page pt-2 pb-6 bg-[#f9fafb] max-w-[420px] mx-auto">
       {/* Search Bar Row — Only visible when searching */}
       {isSearchOpen && (
-        <div className="px-5 h-[48px] flex flex-col justify-center animate-fade-in">
+        <div className="px-4 h-[44px] flex flex-col justify-center animate-fade-in">
           <div className="flex-1 flex items-center gap-2">
             <div className="relative flex-1 min-w-0">
-              <SearchIcon size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] pointer-events-none z-[1]" />
+              <SearchIcon size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] pointer-events-none z-[1]" />
               <input
                 ref={searchInputRef}
                 type="text"
@@ -175,7 +175,7 @@ export default function FestsPage() {
                   setSearch(e.target.value);
                   setCurrentPage(1);
                 }}
-                className="w-full h-[38px] pl-9 pr-8 text-[13px] bg-[#e8e9ec] border-none rounded-xl outline-none transition-all placeholder:text-[var(--color-text-muted)] font-medium"
+                className="w-full h-[34px] pl-9 pr-8 text-[12px] bg-[#e8e9ec] border-none rounded-lg outline-none transition-all placeholder:text-[var(--color-text-muted)] font-medium"
               />
               {search && (
                 <button 
@@ -195,7 +195,7 @@ export default function FestsPage() {
                 setSearch("");
                 setCurrentPage(1);
               }}
-              className="text-[12px] font-bold text-[var(--color-primary-dark)] shrink-0 px-1"
+              className="text-[11px] font-bold text-[var(--color-primary-dark)] shrink-0 px-1"
             >
               Cancel
             </button>
@@ -204,15 +204,15 @@ export default function FestsPage() {
       )}
 
       {/* Filter chips row */}
-      <div className="flex overflow-x-auto mb-1 gap-2.5 items-center no-scrollbar snap-x snap-mandatory h-[48px]">
+      <div className="flex overflow-x-auto mb-1 gap-2 items-center no-scrollbar snap-x snap-mandatory h-[40px]">
         <div className="shrink-0 w-4 snap-start" aria-hidden />
         {!isSearchOpen && (
           <button
             onClick={() => setIsSearchOpen(true)}
-            className="shrink-0 p-2 -ml-2 mr-1 flex items-center justify-center text-[var(--color-text)] transition-transform active:scale-95 snap-center"
+            className="shrink-0 p-1.5 -ml-2 mr-1 flex items-center justify-center text-[var(--color-text)] transition-transform active:scale-95 snap-center"
             aria-label="Open search"
           >
-            <SearchIcon size={20} strokeWidth={2.5} />
+            <SearchIcon size={18} strokeWidth={2.5} />
           </button>
         )}
         
@@ -226,7 +226,7 @@ export default function FestsPage() {
                   setActiveCategory(filter);
                   setCurrentPage(1);
                 }}
-                className={`px-4 py-2 rounded-full text-[13px] font-bold transition-all whitespace-nowrap ${
+                className={`px-3 py-1.5 rounded-full text-[12px] font-bold transition-all whitespace-nowrap ${
                   active
                     ? "bg-[var(--color-accent)] text-[var(--color-primary-dark)] shadow-sm"
                     : "bg-[#f3f4f6] text-[var(--color-text-muted)] hover:bg-[#e5e7eb]"
@@ -242,12 +242,12 @@ export default function FestsPage() {
 
 
       {isInitialLoading ? (
-        <div className="px-5 space-y-6">
-          <Skeleton className="h-[400px] w-full rounded-[1.25rem]" />
-          <Skeleton className="h-[220px] w-full rounded-[1.25rem]" count={2} />
+        <div className="px-4 space-y-4">
+          <Skeleton className="h-[320px] w-full rounded-[1.125rem]" />
+          <Skeleton className="h-[190px] w-full rounded-[1.125rem]" count={2} />
         </div>
       ) : filtered.length === 0 ? (
-        <div className="px-5">
+        <div className="px-4">
           <EmptyState
             icon={<SparklesIcon size={28} className="text-[var(--color-primary)]" />}
             title="No fests found"
@@ -259,13 +259,13 @@ export default function FestsPage() {
           {/* Featured Fest */}
           {featuredFest && (
             <SectionContainer title="Featured Fest">
-              <p className="text-[#434653] font-medium mb-3 -mt-2">
+              <p className="text-[#434653] font-medium mb-2 -mt-1 text-[12px]">
                 Don't miss out on the biggest events this season.
               </p>
 
               <Link
                 href={`/fest/${featuredFest.slug || featuredFest.fest_id}`}
-                className="card-hero relative block w-full h-[400px] group cursor-pointer border border-white/40"
+                className="card-hero relative block w-full h-[320px] group cursor-pointer border border-white/40"
               >
                 <Image
                   src={
@@ -282,20 +282,20 @@ export default function FestsPage() {
                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent"></div>
                 
                 {((featuredFest as any).registrations ?? (featuredFest as any).total_participants ?? (featuredFest as any).attendees ?? 0) >= trendingThreshold && (
-                  <div className="absolute top-4 left-4 bg-black/50 backdrop-blur-md rounded-full px-2 py-1 flex items-center gap-1 z-20 shadow-sm border border-white/10">
-                    <TrendingUpIcon className="w-3.5 h-3.5 text-orange-400 animate-badge-pulse" />
-                    <span className="text-white text-[10px] font-medium tracking-wide">Trending</span>
+                  <div className="absolute top-3 left-3 bg-black/50 backdrop-blur-md rounded-full px-2 py-0.5 flex items-center gap-1 z-20 shadow-sm border border-white/10">
+                    <TrendingUpIcon className="w-3 h-3 text-orange-400 animate-badge-pulse" />
+                    <span className="text-white text-[9px] font-medium tracking-wide">Trending</span>
                   </div>
                 )}
 
-                <div className="absolute inset-0 p-6 flex flex-col justify-between z-10">
+                <div className="absolute inset-0 p-4 flex flex-col justify-between z-10">
                   <div className="flex justify-between items-start">
-                    <span className="bg-[#ffe08b] text-[#241a00] px-3 py-1 rounded-full text-xs font-bold uppercase tracking-widest shadow-sm mt-8">
+                    <span className="bg-[#ffe08b] text-[#241a00] px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-widest shadow-sm mt-6">
                       Featured
                     </span>
                     <div className="flex gap-2">
                       <button 
-                        className="w-10 h-10 rounded-full bg-black/20 backdrop-blur-md flex items-center justify-center text-white hover:bg-black/40 transition-all active:scale-90"
+                        className="w-8 h-8 rounded-full bg-black/20 backdrop-blur-md flex items-center justify-center text-white hover:bg-black/40 transition-all active:scale-90"
                         onClick={(e) => {
                           e.preventDefault();
                           e.stopPropagation();
@@ -306,32 +306,32 @@ export default function FestsPage() {
                           });
                         }}
                       >
-                        <ShareIcon size={20} className="text-white" />
+                        <ShareIcon size={16} className="text-white" />
                       </button>
                     </div>
 
                   </div>
                   <div>
-                    <h2 className="text-4xl font-extrabold text-white mb-2 leading-tight tracking-tight drop-shadow-md text-glow">
+                    <h2 className="text-[22px] font-extrabold text-white mb-1.5 leading-tight tracking-tight drop-shadow-md text-glow">
                       {featuredFest.fest_title || featuredFest.name}
                       <br />
-                      <span className="text-2xl font-bold text-[#b2c5ff]">
+                      <span className="text-[16px] font-bold text-[#b2c5ff]">
                         {featuredFest.organizing_dept || featuredFest.department || "Cultural Extravaganza"}
                       </span>
                     </h2>
-                    <div className="flex items-center gap-2 text-[#e2e2e2] mb-6 text-sm font-medium">
-                      <CalendarIcon size={18} />
+                    <div className="flex items-center gap-2 text-[#e2e2e2] mb-4 text-[12px] font-medium">
+                      <CalendarIcon size={15} />
                       <span>
                         {formatDateRange(featuredFest.opening_date || featuredFest.start_date, featuredFest.closing_date || featuredFest.end_date)}
                       </span>
-                      <span className="bg-white/20 backdrop-blur-sm px-2 py-0.5 rounded text-xs ml-2 flex items-center gap-1 font-bold">
-                        <FlameIcon size={14} /> Trending
+                      <span className="bg-white/20 backdrop-blur-sm px-2 py-0.5 rounded text-[10px] ml-2 flex items-center gap-1 font-bold">
+                        <FlameIcon size={12} /> Trending
                       </span>
                     </div>
                     <Button 
                       fullWidth 
                       variant={isDeadlinePassed(featuredFest.closing_date || (featuredFest as any).end_date) ? "ghost" : "primary"}
-                      rightIcon={!isDeadlinePassed(featuredFest.closing_date || (featuredFest as any).end_date) ? <ArrowRightIcon size={20} /> : undefined}
+                      rightIcon={!isDeadlinePassed(featuredFest.closing_date || (featuredFest as any).end_date) ? <ArrowRightIcon size={16} /> : undefined}
                       className={isDeadlinePassed(featuredFest.closing_date || (featuredFest as any).end_date) ? "bg-white/10 text-white/50 cursor-not-allowed" : ""}
                     >
                       {isDeadlinePassed(featuredFest.closing_date || (featuredFest as any).end_date) ? "Closed" : "Explore Fest"}
@@ -346,16 +346,16 @@ export default function FestsPage() {
           {upcomingFests.length > 0 && (
             <SectionContainer title="Upcoming Fests">
               {hasMore && (
-                <div className="flex justify-end mb-4 -mt-8 relative z-10">
+                <div className="flex justify-end mb-3 -mt-6 relative z-10">
                   <button 
                     onClick={() => setCurrentPage(currentPage + 1)}
-                    className="text-[var(--color-primary-dark)] font-bold text-sm hover:underline"
+                    className="text-[var(--color-primary-dark)] font-bold text-[12px] hover:underline"
                   >
                     Load More
                   </button>
                 </div>
               )}
-              <div className="space-y-6 stagger">
+              <div className="space-y-4 stagger">
                 {upcomingFests.map((f, idx) => (
                   <FestCard key={f.fest_id || f.id} fest={f} isTrending={((f as any).registrations ?? (f as any).total_participants ?? (f as any).attendees ?? 0) >= trendingThreshold} />
                 ))}

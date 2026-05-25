@@ -211,16 +211,16 @@ export default function NativeScanner({
       </div>
 
       <div 
-        className={`scan-main-column px-4 relative pb-24 max-w-[480px] mx-auto w-full flex-shrink-0 flex flex-col gap-6 transition-all duration-300 overflow-y-auto ${
-          isScanning ? "-mt-5" : "-mt-24"
+        className={`scan-main-column px-3 relative pb-20 max-w-[480px] mx-auto w-full flex-shrink-0 flex flex-col gap-4 transition-all duration-300 overflow-y-auto ${
+          isScanning ? "-mt-4" : "-mt-20"
         }`}
       >
         {/* ── Scanner Card Wrapper ── */}
-        <div className="w-full relative rounded-[28px]">
+        <div className="w-full relative rounded-[20px]">
           {/* Masking Shadow (Dummy Sibling) */}
           {isScanning && (
             <div 
-              className="absolute inset-0 z-10 rounded-[28px] pointer-events-none"
+              className="absolute inset-0 z-10 rounded-[20px] pointer-events-none"
               style={{
                 boxShadow: '0 0 0 9999px #F8FAFF',
               }}
@@ -229,7 +229,7 @@ export default function NativeScanner({
 
           {/* Inner Card (provides padding and overflow clipping for the viewport's shadow) */}
           <div 
-            className="w-full relative rounded-[28px] overflow-hidden p-5 flex flex-col items-center z-40"
+            className="w-full relative rounded-[20px] overflow-hidden p-4 flex flex-col items-center z-40"
             style={{
               backgroundColor: isScanning ? 'transparent' : '#ffffff',
               boxShadow: '0 12px 40px rgba(1,31,123,0.08)',
@@ -237,7 +237,7 @@ export default function NativeScanner({
           >
             <section
               id="scan-viewport"
-              className={`w-full relative rounded-[20px] overflow-hidden scan-viewport-${viewportStatus} ${borderClass}`}
+              className={`w-full relative rounded-[16px] overflow-hidden scan-viewport-${viewportStatus} ${borderClass}`}
               style={{ 
                 aspectRatio: '1',
                 backgroundColor: isScanning ? 'transparent' : '#ffffff',
@@ -265,14 +265,14 @@ export default function NativeScanner({
 
                   {/* Stop scanning button */}
                   <button
-                    className="absolute top-4 left-4 w-10 h-10 bg-black/40 backdrop-blur-md text-white rounded-full flex items-center justify-center z-50 pointer-events-auto active:scale-95 transition-transform"
+                    className="absolute top-3 left-3 w-9 h-9 bg-black/40 backdrop-blur-md text-white rounded-full flex items-center justify-center z-50 pointer-events-auto active:scale-95 transition-transform"
                     onClick={(e) => {
                       e.stopPropagation();
                       void stopScanner();
                     }}
                     aria-label="Stop scanning"
                   >
-                    <span className="text-[18px]">✕</span>
+                    <span className="text-[16px]">✕</span>
                   </button>
 
                   {/* Flashlight toggle button */}
@@ -300,16 +300,16 @@ export default function NativeScanner({
                   <div className="absolute inset-0" style={{ backgroundImage: 'radial-gradient(#CBD5E1 1px, transparent 1px)', backgroundSize: '16px 16px', opacity: 0.4 }} />
                   
                   {/* Yellow brackets */}
-                  <div className="absolute inset-0 pointer-events-none z-10 p-6">
-                     <div className="absolute top-6 left-6 w-10 h-10 border-t-[3px] border-l-[3px] border-[#FFBA09] rounded-tl-[16px]" />
-                     <div className="absolute top-6 right-6 w-10 h-10 border-t-[3px] border-r-[3px] border-[#FFBA09] rounded-tr-[16px]" />
-                     <div className="absolute bottom-6 left-6 w-10 h-10 border-b-[3px] border-l-[3px] border-[#FFBA09] rounded-bl-[16px]" />
-                     <div className="absolute bottom-6 right-6 w-10 h-10 border-b-[3px] border-r-[3px] border-[#FFBA09] rounded-br-[16px]" />
+                  <div className="absolute inset-0 pointer-events-none z-10 p-4">
+                     <div className="absolute top-4 left-4 w-9 h-9 border-t-[3px] border-l-[3px] border-[#FFBA09] rounded-tl-[14px]" />
+                     <div className="absolute top-4 right-4 w-9 h-9 border-t-[3px] border-r-[3px] border-[#FFBA09] rounded-tr-[14px]" />
+                     <div className="absolute bottom-4 left-4 w-9 h-9 border-b-[3px] border-l-[3px] border-[#FFBA09] rounded-bl-[14px]" />
+                     <div className="absolute bottom-4 right-4 w-9 h-9 border-b-[3px] border-r-[3px] border-[#FFBA09] rounded-br-[14px]" />
                   </div>
 
                   {/* Center elements */}
                   <div className="z-20 flex flex-col items-center">
-                    <div className="mb-6">
+                    <div className="mb-4">
                       <svg width="72" height="72" viewBox="0 0 24 24" fill="none" className="text-[#94A3B8] opacity-40">
                         <path d="M3 3h8v8H3V3zm2 2v4h4V5H5zm8-2h8v8h-8V3zm2 2v4h4V5h-4zM3 13h8v8H3v-8zm2 2v4h4v-4H5zm13-2h3v2h-3v-2zm-3 0h2v2h-2v-2zm3 3h3v2h-3v-2zm-3 0h2v2h-2v-2zm3 3h3v2h-3v-2zm-3 0h2v2h-2v-2z" fill="currentColor"/>
                       </svg>
@@ -329,21 +329,21 @@ export default function NativeScanner({
             {!isScanning && (
               <button
                 id="start-scanning-btn"
-                className="mt-5 w-full max-w-[320px] h-[52px] bg-[#011F7B] text-white rounded-[14px] font-semibold text-[15px] flex items-center justify-center gap-3 active:scale-[0.98] transition-transform shadow-[0_8px_20px_rgba(1,31,123,0.2)]"
+                className="mt-4 w-full max-w-[320px] h-[44px] bg-[#011F7B] text-white rounded-[12px] font-semibold text-[13px] flex items-center justify-center gap-2.5 active:scale-[0.98] transition-transform shadow-[0_8px_20px_rgba(1,31,123,0.2)]"
                 onClick={() => void startScanner()}
               >
-                <QrCodeIcon size={20} className="text-[#FFBA09]" /> Start Scanning
+                <QrCodeIcon size={18} className="text-[#FFBA09]" /> Start Scanning
               </button>
             )}
           </div>
         </div>
 
         <section 
-          className="bg-white rounded-[24px] border border-[#F1F5F9] shadow-[0_4px_24px_rgba(15,23,42,0.03)] flex flex-col overflow-hidden" 
+          className="bg-white rounded-2xl border border-[#F1F5F9] shadow-[0_4px_24px_rgba(15,23,42,0.03)] flex flex-col overflow-hidden" 
           aria-label="Recent scans"
           style={{ position: 'relative', zIndex: 30 }}
         >
-          <div className="flex items-center justify-between px-5 py-4 border-b border-[#F8FAFC]">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-[#F8FAFC]">
             <h3 className="text-[12px] font-bold text-[#0F172A] tracking-wider uppercase m-0 flex items-center gap-2">
               RECENT SCANS
               {syncQueueLength > 0 && (
@@ -360,8 +360,8 @@ export default function NativeScanner({
 
           <div className="flex flex-col">
             {history.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-8 text-[#94A3B8]">
-                <span className="text-[13px] font-medium">No scans yet</span>
+              <div className="flex flex-col items-center justify-center py-5 text-[#94A3B8]">
+                <span className="text-[12px] font-medium">No scans yet</span>
               </div>
             ) : (
               history.slice(0, 5).map(row => {

@@ -105,11 +105,11 @@ export default function AuthPage() {
       <div className="absolute -top-20 -right-16 h-72 w-72 rounded-full bg-[var(--color-primary)]/12 blur-3xl" />
       <div className="absolute -bottom-12 -left-12 h-64 w-64 rounded-full bg-[var(--color-accent)]/18 blur-3xl" />
 
-      <main className="relative mx-auto flex min-h-dvh w-full max-w-[420px] flex-col items-center justify-center px-6 pb-16">
-        <div className="w-full space-y-6">
-          <div className="flex flex-col items-center gap-4 text-center">
-            <div className="flex h-16 w-16 items-center justify-center rounded-[20px] bg-[var(--color-primary)] shadow-[0_12px_32px_rgba(1,31,123,0.18)]">
-              <SchoolIcon className="h-8 w-8 text-white" strokeWidth={2.2} />
+      <main className="relative mx-auto flex min-h-dvh w-full max-w-[420px] flex-col items-center justify-center px-4 pb-10">
+        <div className="w-full space-y-5">
+          <div className="flex flex-col items-center gap-3 text-center">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[var(--color-primary)] shadow-[0_12px_32px_rgba(1,31,123,0.18)]">
+              <SchoolIcon className="h-6 w-6 text-white" strokeWidth={2.2} />
             </div>
             <Image
               src="/logo.svg"
@@ -117,12 +117,12 @@ export default function AuthPage() {
               width={140}
               height={42}
               priority
-              className="mx-auto h-auto w-[140px]"
+              className="mx-auto h-auto w-[120px]"
             />
           </div>
 
-          <div className="rounded-[24px] border border-white bg-white/92 p-6 shadow-[0_10px_40px_rgba(1,31,123,0.08)] backdrop-blur-sm">
-            <h1 className="mb-5 text-xl font-extrabold tracking-tight text-[var(--color-primary-dark)]">
+          <div className="rounded-2xl border border-white bg-white/92 p-4 shadow-[0_10px_40px_rgba(1,31,123,0.08)] backdrop-blur-sm">
+            <h1 className="mb-4 text-lg font-extrabold tracking-tight text-[var(--color-primary-dark)]">
               Sign in
             </h1>
 
@@ -130,11 +130,11 @@ export default function AuthPage() {
               type="button"
               onClick={handleGoogleSignIn}
               disabled={isSubmitting || isLoading || isOffline}
-              className="flex h-[52px] w-full items-center justify-center gap-3 rounded-xl bg-[var(--color-primary)] px-4 font-bold text-white shadow-[0_10px_24px_rgba(1,31,123,0.16)] transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+              className="flex h-[44px] w-full items-center justify-center gap-3 rounded-lg bg-[var(--color-primary)] px-4 font-bold text-white shadow-[0_10px_24px_rgba(1,31,123,0.16)] transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
             >
               {isSubmitting || isLoading ? (
                 <>
-                  <Loader2Icon className="h-5 w-5 animate-spin" />
+                  <Loader2Icon className="h-4 w-4 animate-spin" />
                   <span>Signing in...</span>
                 </>
               ) : (

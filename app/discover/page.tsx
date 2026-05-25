@@ -245,14 +245,14 @@ export default function DiscoverPage() {
   }, []);
 
   return (
-    <div className="pwa-page pt-2 pb-8 bg-[#f9fafb] max-w-[420px] mx-auto">
+    <div className="pwa-page pt-2 pb-6 bg-[#f9fafb] max-w-[420px] mx-auto">
       {/* Search Bar Row — Only visible when searching */}
       {isSearchOpen && (
-        <div className="px-5 h-[48px] flex flex-col justify-center animate-fade-in">
+        <div className="px-4 h-[44px] flex flex-col justify-center animate-fade-in">
           <div className="flex-1 flex items-center gap-2">
             <div className="relative flex-1 min-w-0">
               <SearchIcon
-                size={16}
+                size={15}
                 className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] pointer-events-none z-[1]"
               />
               <input
@@ -264,7 +264,7 @@ export default function DiscoverPage() {
                   setSearch(e.target.value);
                   setCurrentPage(1);
                 }}
-                className="w-full h-[38px] pl-9 pr-8 text-[13px] bg-[#e8e9ec] border-none rounded-xl outline-none transition-all placeholder:text-[var(--color-text-muted)] font-medium"
+                className="w-full h-[34px] pl-9 pr-8 text-[12px] bg-[#e8e9ec] border-none rounded-lg outline-none transition-all placeholder:text-[var(--color-text-muted)] font-medium"
               />
               {search && (
                 <button
@@ -284,7 +284,7 @@ export default function DiscoverPage() {
                 setSearch("");
                 setCurrentPage(1);
               }}
-              className="text-[12px] font-bold text-[var(--color-primary-dark)] shrink-0 px-1"
+              className="text-[11px] font-bold text-[var(--color-primary-dark)] shrink-0 px-1"
             >
               Cancel
             </button>
@@ -293,15 +293,15 @@ export default function DiscoverPage() {
       )}
 
       {/* Filter chips row */}
-      <div className="flex overflow-x-auto mb-1 gap-2.5 items-center no-scrollbar snap-x snap-mandatory h-[48px]">
+      <div className="flex overflow-x-auto mb-1 gap-2 items-center no-scrollbar snap-x snap-mandatory h-[40px]">
         <div className="shrink-0 w-4 snap-start" aria-hidden />
         {!isSearchOpen && (
           <button
             onClick={() => setIsSearchOpen(true)}
-            className="shrink-0 p-2 -ml-2 mr-1 flex items-center justify-center text-[var(--color-text)] transition-transform active:scale-95 snap-center"
+            className="shrink-0 p-1.5 -ml-2 mr-1 flex items-center justify-center text-[var(--color-text)] transition-transform active:scale-95 snap-center"
             aria-label="Open search"
           >
-            <SearchIcon size={20} strokeWidth={2.5} />
+            <SearchIcon size={18} strokeWidth={2.5} />
           </button>
         )}
         
@@ -317,7 +317,7 @@ export default function DiscoverPage() {
               <button
                 type="button"
                 onClick={() => toggleFilter(filter)}
-                className={`px-4 py-2 rounded-full text-[13px] font-bold transition-all whitespace-nowrap ${
+                className={`px-3 py-1.5 rounded-full text-[12px] font-bold transition-all whitespace-nowrap ${
                   active
                     ? "bg-[var(--color-accent)] text-[var(--color-primary-dark)] shadow-sm"
                     : "bg-[#f3f4f6] text-[var(--color-text-muted)] hover:bg-[#e5e7eb]"
@@ -332,7 +332,7 @@ export default function DiscoverPage() {
       </div>
 
       {!isHydrated || isLoading ? (
-        <div className="px-5 space-y-6 pt-4">
+        <div className="px-4 space-y-4 pt-3">
           <EventCardSkeleton featured />
           <div className="space-y-4">
             <div className="skeleton h-6 w-32 rounded mb-4" />
@@ -342,9 +342,9 @@ export default function DiscoverPage() {
       ) : (
         <>
           {/* 1. Spotlight Hero Card */}
-          {spotlightEvents.length > 0 && (
+            {spotlightEvents.length > 0 && (
             <SectionContainer title="Spotlight" actionLabel="See All" actionHref="/events" className="animate-fade-up">
-              <Link href={`/event/${spotlightEvents[0].event_id}`} className="group relative block overflow-hidden rounded-[24px] bg-gradient-to-br from-[#1b2533] to-[#0a1835] shadow-[0_12px_36px_rgba(10,24,53,0.3)] aspect-[4/5] max-h-[460px] btn-active-state will-change-transform">
+              <Link href={`/event/${spotlightEvents[0].event_id}`} className="group relative block w-full max-w-[360px] mx-auto overflow-hidden rounded-[18px] bg-gradient-to-br from-[#1b2533] to-[#0a1835] shadow-[0_12px_36px_rgba(10,24,53,0.3)] aspect-[4/5] max-h-[420px] btn-active-state will-change-transform">
                 {/* Background effects & Image */}
                 <div className="absolute inset-0 opacity-60 z-0">
                   <div className="absolute top-[-20%] left-[-20%] w-[80%] h-[80%] bg-[var(--color-primary)] rounded-full blur-[100px] z-0" />
@@ -362,24 +362,24 @@ export default function DiscoverPage() {
                   <div className="absolute inset-0 bg-gradient-to-t from-[#0a1835] via-[#0a1835]/60 to-transparent z-[2]" />
                 </div>
                 
-                <div className="absolute inset-0 p-6 flex flex-col justify-end z-10">
-                  <span className="self-start mb-4 chip bg-[#fff4cf] text-[#745b00] text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded shadow-sm">
+                <div className="absolute inset-0 p-4 flex flex-col justify-end z-10">
+                  <span className="self-start mb-3 chip bg-[#fff4cf] text-[#745b00] text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded shadow-sm">
                     SPOTLIGHT
                   </span>
                   
-                  <h2 className="text-[32px] font-black leading-[1.1] text-white tracking-[-0.02em] mb-4 drop-shadow-md">
+                  <h2 className="text-[24px] font-black leading-[1.12] text-white tracking-[-0.02em] mb-3 drop-shadow-md">
                     {spotlightEvents[0].title}
                   </h2>
                   
-                  <div className="grid grid-cols-2 gap-4 mb-6">
+                  <div className="grid grid-cols-2 gap-3 mb-4">
                     <div className="flex items-start gap-2">
-                      <CalendarIcon size={16} className="text-white/70 mt-0.5" />
+                      <CalendarIcon size={14} className="text-white/70 mt-0.5" />
                       <div className="flex flex-col">
-                        <span className="text-white text-[13px] font-medium leading-tight">
+                        <span className="text-white text-[12px] font-medium leading-tight">
                           {formatDateShort(spotlightEvents[0].event_date)}
                         </span>
                         {spotlightEvents[0].event_time && (
-                          <span className="text-white/70 text-[11px] mt-0.5">
+                          <span className="text-white/70 text-[10px] mt-0.5">
                             {formatDateShort(spotlightEvents[0].event_date).split(',')[0]}
                           </span>
                         )}
@@ -387,8 +387,8 @@ export default function DiscoverPage() {
                     </div>
                     {spotlightEvents[0].venue && (
                       <div className="flex items-start gap-2">
-                        <MapPinIcon size={16} className="text-white/70 mt-0.5" />
-                        <span className="text-white text-[13px] font-medium leading-tight line-clamp-2">
+                        <MapPinIcon size={14} className="text-white/70 mt-0.5" />
+                        <span className="text-white text-[12px] font-medium leading-tight line-clamp-2">
                           {spotlightEvents[0].venue}
                         </span>
                       </div>
@@ -405,34 +405,34 @@ export default function DiscoverPage() {
 
           {/* 2. Curated For You (Personalization) */}
           {curatedEvents.length > 0 && !debouncedSearch && (
-            <div className="pb-6 animate-fade-up" style={{ animationDelay: '100ms' }}>
-              <div className="px-5 pb-3 flex flex-col justify-start">
-                <h2 className="text-[20px] font-extrabold tracking-[-0.02em]">Curated For You</h2>
-                <p className="text-[12px] text-[var(--color-text-muted)] font-medium">Based on your department: {userData?.department}</p>
+            <div className="pb-4 animate-fade-up" style={{ animationDelay: '100ms' }}>
+              <div className="px-4 pb-2 flex flex-col justify-start">
+                <h2 className="text-[16px] font-extrabold tracking-[-0.02em]">Curated For You</h2>
+                <p className="text-[11px] text-[var(--color-text-muted)] font-medium">Based on your department: {userData?.department}</p>
               </div>
               <div
                 ref={curatedScrollRef}
                 onTouchStart={handleUserInteraction}
                 onMouseDown={handleUserInteraction}
-                className="flex overflow-x-auto gap-3.5 snap-x snap-mandatory scroll-smooth pb-2 no-scrollbar will-change-scroll"
+                className="flex overflow-x-auto gap-2.5 snap-x snap-mandatory scroll-smooth pb-2 no-scrollbar will-change-scroll"
               >
-                <div className="shrink-0 w-5 snap-start" aria-hidden />
+                <div className="shrink-0 w-4 snap-start" aria-hidden />
                 {curatedEvents.map((e) => (
                   <div key={e.event_id} className="w-[calc(100vw-60px)] max-w-[320px] shrink-0 snap-center">
                     <EventCard event={e} />
                   </div>
                 ))}
-                <div className="shrink-0 w-5 snap-end" aria-hidden />
+                <div className="shrink-0 w-4 snap-end" aria-hidden />
               </div>
             </div>
           )}
 
           {/* 3. Trending Fests / Events */}
           {(festsLoading || fests.length > 0) && !debouncedSearch && (
-            <div className="pb-6 animate-fade-up" style={{ animationDelay: '150ms' }}>
-              <div className="px-5 pb-3 flex items-center justify-between">
-                <h2 className="text-[20px] font-extrabold tracking-[-0.02em]">Trending Now</h2>
-                <Link href="/fests" className="text-[12px] font-bold text-[var(--color-primary-dark)] hover:underline">
+            <div className="pb-4 animate-fade-up" style={{ animationDelay: '150ms' }}>
+              <div className="px-4 pb-2 flex items-center justify-between">
+                <h2 className="text-[16px] font-extrabold tracking-[-0.02em]">Trending Now</h2>
+                <Link href="/fests" className="text-[11px] font-bold text-[var(--color-primary-dark)] hover:underline">
                   View All
                 </Link>
               </div>
@@ -440,10 +440,10 @@ export default function DiscoverPage() {
                 ref={scrollRef}
                 onTouchStart={handleUserInteraction}
                 onMouseDown={handleUserInteraction}
-                className="flex overflow-x-auto gap-3.5 snap-x snap-mandatory scroll-smooth pb-2 no-scrollbar will-change-scroll"
+                className="flex overflow-x-auto gap-2.5 snap-x snap-mandatory scroll-smooth pb-2 no-scrollbar will-change-scroll"
               >
                 {/* left spacer */}
-                <div className="shrink-0 w-5 snap-start" aria-hidden />
+                <div className="shrink-0 w-4 snap-start" aria-hidden />
                 {festsLoading
                   ? Array.from({ length: 2 }).map((_, idx) => (
                       <div
@@ -451,12 +451,12 @@ export default function DiscoverPage() {
                         className="card-elevated w-[calc(100vw-40px)] max-w-[380px] shrink-0 snap-center"
                       >
                         <div className="skeleton aspect-[16/10]" />
-                        <div className="p-4 space-y-2">
-                          <div className="skeleton h-4 w-3/4" />
-                          <div className="skeleton h-3 w-2/3" />
-                          <div className="skeleton h-9 w-28 rounded-[var(--radius)]" />
+                          <div className="p-3 space-y-2">
+                            <div className="skeleton h-4 w-3/4" />
+                            <div className="skeleton h-3 w-2/3" />
+                            <div className="skeleton h-9 w-28 rounded-[var(--radius)]" />
+                          </div>
                         </div>
-                      </div>
                     ))
                   : trendingFests.map(({ fest: f, registrations }) => {
                       const img = f.fest_image_url || f.banner_url || f.image_url;
@@ -480,14 +480,14 @@ export default function DiscoverPage() {
                               />
                             ) : (
                               <div className="w-full h-full bg-gradient-to-br from-[var(--color-primary-dark)] to-[var(--color-primary)] flex items-center justify-center">
-                                <span className="text-white font-extrabold text-2xl opacity-35">{title.charAt(0)}</span>
+                                <span className="text-white font-extrabold text-xl opacity-35">{title.charAt(0)}</span>
                               </div>
                             )}
                             <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
                             
-                            <div className="absolute top-2 left-2 bg-black/50 backdrop-blur-md rounded-full px-2 py-1 flex items-center gap-1 z-10 shadow-sm border border-white/10">
-                              <TrendingUpIcon className="w-3.5 h-3.5 text-orange-400 animate-badge-pulse" />
-                              <span className="text-white text-[10px] font-medium tracking-wide">Trending</span>
+                            <div className="absolute top-2 left-2 bg-black/50 backdrop-blur-md rounded-full px-2 py-0.5 flex items-center gap-1 z-10 shadow-sm border border-white/10">
+                              <TrendingUpIcon className="w-3 h-3 text-orange-400 animate-badge-pulse" />
+                              <span className="text-white text-[9px] font-medium tracking-wide">Trending</span>
                             </div>
 
                             <span className="absolute top-2.5 right-2.5 chip bg-white/92 text-[var(--color-primary)] text-[10px] font-bold shadow-sm">
@@ -495,21 +495,21 @@ export default function DiscoverPage() {
                             </span>
                           </div>
 
-                          <div className="p-4">
-                            <p className="text-[15px] font-extrabold leading-tight line-clamp-1">{title}</p>
-                            <p className="text-[11px] font-medium text-[var(--color-text-muted)] mt-1 line-clamp-1">
+                          <div className="p-3">
+                            <p className="text-[14px] font-extrabold leading-tight line-clamp-1">{title}</p>
+                            <p className="text-[10px] font-medium text-[var(--color-text-muted)] mt-1 line-clamp-1">
                               {f.organizing_dept || f.department || "Campus Fest"}
                             </p>
-                            <div className="mt-3.5 flex items-center gap-2">
+                            <div className="mt-2.5 flex items-center gap-2">
                               {registrations > 0 && (
-                                <span className="inline-flex items-center gap-1 rounded-full bg-black/50 px-2.5 py-1 text-[10px] font-semibold text-white/90 backdrop-blur-md whitespace-nowrap">
-                                  <UsersIcon size={12} />
+                                <span className="inline-flex items-center gap-1 rounded-full bg-black/50 px-2 py-0.5 text-[9px] font-semibold text-white/90 backdrop-blur-md whitespace-nowrap">
+                                  <UsersIcon size={11} />
                                   {formatCompactCount(registrations)} going
                                 </span>
                               )}
-                              <span className="btn-active-state ml-auto inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-primary-dark)] px-3.5 py-2 text-[12px] font-bold text-white shadow-[var(--shadow-primary)] transition-all duration-200">
+                              <span className="btn-active-state ml-auto inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-primary-dark)] px-3 py-1.5 text-[11px] font-bold text-white shadow-[var(--shadow-primary)] transition-all duration-200">
                                 Register
-                                <ArrowRightIcon size={13} />
+                                <ArrowRightIcon size={12} />
                               </span>
                             </div>
                           </div>
@@ -517,7 +517,7 @@ export default function DiscoverPage() {
                       );
                     })}
                 {/* right spacer */}
-                <div className="shrink-0 w-5 snap-end" aria-hidden />
+                <div className="shrink-0 w-4 snap-end" aria-hidden />
               </div>
             </div>
           )}
@@ -565,14 +565,14 @@ export default function DiscoverPage() {
                 {categoryGrid[2] && (
                   <button
                     onClick={() => toggleFilter(categoryGrid[2])}
-                    className="col-span-1 relative bg-[#f1edfc] rounded-2xl p-4 overflow-hidden text-left btn-active-state border border-transparent hover:border-[#dbcefc] transition-all min-h-[120px] flex flex-col justify-between will-change-transform"
+                    className="col-span-1 relative bg-[#f1edfc] rounded-2xl p-3 overflow-hidden text-left btn-active-state border border-transparent hover:border-[#dbcefc] transition-all min-h-[100px] flex flex-col justify-between will-change-transform"
                   >
-                    <div className="w-7 h-7 rounded-full bg-[#7c3aed] text-white flex items-center justify-center shadow-sm">
-                      <CalendarIcon size={14} />
+                    <div className="w-6 h-6 rounded-full bg-[#7c3aed] text-white flex items-center justify-center shadow-sm">
+                      <CalendarIcon size={13} />
                     </div>
                     <div>
-                      <h3 className="text-[16px] font-black text-[#3d1880] leading-tight mb-0.5 line-clamp-1">{categoryGrid[2]}</h3>
-                      <p className="text-[11px] text-[#6b4ab0] font-medium">Upcoming</p>
+                      <h3 className="text-[14px] font-black text-[#3d1880] leading-tight mb-0.5 line-clamp-1">{categoryGrid[2]}</h3>
+                      <p className="text-[10px] text-[#6b4ab0] font-medium">Upcoming</p>
                     </div>
                   </button>
                 )}
@@ -580,18 +580,18 @@ export default function DiscoverPage() {
                 {/* Clubs Card */}
                 <Link
                   href="/clubs"
-                  className="col-span-2 relative bg-[#ecfdf5] rounded-[28px] p-5 overflow-hidden text-left btn-active-state border border-transparent hover:border-[#a7f3d0] transition-all min-h-[100px] flex flex-col justify-center will-change-transform"
+                  className="col-span-2 relative bg-[#ecfdf5] rounded-[20px] p-4 overflow-hidden text-left btn-active-state border border-transparent hover:border-[#a7f3d0] transition-all min-h-[88px] flex flex-col justify-center will-change-transform"
                 >
-                  <div className="relative z-10 flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-full bg-[#059669] text-white flex items-center justify-center shadow-md">
-                      <BuildingIcon size={20} />
+                  <div className="relative z-10 flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-full bg-[#059669] text-white flex items-center justify-center shadow-md">
+                      <BuildingIcon size={18} />
                     </div>
                     <div>
-                      <h3 className="text-[18px] font-black text-[#064e3b] leading-tight">Clubs & Orgs</h3>
-                      <p className="text-[12px] text-[#065f46] font-medium mt-0.5">Join a community today</p>
+                      <h3 className="text-[16px] font-black text-[#064e3b] leading-tight">Clubs & Orgs</h3>
+                      <p className="text-[11px] text-[#065f46] font-medium mt-0.5">Join a community today</p>
                     </div>
                     <div className="ml-auto">
-                      <ArrowRightIcon size={20} className="text-[#059669]" />
+                      <ArrowRightIcon size={18} className="text-[#059669]" />
                     </div>
                   </div>
                   {/* Decorative icon */}
@@ -604,9 +604,9 @@ export default function DiscoverPage() {
           )}
 
           {/* 5. All Upcoming Section - Vertical List */}
-          {listWithoutSpotlight.length > 0 && (
+            {listWithoutSpotlight.length > 0 && (
             <SectionContainer title="All Upcoming" className="animate-fade-up" style={{ animationDelay: '250ms' }}>
-              <div className="space-y-5">
+              <div className="space-y-3">
                 {displayedEvents.map((e) => (
                   <EventCard key={e.event_id} event={e} />
                 ))}
@@ -614,8 +614,8 @@ export default function DiscoverPage() {
 
               {/* Pagination */}
               {totalPages > 1 && (
-                <div className="px-5 mt-6 flex flex-col items-center gap-4">
-                  <p className="text-[12px] text-[var(--color-text-muted)] font-semibold">
+                <div className="px-4 mt-4 flex flex-col items-center gap-3">
+                  <p className="text-[11px] text-[var(--color-text-muted)] font-semibold">
                     Page <span className="text-[var(--color-primary)] font-bold">{currentPage}</span> of <span className="text-[var(--color-primary)] font-bold">{totalPages}</span>
                   </p>
 
@@ -636,10 +636,10 @@ export default function DiscoverPage() {
                         />
                       );
                     })}
-                    {totalPages > 5 && <span className="text-[var(--color-text-muted)] text-[11px] ml-1">•••</span>}
+                    {totalPages > 5 && <span className="text-[var(--color-text-muted)] text-[10px] ml-1">•••</span>}
                   </div>
 
-                  <div className="flex items-center gap-2 mt-1">
+                  <div className="flex items-center gap-2 mt-0.5">
                     <Button
                       variant="ghost"
                       size="sm"
@@ -666,13 +666,13 @@ export default function DiscoverPage() {
 
           {/* Empty state */}
           {allFiltered.length === 0 && (
-            <div className="px-5 py-12 animate-fade-in">
+            <div className="px-4 py-6 animate-fade-in">
               <EmptyState
-                icon={<SearchIcon size={32} className="text-[var(--color-primary)]" />}
+                icon={<SearchIcon size={26} className="text-[var(--color-primary)]" />}
                 title="No events found"
                 subtitle="Try adjusting your search or filters to see more results"
               />
-              <div className="mt-6 flex justify-center">
+              <div className="mt-4 flex justify-center">
                 <Button variant="outline" onClick={() => { setActiveFilters(new Set(["Open"])); setSearch(""); }}>
                   Clear Filters
                 </Button>

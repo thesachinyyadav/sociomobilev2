@@ -32,24 +32,24 @@ const EventCard = memo(function EventCard({
   // Compact variant for profile registrations
   if (compact) {
     return (
-      <Link href={`/event/${event.event_id}`} className="flex gap-3 items-center p-3 bg-white rounded-[var(--radius)] shadow-[var(--shadow-xs)] animate-fade-up group">
-        <div className="relative w-16 h-16 rounded-[var(--radius-sm)] overflow-hidden shrink-0 bg-gray-100">
+      <Link href={`/event/${event.event_id}`} className="flex gap-2.5 items-center p-2.5 bg-white rounded-[var(--radius)] shadow-[var(--shadow-xs)] animate-fade-up group">
+        <div className="relative w-14 h-14 rounded-[var(--radius-sm)] overflow-hidden shrink-0 bg-gray-100">
           {(event.banner_url || event.event_image_url) ? (
             <ShimmerImage src={(event.banner_url || event.event_image_url)!} alt={event.title} fill className="object-cover" sizes="64px" />
           ) : (
             <div className="w-full h-full bg-gradient-to-br from-[var(--color-primary)] to-[#1a6bdb] flex items-center justify-center">
-              <span className="text-white font-bold text-sm">{event.title.charAt(0)}</span>
+              <span className="text-white font-bold text-[12px]">{event.title.charAt(0)}</span>
             </div>
           )}
         </div>
         <div className="flex-1 min-w-0">
-          <h4 className="text-[13px] font-extrabold leading-tight line-clamp-1">{event.title}</h4>
-          <p className="text-[11px] font-medium text-[var(--color-text-muted)] mt-0.5 flex items-center gap-1">
+          <h4 className="text-[12px] font-extrabold leading-tight line-clamp-1">{event.title}</h4>
+          <p className="text-[10px] font-medium text-[var(--color-text-muted)] mt-0.5 flex items-center gap-1">
             <ClockIcon size={10} /> {formatDateShort(event.event_date)}
             {event.event_time && ` · ${formatTime(event.event_time)}`}
           </p>
           {event.venue && (
-            <p className="text-[11px] text-[var(--color-text-light)] mt-0.5 flex items-center gap-1 truncate">
+            <p className="text-[10px] text-[var(--color-text-light)] mt-0.5 flex items-center gap-1 truncate">
               <MapPinIcon size={10} /> {event.venue}
             </p>
           )}
@@ -95,18 +95,18 @@ const EventCard = memo(function EventCard({
         />
 
         {/* Safe Content Area */}
-        <div className="absolute inset-0 z-10 flex flex-col justify-between p-4 sm:p-5 md:p-6">
+        <div className="absolute inset-0 z-10 flex flex-col justify-between p-3 sm:p-4 md:p-5">
           {/* Top Row: Price Badge & Share Button */}
           <div className="flex justify-between items-start w-full">
             {/* Operational Price Badge */}
             <div>
               {!closed && (
                 isFree ? (
-                  <span className="inline-flex items-center rounded-full bg-[#FFF9E6] text-[#745B00] font-bold px-3 py-1 text-[11px] shadow-sm uppercase tracking-wider border border-[#FFE599]/30">
+                  <span className="inline-flex items-center rounded-full bg-[#FFF9E6] text-[#745B00] font-bold px-2.5 py-0.5 text-[10px] shadow-sm uppercase tracking-wider border border-[#FFE599]/30">
                     FREE
                   </span>
                 ) : (
-                  <span className="inline-flex items-center rounded-full bg-[#FFF9E6] text-[#745B00] font-bold px-3 py-1 text-[11px] shadow-sm border border-[#FFE599]/30">
+                  <span className="inline-flex items-center rounded-full bg-[#FFF9E6] text-[#745B00] font-bold px-2.5 py-0.5 text-[10px] shadow-sm border border-[#FFE599]/30">
                     ₹{event.registration_fee}
                   </span>
                 )
@@ -124,10 +124,10 @@ const EventCard = memo(function EventCard({
                   url: `/event/${event.event_id}`,
                 });
               }}
-              className="w-8 h-8 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center text-white shadow-sm border border-white/20 active:scale-90 hover:bg-white/20 transition-all"
+              className="w-7 h-7 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center text-white shadow-sm border border-white/20 active:scale-90 hover:bg-white/20 transition-all"
               aria-label="Share Event"
             >
-              <ShareIcon size={14} />
+              <ShareIcon size={13} />
             </button>
           </div>
 
@@ -135,7 +135,7 @@ const EventCard = memo(function EventCard({
           <div className="flex flex-col gap-1 mt-auto max-w-[calc(100%-8px)]">
             {/* Optional Subtitle */}
             {event.category && (
-              <span className="text-[10px] font-bold tracking-widest text-amber-300 uppercase">
+              <span className="text-[9px] font-bold tracking-widest text-amber-300 uppercase">
                 {event.category}
               </span>
             )}
@@ -145,9 +145,9 @@ const EventCard = memo(function EventCard({
               className="text-white font-extrabold line-clamp-2 overflow-hidden text-ellipsis max-w-full"
               style={{
                 fontWeight: 800,
-                lineHeight: 1.05,
+                lineHeight: 1.08,
                 letterSpacing: "-0.03em",
-                fontSize: "clamp(1.25rem, 4.5vw, 2.25rem)",
+                fontSize: "clamp(1.1rem, 4vw, 1.8rem)",
                 wordBreak: "break-word"
               }}
             >
@@ -158,16 +158,16 @@ const EventCard = memo(function EventCard({
       </div>
 
       {/* Details Section */}
-      <div className={featured ? "p-5" : "p-4"}>
+      <div className={featured ? "p-4" : "p-3"}>
         {/* Date / Time */}
-        <p className="text-[10px] font-bold tracking-widest text-[var(--color-text-light)] uppercase flex items-center gap-1 mb-2.5">
+        <p className="text-[9px] font-bold tracking-widest text-[var(--color-text-light)] uppercase flex items-center gap-1 mb-2">
           <ClockIcon size={10} />
           {formatDateShort(event.event_date)}
           {event.event_time && ` • ${formatTime(event.event_time)}`}
         </p>
 
         {/* Tags */}
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-1.5">
           {(event.organizing_dept || event.fest) && (
             <span className="chip bg-gray-100 text-[var(--color-text-muted)] text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-sm">
               {event.organizing_dept || event.fest}
@@ -176,19 +176,19 @@ const EventCard = memo(function EventCard({
         </div>
 
         {/* Footer (Social Proof & CTA) */}
-        <div className="mt-4 pt-4 border-t border-gray-100 flex items-center justify-between">
+        <div className="mt-3 pt-3 border-t border-gray-100 flex items-center justify-between">
           <div className="flex items-center gap-2">
             {(event.total_participants != null && event.total_participants > 0) ? (
               <>
-                <div className="flex items-center justify-center w-6 h-6 rounded-full bg-black/5 text-black/40 border border-black/10">
-                  <UsersIcon size={12} />
+                <div className="flex items-center justify-center w-5 h-5 rounded-full bg-black/5 text-black/40 border border-black/10">
+                  <UsersIcon size={11} />
                 </div>
-                <span className="text-[11px] font-semibold text-[var(--color-text-muted)]">
+                <span className="text-[10px] font-semibold text-[var(--color-text-muted)]">
                   +{event.total_participants} Attending
                 </span>
               </>
             ) : (
-              <span className="text-[11px] font-semibold text-[var(--color-text-muted)] flex items-center gap-1">
+              <span className="text-[10px] font-semibold text-[var(--color-text-muted)] flex items-center gap-1">
                 {event.venue ? <><MapPinIcon size={11} /> {event.venue}</> : 'Details inside'}
               </span>
             )}
@@ -197,8 +197,8 @@ const EventCard = memo(function EventCard({
           {showAction && (
             <span className={`btn-active-state shrink-0 inline-flex items-center justify-center rounded-lg font-bold transition-all ${
               closed 
-                ? "bg-slate-100 text-slate-400 px-3 py-1.5 text-[12px] opacity-90 cursor-not-allowed" 
-                : "bg-[var(--color-accent)] text-[var(--color-primary-dark)] px-4 py-1.5 text-[12px] hover:bg-[var(--color-accent-dark)] hover:text-white"
+                ? "bg-slate-100 text-slate-400 px-2.5 py-1 text-[11px] opacity-90 cursor-not-allowed" 
+                : "bg-[var(--color-accent)] text-[var(--color-primary-dark)] px-3 py-1 text-[11px] hover:bg-[var(--color-accent-dark)] hover:text-white"
             }`}>
               {closed ? "Closed" : "Grab Ticket"}
             </span>

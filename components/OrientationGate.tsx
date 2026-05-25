@@ -30,20 +30,20 @@ export default function OrientationGate() {
 
   return (
     <div 
-      className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-[var(--color-primary-dark)] text-white px-6 text-center"
+      className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-[var(--color-primary-dark)] text-white px-4 text-center"
       aria-label="Orientation lock notice"
     >
-      <div className="animate-bounce-in mb-6">
+      <div className="animate-bounce-in mb-4">
         {/* Animate the icon to suggest rotating the phone */}
         <div className="animate-[spin_3s_ease-in-out_infinite]">
-          <SmartphoneIcon size={80} strokeWidth={1} />
+          <SmartphoneIcon size={64} strokeWidth={1} />
         </div>
       </div>
 
-      <h1 className="text-3xl font-extrabold leading-tight mb-3 animate-fade-up">
+      <h1 className="text-xl font-extrabold leading-tight mb-2 animate-fade-up">
         Please rotate your device
       </h1>
-      <p className="text-[15px] opacity-80 max-w-xs animate-fade-up" style={{ animationDelay: "80ms" }}>
+      <p className="text-[12px] opacity-80 max-w-xs animate-fade-up" style={{ animationDelay: "80ms" }}>
         We don&apos;t support landscape mode yet. Please rotate your device back to portrait to continue using SOCIO.
       </p>
     </div>

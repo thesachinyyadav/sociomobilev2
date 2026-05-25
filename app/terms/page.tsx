@@ -2,15 +2,15 @@ import Link from "next/link";
 
 export default function TermsPage() {
   return (
-    <div className="pwa-page pt-2 px-4 pb-8">
+    <div className="pwa-page pt-2 px-4 pb-6">
       <div className="max-w-3xl mx-auto">
         <div className="card overflow-hidden">
-          <div className="bg-[var(--color-primary-dark)] text-white px-5 py-4">
-            <h1 className="text-[20px] font-extrabold">Terms of Service</h1>
+          <div className="bg-[var(--color-primary-dark)] text-white px-4 py-3.5">
+            <h1 className="text-xl font-extrabold">Terms of Service</h1>
             <p className="text-[12px] opacity-85 mt-1">Effective Date: 21st April 2026</p>
           </div>
 
-          <div className="p-5 space-y-5 text-[13px] leading-6 text-[var(--color-text-muted)]">
+          <div className="p-4 space-y-4 text-[13px] leading-relaxed text-[var(--color-text-muted)]">
             <section>
               <h2 className="text-[15px] font-bold text-[var(--color-text)] mb-2">1. Acceptance of Terms</h2>
               <p>

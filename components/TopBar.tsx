@@ -43,7 +43,7 @@ export default function TopBar() {
         style={{ paddingTop: "var(--safe-top)", backfaceVisibility: "hidden" }}
       >
         <div
-          className="relative flex items-center px-4 gap-2 will-change-none"
+          className="relative flex items-center px-3 gap-1.5 will-change-none"
           style={{ height: "var(--nav-height)" }}
         >
           {/* Left: Back button or profile/avatar */}
@@ -53,25 +53,25 @@ export default function TopBar() {
               className="back-btn"
               aria-label="Go back"
             >
-              <ArrowLeftIcon size={18} strokeWidth={2.2} />
+                <ArrowLeftIcon size={17} strokeWidth={2.2} />
             </button>
           ) : !isHydrated || isLoading ? (
-            <div className="w-[34px] h-[34px] rounded-full bg-gray-200/60 animate-pulse" />
+            <div className="w-[32px] h-[32px] rounded-full bg-gray-200/60 animate-pulse" />
           ) : isUserLoggedIn ? (
             <Link href="/profile" className="shrink-0">
-              <div className="w-[34px] h-[34px] rounded-full overflow-hidden ring-2 ring-[#1a3a7a] shadow-[0_4px_14px_rgba(0,0,0,0.3)] bg-white/10 flex items-center justify-center">
+              <div className="w-[32px] h-[32px] rounded-full overflow-hidden ring-2 ring-[#1a3a7a] shadow-[0_4px_14px_rgba(0,0,0,0.3)] bg-white/10 flex items-center justify-center">
                 {userData?.avatar_url && !imgError ? (
                   <Image
                     src={userData.avatar_url}
                     alt={userData.name || "User"}
-                    width={34}
-                    height={34}
+                    width={32}
+                    height={32}
                     className="w-full h-full object-cover"
                     onError={() => setImgError(true)}
                     referrerPolicy="no-referrer"
                   />
                 ) : (
-                  <span className="text-[13px] font-black text-white drop-shadow-sm">
+                  <span className="text-[12px] font-black text-white drop-shadow-sm">
                     {userData?.name?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || "U"}
                   </span>
                 )}
@@ -79,14 +79,14 @@ export default function TopBar() {
             </Link>
           ) : (
             <Link href="/auth" className="flex items-center justify-center shrink-0 text-[var(--color-text-muted)] p-1">
-              <UserIcon size={24} strokeWidth={1.5} />
+              <UserIcon size={22} strokeWidth={1.5} />
             </Link>
           )}
 
           {!showBack && (
             <Link
               href="/"
-              className={`absolute left-1/2 -translate-x-1/2 text-[17px] font-black tracking-tight ${
+              className={`absolute left-1/2 -translate-x-1/2 text-[16px] font-black tracking-tight ${
                 isProfile ? "text-white" : "text-[var(--color-primary)]"
               }`}
               aria-label="Go to home"

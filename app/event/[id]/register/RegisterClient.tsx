@@ -208,44 +208,44 @@ export default function RegisterClient({ eventId }: { eventId: string }) {
     return null;
   }
 
-  if (!event) {
-    return (
-      <div className="pwa-page-center gap-3 px-6">
-        <AlertCircleIcon size={40} className="text-red-400" />
-        <p className="font-bold">Event not found</p>
-        <Link href="/discover" className="btn btn-primary text-sm mt-2">Back</Link>
-      </div>
-    );
-  }
+    if (!event) {
+      return (
+        <div className="pwa-page-center gap-3 px-4">
+          <AlertCircleIcon size={32} className="text-red-400" />
+          <p className="font-bold">Event not found</p>
+          <Link href="/discover" className="btn btn-primary text-sm mt-2">Back</Link>
+        </div>
+      );
+    }
 
-  if (success) {
-    return (
-      <div className="pwa-page-center px-6">
-        <div className="card p-6 text-center max-w-sm w-full animate-scale-in">
-          <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-4">
-            <CheckCircleIcon size={32} className="text-emerald-600" />
-          </div>
-          <h2 className="text-xl font-bold mb-1">You&apos;re in!</h2>
-          <p className="text-sm text-[var(--color-text-muted)] mb-5">
-            Registered for {event.title}
-          </p>
-          <div className="flex flex-col gap-2">
-            <Link href="/discover" className="btn btn-primary text-sm w-full">
-              Back to Discover
-            </Link>
-            {event.whatsapp_invite_link && (
-              <a
-                href={sanitizeUrl(event.whatsapp_invite_link)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn btn-ghost text-sm w-full text-green-600 border-green-300"
-              >
-                <MessageCircleIcon size={16} /> Join WhatsApp
-              </a>
-            )}
+    if (success) {
+      return (
+        <div className="pwa-page-center px-4">
+          <div className="card p-4 text-center max-w-sm w-full animate-scale-in">
+            <div className="w-14 h-14 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-3">
+              <CheckCircleIcon size={28} className="text-emerald-600" />
+            </div>
+            <h2 className="text-[16px] font-bold mb-1">You&apos;re in!</h2>
+            <p className="text-[13px] text-[var(--color-text-muted)] mb-4">
+              Registered for {event.title}
+            </p>
+            <div className="flex flex-col gap-2">
+              <Link href="/discover" className="btn btn-primary text-[12px] w-full">
+                Back to Discover
+              </Link>
+              {event.whatsapp_invite_link && (
+                <a
+                  href={sanitizeUrl(event.whatsapp_invite_link)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn btn-ghost text-[12px] w-full text-green-600 border-green-300"
+                >
+                  <MessageCircleIcon size={16} /> Join WhatsApp
+                </a>
+              )}
+            </div>
           </div>
         </div>
-      </div>
     );
   }
 
@@ -365,7 +365,7 @@ export default function RegisterClient({ eventId }: { eventId: string }) {
           variant={isOutsiderRestricted ? "danger" : "accent"}
           isLoading={submitting}
           disabled={alreadyRegistered || !!isOutsiderRestricted}
-          className={`h-14 !rounded-2xl text-[15px] font-black tracking-tight transition-all active:scale-95 ${
+          className={`h-11 !rounded-xl text-[13px] font-black tracking-tight transition-all active:scale-95 ${
             alreadyRegistered ? "!bg-emerald-50 !text-emerald-700 !border-emerald-200" : ""
           }`}
           leftIcon={alreadyRegistered ? <CheckCircleIcon size={18} /> : undefined}

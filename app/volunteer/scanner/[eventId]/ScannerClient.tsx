@@ -871,9 +871,9 @@ export default function ScannerClient() {
 
   if (!event || accessError) {
     return (
-      <div className="pwa-page-center bg-[var(--color-bg)] px-6">
+      <div className="pwa-page-center bg-[var(--color-bg)] px-4">
         <div className="text-center max-w-[300px]">
-          <div className="h-16 w-16 mx-auto mb-4 rounded-2xl bg-red-50 flex items-center justify-center">
+          <div className="h-12 w-12 mx-auto mb-3 rounded-xl bg-red-50 flex items-center justify-center">
             <AlertTriangleIcon size={28} className="text-[var(--color-danger)]" />
           </div>
           <h1 className="text-[16px] font-bold text-[var(--color-text)]">Access restricted</h1>
@@ -882,7 +882,7 @@ export default function ScannerClient() {
           </p>
           <button
             onClick={() => router.replace("/volunteer")}
-            className="btn btn-primary w-full mt-5 text-sm"
+            className="btn btn-primary w-full mt-4 text-sm"
           >
             Go back
           </button>
@@ -901,7 +901,7 @@ export default function ScannerClient() {
         <div className="w-10" />
       </header>
 
-      <div className="flex-1 overflow-y-auto px-4 py-4">
+      <div className="flex-1 overflow-y-auto px-4 py-3">
         <div className="flex flex-col gap-1">
           {history.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE).map(row => {
             const getInitials = (name: string) => {
@@ -924,13 +924,13 @@ export default function ScannerClient() {
               "✕";
 
             return (
-              <div key={row.id} className="flex items-center justify-between py-4 border-b border-[#F8FAFC] last:border-0" onClick={() => setSelectedRow(row)}>
-                <div className="flex items-center gap-4 overflow-hidden min-w-0 flex-1">
+              <div key={row.id} className="flex items-center justify-between py-3 border-b border-[#F8FAFC] last:border-0" onClick={() => setSelectedRow(row)}>
+                <div className="flex items-center gap-3 overflow-hidden min-w-0 flex-1">
                   <div className={`w-10 h-10 rounded-full flex items-center justify-center text-[14px] font-bold shrink-0 ${row.status === 'success' ? 'bg-[#D1FAE5] text-[#10B981]' : row.status === 'duplicate' ? 'bg-[#FEF3C7] text-[#F59E0B]' : row.status === 'error' ? 'bg-[#FEE2E2] text-[#EF4444]' : 'bg-[#E0E7FF] text-[#3B82F6]'}`}>
                     {getInitials(row.name)}
                   </div>
                   <div className="flex flex-col min-w-0">
-                    <span className="text-[14px] font-bold text-[#0F172A] truncate">{row.name}</span>
+                    <span className="text-[13px] font-bold text-[#0F172A] truncate">{row.name}</span>
                     <span className="text-[12px] font-medium text-[#64748B]">{row.time.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}</span>
                   </div>
                 </div>

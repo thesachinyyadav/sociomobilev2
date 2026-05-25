@@ -59,7 +59,7 @@ export default function FestDetailClient({ festId }: { festId: string }) {
 
   if (error && !fest) {
     return (
-      <div className="pwa-page-center gap-3 px-6">
+      <div className="pwa-page-center gap-3 px-4">
         <p className="font-bold text-lg text-[var(--color-text)]">{error?.message || "Fest not found"}</p>
         <p className="text-sm text-[var(--color-text-muted)] -mt-1 mb-2">
           We couldn't load the details for this fest.
@@ -75,8 +75,8 @@ export default function FestDetailClient({ festId }: { festId: string }) {
   if (!fest) return <LoadingScreen />;
 
   return (
-    <div className="pwa-page pb-24 pt-2 animate-fade-in">
-      <div className="relative aspect-[16/9] mx-4 rounded-2xl overflow-hidden shadow-lg border border-white/20">
+    <div className="pwa-page pb-20 pt-2 animate-fade-in">
+      <div className="relative aspect-[16/9] mx-4 rounded-[18px] overflow-hidden shadow-lg border border-white/20">
         <Image
           src={fest.banner_url || fest.fest_image_url || "https://placehold.co/800x450/011F7B/ffffff?text=Fest"}
           alt={fest.fest_title}
@@ -96,48 +96,48 @@ export default function FestDetailClient({ festId }: { festId: string }) {
               url: `/fest/${fest.slug || fest.fest_id}`,
             });
           }}
-          className="absolute top-4 right-4 z-40 w-10 h-10 rounded-full bg-black/30 backdrop-blur-md border border-white/20 flex items-center justify-center text-white active:scale-90 transition-transform"
+          className="absolute top-3 right-3 z-40 w-8 h-8 rounded-full bg-black/30 backdrop-blur-md border border-white/20 flex items-center justify-center text-white active:scale-90 transition-transform"
           aria-label="Share Fest"
         >
-          <ShareIcon size={20} />
+          <ShareIcon size={16} />
         </button>
 
-        <div className="absolute bottom-0 left-0 right-0 p-5">
-          <p className="text-[#dae2ff] font-bold text-xs uppercase tracking-wider mb-1">
+        <div className="absolute bottom-0 left-0 right-0 p-4">
+          <p className="text-[#dae2ff] font-bold text-[10px] uppercase tracking-wider mb-1">
             {fest.organizing_dept || "University Fest"}
           </p>
-          <h1 className="text-2xl font-black text-white leading-tight">{fest.fest_title}</h1>
+          <h1 className="text-xl font-black text-white leading-tight">{fest.fest_title}</h1>
         </div>
       </div>
 
-      <div className="px-4 mt-6">
-        <div className="card p-5">
-          <h2 className="text-lg font-bold mb-2 flex items-center gap-2">
+      <div className="px-4 mt-4">
+        <div className="card p-4">
+          <h2 className="text-[16px] font-bold mb-2 flex items-center gap-2">
             About the Fest
           </h2>
-          <p className="text-sm text-[var(--color-text-muted)] leading-relaxed">
+          <p className="text-[13px] text-[var(--color-text-muted)] leading-relaxed">
             {fest.description || "No description available for this fest yet. Stay tuned for updates!"}
           </p>
         </div>
       </div>
 
-      <div className="px-4 mt-8">
-        <div className="flex items-center justify-between mb-4 px-1">
-          <h2 className="text-xl font-black">Events in this Fest</h2>
-          <span className="text-xs font-bold text-[var(--color-text-muted)] bg-gray-100 px-2 py-1 rounded-full">
+      <div className="px-4 mt-6">
+        <div className="flex items-center justify-between mb-3 px-1">
+          <h2 className="text-[16px] font-black">Events in this Fest</h2>
+          <span className="text-[10px] font-bold text-[var(--color-text-muted)] bg-gray-100 px-2 py-0.5 rounded-full">
             {festEvents.length} {festEvents.length === 1 ? 'Event' : 'Events'}
           </span>
         </div>
 
         {festEvents.length > 0 ? (
-          <div className="space-y-4">
+          <div className="space-y-3">
             {festEvents.map((event) => (
               <EventCard key={event.event_id} event={event} />
             ))}
           </div>
         ) : (
-          <div className="card p-8 text-center bg-gray-50/50 border-dashed border-2">
-            <p className="text-sm font-semibold text-[var(--color-text-muted)]">
+          <div className="card p-6 text-center bg-gray-50/50 border-dashed border-2">
+            <p className="text-[13px] font-semibold text-[var(--color-text-muted)]">
               No events found for this fest yet.
             </p>
           </div>

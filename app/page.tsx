@@ -89,11 +89,11 @@ const UpcomingEventItem = React.memo(function UpcomingEventItem({ event }: { eve
     daysAway === 0 ? "Today" : daysAway === 1 ? "Tomorrow" : daysAway > 1 && daysAway <= 3 ? "Closing Soon" : null;
 
   return (
-    <Link
-      href={`/event/${event.event_id}`}
-    className="group flex items-center gap-3 rounded-[18px] border border-white bg-white/82 px-3 py-3 shadow-[0_6px_18px_rgba(1,31,123,0.06)] backdrop-blur-sm transition-all hover:shadow-[0_10px_28px_rgba(1,31,123,0.12)] active:scale-[0.99]"
+      <Link
+        href={`/event/${event.event_id}`}
+      className="group flex items-center gap-2.5 rounded-[14px] border border-white bg-white/82 px-2.5 py-2.5 shadow-[0_6px_18px_rgba(1,31,123,0.06)] backdrop-blur-sm transition-all hover:shadow-[0_10px_28px_rgba(1,31,123,0.12)] active:scale-[0.99]"
     >
-      <div className="relative h-18 w-18 shrink-0 overflow-hidden rounded-[16px] bg-[var(--color-primary-light)]">
+      <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-[12px] bg-[var(--color-primary-light)]">
         <Image
           src={getEventImage(event)}
           alt={event.title}
@@ -106,35 +106,35 @@ const UpcomingEventItem = React.memo(function UpcomingEventItem({ event }: { eve
       <div className="min-w-0 flex-1">
         <div className="flex items-start gap-2">
           <div className="min-w-0 flex-1">
-            <h3 className="truncate text-[14px] font-extrabold text-[var(--color-text)]">{event.title}</h3>
-            <p className="mt-0.5 truncate text-[11px] font-semibold text-[var(--color-text-muted)]">
+            <h3 className="truncate text-[13px] font-extrabold text-[var(--color-text)]">{event.title}</h3>
+            <p className="mt-0.5 truncate text-[10px] font-semibold text-[var(--color-text-muted)]">
               {event.organizing_dept || event.fest || "Campus Event"}
             </p>
           </div>
           <div className="flex shrink-0 items-center gap-1">
             {statusLabel && (
-              <span className="rounded-full bg-[#fff4cf] px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.04em] text-[#745b00]">
+              <span className="rounded-full bg-[#fff4cf] px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.04em] text-[#745b00]">
                 {statusLabel}
               </span>
             )}
-            <ArrowRightIcon size={14} className="mt-0.5 text-[var(--color-text-light)]" />
+            <ArrowRightIcon size={13} className="mt-0.5 text-[var(--color-text-light)]" />
           </div>
         </div>
 
-        <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-[var(--color-text-muted)]">
+        <div className="mt-1.5 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[10px] text-[var(--color-text-muted)]">
           <span className="flex items-center gap-1">
-            <CalendarDaysIcon size={11} className="text-[var(--color-primary)]" />
+            <CalendarDaysIcon size={10} className="text-[var(--color-primary)]" />
             {formatDateShort(event.event_date)}
           </span>
           {event.event_time && (
             <span className="flex items-center gap-1">
-              <Clock3Icon size={11} className="text-[var(--color-primary)]" />
+              <Clock3Icon size={10} className="text-[var(--color-primary)]" />
               {formatTime(event.event_time)}
             </span>
           )}
           {event.venue && (
             <span className="flex items-center gap-1 truncate">
-              <MapPinIcon size={11} className="text-[var(--color-primary)]" />
+              <MapPinIcon size={10} className="text-[var(--color-primary)]" />
               {event.venue}
             </span>
           )}
@@ -143,7 +143,7 @@ const UpcomingEventItem = React.memo(function UpcomingEventItem({ event }: { eve
 
       <div className="shrink-0">
         <span
-          className={`inline-flex rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.04em] ${
+          className={`inline-flex rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.04em] ${
             isFree
               ? "bg-[#e7f8ec] text-[#15803d]"
               : "bg-[#fff2db] text-[#b45309]"
@@ -208,7 +208,7 @@ export default function HomePage() {
   const quickActions = getQuickActions(notificationCount, activeVolunteerEvents.length, isCaterer);
 
   return (
-    <div className="pwa-page relative overflow-hidden px-5 pt-2 pb-[calc(var(--bottom-nav)+var(--safe-bottom)+96px)]">
+    <div className="pwa-page relative overflow-hidden px-4 pt-2 pb-[calc(var(--bottom-nav)+var(--safe-bottom)+72px)]">
       <div
         className="pointer-events-none absolute inset-0 opacity-[0.18]"
         style={{
@@ -219,12 +219,12 @@ export default function HomePage() {
       <div className="pointer-events-none absolute -top-10 right-[-60px] h-60 w-60 rounded-full bg-[var(--color-primary)]/10 blur-3xl" />
       <div className="pointer-events-none absolute bottom-10 left-[-60px] h-56 w-56 rounded-full bg-[var(--color-accent)]/20 blur-3xl" />
 
-      <div className="relative z-10 mx-auto max-w-[420px] space-y-6">
+      <div className="relative z-10 mx-auto max-w-[420px] space-y-4">
         <section className="space-y-1 pt-2">
-          <h1 className="text-[30px] font-black leading-tight tracking-[-0.03em] text-[var(--color-text)]">
+          <h1 className="text-[24px] font-black leading-tight tracking-[-0.03em] text-[var(--color-text)]">
             {greetingText}, <span className="text-[var(--color-primary)]">{(!isAuthReady && !userData) ? "..." : (firstName === "Visitor" ? "Visitor" : firstName + ".")}</span>
           </h1>
-          <p className="max-w-[320px] text-[13px] leading-relaxed text-[var(--color-text-muted)]">
+          <p className="max-w-[300px] text-[12px] leading-relaxed text-[var(--color-text-muted)]">
             Here&apos;s your curated feed of what&apos;s happening around campus this week.
           </p>
         </section>
@@ -238,7 +238,7 @@ export default function HomePage() {
           <section>
             <Link
               href={`/event/${featuredEvent.event_id}`}
-              className="group relative block h-56 overflow-hidden rounded-[22px] shadow-[0_10px_30px_rgba(1,31,123,0.14)]"
+              className="group relative block h-48 overflow-hidden rounded-[18px] shadow-[0_10px_30px_rgba(1,31,123,0.14)]"
             >
               <Image
                 src={getEventImage(featuredEvent)}
@@ -250,29 +250,29 @@ export default function HomePage() {
               />
               <div className="absolute inset-0 bg-gradient-to-t from-[rgba(0,13,59,0.92)] via-[rgba(1,31,123,0.35)] to-transparent" />
               <div className="absolute inset-x-0 bottom-0 h-40 backdrop-blur-md [mask-image:linear-gradient(to_bottom,transparent_0%,rgba(0,0,0,0.12)_18%,rgba(0,0,0,0.72)_48%,black_100%)]" />
-              <div className="absolute inset-x-0 bottom-0 p-4">
+              <div className="absolute inset-x-0 bottom-0 p-3">
                 <div className="flex items-end justify-between gap-4">
                   <div className="min-w-0">
-                    <span className="mb-2 inline-flex rounded-full bg-[#ffe08b] px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.08em] text-[#584400]">
+                    <span className="mb-2 inline-flex rounded-full bg-[#ffe08b] px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.08em] text-[#584400]">
                       {featuredEvent.fest && featuredEvent.fest.toLowerCase() !== "none" ? "Major Fest" : "Featured Event"}
                     </span>
-                    <h2 className="text-[22px] font-extrabold leading-tight text-white">
+                    <h2 className="text-[18px] font-extrabold leading-tight text-white">
                       {featuredEvent.title}
                     </h2>
-                    <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] font-medium text-white/82">
+                    <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] font-medium text-white/82">
                       <span className="flex items-center gap-1">
-                        <CalendarDaysIcon size={13} />
+                        <CalendarDaysIcon size={12} />
                         {formatDateShort(featuredEvent.event_date)}
                       </span>
                       {featuredEvent.venue && (
                         <span className="flex items-center gap-1">
-                          <MapPinIcon size={13} />
+                          <MapPinIcon size={12} />
                           {featuredEvent.venue}
                         </span>
                       )}
                     </p>
                   </div>
-                  <span className="shrink-0 rounded-xl bg-white px-4 py-2 text-[13px] font-extrabold text-[var(--color-primary)] shadow-sm">
+                  <span className="shrink-0 rounded-lg bg-white px-3 py-1.5 text-[11px] font-extrabold text-[var(--color-primary)] shadow-sm">
                     View Event
                   </span>
                 </div>
@@ -282,10 +282,10 @@ export default function HomePage() {
         )}
 
         <section>
-          <h2 className="mb-3 text-[18px] font-extrabold tracking-[-0.02em] text-[var(--color-text)] pl-3 border-l-[3px] border-[var(--color-accent)]">
+          <h2 className="mb-2 text-[16px] font-extrabold tracking-[-0.02em] text-[var(--color-text)] pl-2 border-l-[2px] border-[var(--color-accent)]">
             Quick Actions
           </h2>
-          <div className="grid grid-cols-4 gap-2.5">
+          <div className="grid grid-cols-4 gap-2">
             {quickActions.map(({ href, label, subtitle, icon: Icon, tone, badge }) => {
               const isChatbot = href === "#socioassist";
               
@@ -296,8 +296,8 @@ export default function HomePage() {
                       {badge}
                     </span>
                   ) : null}
-                  <div className={`flex h-11 w-11 items-center justify-center rounded-full ${tone}`}>
-                    <Icon size={20} />
+                  <div className={`flex h-10 w-10 items-center justify-center rounded-full ${tone}`}>
+                    <Icon size={18} />
                   </div>
                   <div className="flex flex-col items-center justify-center min-h-[32px] w-full px-1">
                     <span className="whitespace-pre-line text-center text-[9px] font-extrabold leading-[1.15] text-[var(--color-text)]">
@@ -317,7 +317,7 @@ export default function HomePage() {
                   <button
                     key={href}
                     onClick={() => window.dispatchEvent(new CustomEvent("socio:openChatbot"))}
-                    className="relative flex h-[110px] min-w-0 flex-col items-center justify-center gap-2 rounded-[18px] border border-white bg-white/86 px-1.5 py-3 text-center shadow-[0_6px_18px_rgba(0,0,0,0.04)] backdrop-blur-sm transition-all hover:bg-white active:scale-[0.98] cursor-pointer"
+                    className="relative flex h-[96px] min-w-0 flex-col items-center justify-center gap-1.5 rounded-[14px] border border-white bg-white/86 px-1 py-2.5 text-center shadow-[0_6px_18px_rgba(0,0,0,0.04)] backdrop-blur-sm transition-all hover:bg-white active:scale-[0.98] cursor-pointer"
                   >
                     {ActionContent}
                   </button>
@@ -328,7 +328,7 @@ export default function HomePage() {
                 <Link
                   key={href}
                   href={href}
-                  className="relative flex h-[110px] min-w-0 flex-col items-center justify-center gap-2 rounded-[18px] border border-white bg-white/86 px-1.5 py-3 text-center shadow-[0_6px_18px_rgba(0,0,0,0.04)] backdrop-blur-sm transition-all hover:bg-white active:scale-[0.98]"
+                  className="relative flex h-[96px] min-w-0 flex-col items-center justify-center gap-1.5 rounded-[14px] border border-white bg-white/86 px-1 py-2.5 text-center shadow-[0_6px_18px_rgba(0,0,0,0.04)] backdrop-blur-sm transition-all hover:bg-white active:scale-[0.98]"
                 >
                   {ActionContent}
                 </Link>
@@ -339,15 +339,15 @@ export default function HomePage() {
 
         {!isHydrated || upcomingEvents.length > 0 ? (
           <section>
-            <div className="mb-3 flex items-center justify-between">
-              <h2 className="text-[18px] font-extrabold tracking-[-0.02em] text-[var(--color-text)] pl-3 border-l-[3px] border-[var(--color-accent)]">
+            <div className="mb-2 flex items-center justify-between">
+              <h2 className="text-[16px] font-extrabold tracking-[-0.02em] text-[var(--color-text)] pl-2 border-l-[2px] border-[var(--color-accent)]">
                 Upcoming Events
               </h2>
-              <Link href="/events" className="flex items-center gap-1 text-[12px] font-bold text-[var(--color-primary)]">
-                See all <ArrowRightIcon size={13} />
+              <Link href="/events" className="flex items-center gap-1 text-[11px] font-bold text-[var(--color-primary)]">
+                See all <ArrowRightIcon size={12} />
               </Link>
             </div>
-            <div className="space-y-3">
+            <div className="space-y-2">
               {!isHydrated ? (
                 <EventCardSkeleton count={3} />
               ) : (
@@ -361,12 +361,12 @@ export default function HomePage() {
 
         {!isHydrated || festSpotlight ? (
           <section>
-            <div className="mb-3 flex items-center justify-between">
-              <h2 className="text-[18px] font-extrabold tracking-[-0.02em] text-[var(--color-text)] pl-3 border-l-[3px] border-[var(--color-accent)]">
+            <div className="mb-2 flex items-center justify-between">
+              <h2 className="text-[16px] font-extrabold tracking-[-0.02em] text-[var(--color-text)] pl-2 border-l-[2px] border-[var(--color-accent)]">
                 Fest Spotlight
               </h2>
-              <Link href="/fests" className="flex items-center gap-1 text-[12px] font-bold text-[var(--color-primary)]">
-                See Fest <ArrowRightIcon size={13} />
+              <Link href="/fests" className="flex items-center gap-1 text-[11px] font-bold text-[var(--color-primary)]">
+                See Fest <ArrowRightIcon size={12} />
               </Link>
             </div>
 
@@ -375,9 +375,9 @@ export default function HomePage() {
             ) : (
               <Link
                 href={festSpotlight!.fest ? "/fests" : `/event/${festSpotlight!.event_id}`}
-                className="group relative block overflow-hidden rounded-[22px] border border-white bg-white/85 shadow-[0_8px_24px_rgba(1,31,123,0.08)] backdrop-blur-sm"
+                className="group relative block overflow-hidden rounded-[18px] border border-white bg-white/85 shadow-[0_8px_24px_rgba(1,31,123,0.08)] backdrop-blur-sm"
               >
-                <div className="relative h-40">
+                <div className="relative h-32">
                   <Image
                     src={getEventImage(festSpotlight!)}
                     alt={festSpotlight!.fest || festSpotlight!.title}
@@ -386,11 +386,11 @@ export default function HomePage() {
                     sizes="(max-width: 480px) 100vw, 420px"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/15 to-transparent" />
-                  <div className="absolute inset-x-0 bottom-0 p-4">
-                    <h3 className="text-[20px] font-extrabold leading-tight text-white">
+                  <div className="absolute inset-x-0 bottom-0 p-3">
+                    <h3 className="text-[17px] font-extrabold leading-tight text-white">
                       {festSpotlight!.fest || festSpotlight!.title}
                     </h3>
-                    <p className="mt-1 text-[12px] text-white/80">
+                    <p className="mt-0.5 text-[11px] text-white/80">
                       {festSpotlight!.organizing_dept || "Campus-wide spotlight"}
                     </p>
                   </div>
@@ -401,12 +401,12 @@ export default function HomePage() {
         ) : null}
 
         {isHydrated && allEvents.length === 0 && (
-          <section className="rounded-[22px] border border-white bg-white/85 px-5 py-8 text-center shadow-[0_8px_24px_rgba(1,31,123,0.06)]">
-            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-[var(--color-primary-light)]">
-              <CalendarDaysIcon className="h-7 w-7 text-[var(--color-primary)]" />
+          <section className="rounded-2xl border border-white bg-white/85 px-4 py-5 text-center shadow-[0_8px_24px_rgba(1,31,123,0.06)]">
+            <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-[var(--color-primary-light)]">
+              <CalendarDaysIcon className="h-6 w-6 text-[var(--color-primary)]" />
             </div>
-            <h2 className="text-[18px] font-extrabold text-[var(--color-text)]">No events yet</h2>
-            <p className="mt-1 text-[13px] text-[var(--color-text-muted)]">
+            <h2 className="text-[16px] font-extrabold text-[var(--color-text)]">No events yet</h2>
+            <p className="mt-1 text-[12px] text-[var(--color-text-muted)]">
               Check back soon for upcoming campus events and fest announcements.
             </p>
           </section>

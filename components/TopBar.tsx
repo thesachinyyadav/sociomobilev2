@@ -89,12 +89,17 @@ export default function TopBar() {
           {!showBack && (
             <Link
               href="/"
-              className={`absolute left-1/2 -translate-x-1/2 text-[16px] font-black tracking-tight ${
-                isProfile ? "text-white" : "text-[var(--color-primary)]"
-              }`}
+              className="absolute left-1/2 -translate-x-1/2 flex items-center justify-center"
               aria-label="Go to home"
             >
-              SOCIO
+              <Image
+                src="/logo.svg"
+                alt="SOCIO"
+                width={80}
+                height={24}
+                className={`h-[20px] w-auto ${isProfile ? "brightness-0 invert" : ""}`}
+                priority
+              />
             </Link>
           )}
 

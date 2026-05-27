@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { useNotifications, type Notification } from "@/context/NotificationContext";
 import { useRouter } from "next/navigation";
 import { 
@@ -165,6 +166,33 @@ export default function NotificationsPage() {
   const router = useRouter();
 
   const [showClearModal, setShowClearModal] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    return () => setMounted(false);
+  }, []);
+
+  useEffect(() => {
+    const mainEl = document.querySelector("main");
+    if (showClearModal) {
+      document.body.style.overflow = "hidden";
+      if (mainEl) {
+        mainEl.style.overflowY = "hidden";
+      }
+    } else {
+      document.body.style.overflow = "";
+      if (mainEl) {
+        mainEl.style.overflowY = "";
+      }
+    }
+    return () => {
+      document.body.style.overflow = "";
+      if (mainEl) {
+        mainEl.style.overflowY = "";
+      }
+    };
+  }, [showClearModal]);
 
   useEffect(() => {
     if (pushStatus === "not_requested") {
@@ -380,8 +408,8 @@ export default function NotificationsPage() {
       </div>
 
       {/* Clear All Confirmation Modal */}
-      {showClearModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center px-4">
+      {showClearModal && mounted && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center px-4">
           <div 
             className="absolute inset-0 bg-slate-900/40 backdrop-blur-md transition-opacity" 
             onClick={() => setShowClearModal(false)}
@@ -414,7 +442,8 @@ export default function NotificationsPage() {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       <style dangerouslySetInnerHTML={{__html: `

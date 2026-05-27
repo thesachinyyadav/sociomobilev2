@@ -62,10 +62,9 @@ export async function initNativeOneSignal(email?: string, name?: string) {
     // Bind the user's email and details if they are logged in
     if (email) {
       const normalizedEmail = email.trim().toLowerCase();
-      console.log(`[NATIVE_PUSH] Logging in user with external ID: ${normalizedEmail}`);
-      console.log("[ONESIGNAL_LOGIN]", normalizedEmail);
       await OneSignal.login(normalizedEmail);
       await OneSignal.User.addEmail(normalizedEmail);
+      console.log("[ONESIGNAL_LOGIN]", normalizedEmail);
       OneSignal.User.addTag("email", normalizedEmail);
       
       if (name) {

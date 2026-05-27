@@ -214,108 +214,103 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     };
     window.addEventListener("socio:notificationClick", handleNotificationClick);
 
-    // SW posts messages back to the page when the user taps a notification
-    // (see public/sw.js notificationclick handler). Translate into the same
-    // socio:notificationClick event so the click-routing flow above still works.
-    const handleSwMessage = (event: MessageEvent) => {
-      if (event.data?.type === "socio:notificationClick") {
-        const route = event.data.url || "/notifications";
-        window.dispatchEvent(new CustomEvent("socio:notificationClick", { detail: { route } }));
+    let handleSwMessage: ((event: MessageEvent) => void) | null = null;
 
-      } else if (event.data?.type === "socio:foregroundNotification") {
-        // SW sent this because app is in background — re-dispatch for any listeners
-        // and silently refresh the notification count
-        window.dispatchEvent(new CustomEvent("socio:foregroundNotification", { detail: event.data }));
-        fetchRef.current();
+    if (!Capacitor.isNativePlatform()) {
+      // VAPID WEB PUSH ONLY
+      handleSwMessage = (event: MessageEvent) => {
+        if (event.data?.type === "socio:notificationClick") {
+          const route = event.data.url || "/notifications";
+          window.dispatchEvent(new CustomEvent("socio:notificationClick", { detail: { route } }));
 
-      } else if (event.data?.type === "socio:foregroundSync") {
-        // SW suppressed the native notification because the app is currently visible.
-        // Silently refresh unread count — no toast, no overlay, no popup.
-        // This matches Instagram/Discord foreground notification UX.
-        console.log("[PUSH] Foreground sync triggered — silently refreshing notification count");
-        fetchRef.current();
+        } else if (event.data?.type === "socio:foregroundNotification") {
+          // SW sent this because app is in background — re-dispatch for any listeners
+          // and silently refresh the notification count
+          window.dispatchEvent(new CustomEvent("socio:foregroundNotification", { detail: event.data }));
+          fetchRef.current();
 
-      } else if (event.data?.type === "socio:subscriptionRotated") {
-        // SW's pushsubscriptionchange handler fired — browser rotated our push endpoint.
-        // Re-register the new subscription with the backend so it can send to the new endpoint.
-        const newSub = event.data.newSubscription;
-        if (newSub && newSub.endpoint) {
-          console.log("[PUSH] Subscription rotated — re-registering new endpoint with backend");
-          const newSubStr = JSON.stringify(newSub);
-          localStorage.setItem("socio_vapid_subscription", newSubStr);
-          localStorage.setItem("socio_vapid_subscription_created_at", new Date().toISOString());
-          apiRequest("/notifications/push/subscribe", {
+        } else if (event.data?.type === "socio:foregroundSync") {
+          // SW suppressed the native notification because the app is currently visible.
+          // Silently refresh unread count — no toast, no overlay, no popup.
+          // This matches Instagram/Discord foreground notification UX.
+          console.log("[PUSH] Foreground sync triggered — silently refreshing notification count");
+          fetchRef.current();
+
+        } else if (event.data?.type === "socio:subscriptionRotated") {
+          // SW's pushsubscriptionchange handler fired — browser rotated our push endpoint.
+          // Re-register the new subscription with the backend so it can send to the new endpoint.
+          const newSub = event.data.newSubscription;
+          if (newSub && newSub.endpoint) {
+            console.log("[PUSH] Subscription rotated — re-registering new endpoint with backend");
+            const newSubStr = JSON.stringify(newSub);
+            localStorage.setItem("socio_vapid_subscription", newSubStr);
+            localStorage.setItem("socio_vapid_subscription_created_at", new Date().toISOString());
+            apiRequest("/notifications/push/subscribe", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: newSubStr,
+            }).catch((err: unknown) => {
+              console.warn("[PUSH] Failed to re-register rotated subscription:", err);
+            });
+          }
+        }
+      };
+
+      const reRegisterSubscriptionOnBoot = async () => {
+        try {
+          const cachedSub = localStorage.getItem("socio_vapid_subscription");
+          if (!cachedSub) return; // never subscribed or explicitly unsubscribed
+
+          // Verify the subscription is still valid in the browser's PushManager
+          const reg = await navigator.serviceWorker.ready;
+          const liveSub = await reg.pushManager.getSubscription();
+          if (!liveSub) {
+            // Browser has already invalidated the subscription — clear stale cache
+            console.log("[PUSH] Boot check: cached subscription no longer valid in browser. Clearing.");
+            localStorage.removeItem("socio_vapid_subscription");
+            localStorage.removeItem("socio_vapid_subscription_created_at");
+            return;
+          }
+
+          // Re-register with backend (idempotent — backend deduplicates by endpoint)
+          console.log("[PUSH] Boot re-registration: posting cached subscription to backend");
+          await apiRequest("/notifications/push/subscribe", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: newSubStr,
-          }).catch((err: unknown) => {
-            console.warn("[PUSH] Failed to re-register rotated subscription:", err);
+            body: cachedSub,
           });
+          console.log("[PUSH] Boot re-registration: success");
+        } catch (err) {
+          // Best-effort — never block app startup
+          console.warn("[PUSH] Boot re-registration failed (non-fatal):", err);
+        }
+      };
+
+      // Web / PWA SW registration:
+      if ("serviceWorker" in navigator) {
+        if (phase >= 2) {
+          navigator.serviceWorker
+            .register("/sw.js")
+            .then((reg) => {
+              console.log("[PUSH] Service worker registered (scope:", reg.scope, ")");
+              setIsPushReady(true);
+              // Re-register subscription after SW is ready — ensures backend in-memory
+              // store is populated even after server restarts.
+              reRegisterSubscriptionOnBoot();
+            })
+            .catch((err) => {
+              console.error("[PUSH] Service worker registration failed:", err);
+              setIsPushReady(true);
+            });
+        }
+        navigator.serviceWorker.addEventListener("message", handleSwMessage);
+      } else {
+        if (phase >= 2) {
+          setIsPushReady(true);
         }
       }
-    };
-
-    /**
-     * Boot-time subscription re-registration.
-     *
-     * WHY THIS IS NEEDED:
-     * The backend uses an in-memory subscription store (Map). Every server restart
-     * wipes that store, so all existing subscribers are forgotten — even though their
-     * browser subscription is still valid. Without this, zero pushes are delivered
-     * after any backend restart.
-     *
-     * This re-posts the cached VAPID subscription to the backend on every app boot
-     * (best-effort, silent — no UI impact). It is fast */
-    const reRegisterSubscriptionOnBoot = async () => {
-      if (Capacitor.isNativePlatform()) return;
-      try {
-        const cachedSub = localStorage.getItem("socio_vapid_subscription");
-        if (!cachedSub) return; // never subscribed or explicitly unsubscribed
-
-        // Verify the subscription is still valid in the browser's PushManager
-        const reg = await navigator.serviceWorker.ready;
-        const liveSub = await reg.pushManager.getSubscription();
-        if (!liveSub) {
-          // Browser has already invalidated the subscription — clear stale cache
-          console.log("[PUSH] Boot check: cached subscription no longer valid in browser. Clearing.");
-          localStorage.removeItem("socio_vapid_subscription");
-          localStorage.removeItem("socio_vapid_subscription_created_at");
-          return;
-        }
-
-        // Re-register with backend (idempotent — backend deduplicates by endpoint)
-        console.log("[PUSH] Boot re-registration: posting cached subscription to backend");
-        await apiRequest("/notifications/push/subscribe", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: cachedSub,
-        });
-        console.log("[PUSH] Boot re-registration: success");
-      } catch (err) {
-        // Best-effort — never block app startup
-        console.warn("[PUSH] Boot re-registration failed (non-fatal):", err);
-      }
-    };
-
-    // Web / PWA SW registration:
-    if ("serviceWorker" in navigator && !Capacitor.isNativePlatform()) {
-      if (phase >= 2) {
-        navigator.serviceWorker
-          .register("/sw.js")
-          .then((reg) => {
-            console.log("[PUSH] Service worker registered (scope:", reg.scope, ")");
-            setIsPushReady(true);
-            // Re-register subscription after SW is ready — ensures backend in-memory
-            // store is populated even after server restarts.
-            reRegisterSubscriptionOnBoot();
-          })
-          .catch((err) => {
-            console.error("[PUSH] Service worker registration failed:", err);
-            setIsPushReady(true);
-          });
-      }
-      navigator.serviceWorker.addEventListener("message", handleSwMessage);
     } else {
+      // NATIVE APK ONLY
       if (phase >= 2) {
         setIsPushReady(true);
       }
@@ -323,7 +318,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
     return () => {
       window.removeEventListener("socio:notificationClick", handleNotificationClick);
-      if (typeof navigator !== "undefined" && "serviceWorker" in navigator && !Capacitor.isNativePlatform()) {
+      if (typeof navigator !== "undefined" && "serviceWorker" in navigator && !Capacitor.isNativePlatform() && handleSwMessage) {
         navigator.serviceWorker.removeEventListener("message", handleSwMessage);
       }
     };
@@ -357,89 +352,91 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
-        toast.error("Push notifications aren't supported in this browser");
-        return;
-      }
-
-      const vapidKey = process.env.NEXT_PUBLIC_VAPID_KEY;
-      if (!vapidKey) {
-        console.error("[PUSH] NEXT_PUBLIC_VAPID_KEY is not set");
-        toast.error("Push notifications are not configured (missing VAPID key)");
-        return;
-      }
-
-      let reg: ServiceWorkerRegistration;
-      try {
-        reg = await navigator.serviceWorker.register("/sw.js");
-        await navigator.serviceWorker.ready;
-      } catch (swErr: unknown) {
-        const msg = swErr instanceof Error ? swErr.message : "Service worker registration failed";
-        console.error("[PUSH] Service worker registration failed:", swErr);
-        toast.error(msg);
-        return;
-      }
-
-      const permission = await Notification.requestPermission();
-      console.log("[PUSH] Permission after request:", permission);
-
-      const granted = permission === "granted";
-      if (!granted) {
-        setPushStatus(permission === "denied" ? "denied" : "not_requested");
-        localStorage.setItem(getLSKey(LS_PUSH_STATUS_KEY), permission === "denied" ? "denied" : "not_requested");
-        updatePromptStatus(permission === "denied" ? "denied" : "not_shown");
-        if (permission === "denied") {
-          toast.error("Notifications are blocked in browser settings");
+      if (!Capacitor.isNativePlatform()) {
+        if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
+          toast.error("Push notifications aren't supported in this browser");
+          return;
         }
-        return;
-      }
 
-      console.log("[PUSH] Permission granted");
+        const vapidKey = process.env.NEXT_PUBLIC_VAPID_KEY;
+        if (!vapidKey) {
+          console.error("[PUSH] NEXT_PUBLIC_VAPID_KEY is not set");
+          toast.error("Push notifications are not configured (missing VAPID key)");
+          return;
+        }
 
-      // Reuse existing subscription if present, otherwise create one.
-      let subscription = await reg.pushManager.getSubscription();
-      if (!subscription) {
+        let reg: ServiceWorkerRegistration;
         try {
-          subscription = await reg.pushManager.subscribe({
-            userVisibleOnly: true,
-            applicationServerKey: urlBase64ToUint8Array(vapidKey),
-          });
-          console.log("[PUSH] Subscription created:", subscription.endpoint);
-        } catch (subErr: unknown) {
-          const msg = subErr instanceof Error ? subErr.message : "Failed to subscribe to push";
-          console.error("[PUSH] pushManager.subscribe failed:", subErr);
+          reg = await navigator.serviceWorker.register("/sw.js");
+          await navigator.serviceWorker.ready;
+        } catch (swErr: unknown) {
+          const msg = swErr instanceof Error ? swErr.message : "Service worker registration failed";
+          console.error("[PUSH] Service worker registration failed:", swErr);
           toast.error(msg);
           return;
         }
-      } else {
-        console.log("[PUSH] Reusing existing push subscription:", subscription.endpoint);
+
+        const permission = await Notification.requestPermission();
+        console.log("[PUSH] Permission after request:", permission);
+
+        const granted = permission === "granted";
+        if (!granted) {
+          setPushStatus(permission === "denied" ? "denied" : "not_requested");
+          localStorage.setItem(getLSKey(LS_PUSH_STATUS_KEY), permission === "denied" ? "denied" : "not_requested");
+          updatePromptStatus(permission === "denied" ? "denied" : "not_shown");
+          if (permission === "denied") {
+            toast.error("Notifications are blocked in browser settings");
+          }
+          return;
+        }
+
+        console.log("[PUSH] Permission granted");
+
+        // Reuse existing subscription if present, otherwise create one.
+        let subscription = await reg.pushManager.getSubscription();
+        if (!subscription) {
+          try {
+            subscription = await reg.pushManager.subscribe({
+              userVisibleOnly: true,
+              applicationServerKey: urlBase64ToUint8Array(vapidKey),
+            });
+            console.log("[PUSH] Subscription created:", subscription.endpoint);
+          } catch (subErr: unknown) {
+            const msg = subErr instanceof Error ? subErr.message : "Failed to subscribe to push";
+            console.error("[PUSH] pushManager.subscribe failed:", subErr);
+            toast.error(msg);
+            return;
+          }
+        } else {
+          console.log("[PUSH] Reusing existing push subscription:", subscription.endpoint);
+        }
+
+        // Cache the subscription locally in localStorage (no database persistence)
+        const subJSON = JSON.stringify(subscription.toJSON());
+        localStorage.setItem("socio_vapid_subscription", subJSON);
+        localStorage.setItem("socio_vapid_subscription_created_at", new Date().toISOString());
+
+        // Register the subscription on the backend database
+        try {
+          await apiRequest("/notifications/push/subscribe", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: subJSON,
+          });
+          console.log("[PUSH] Registered subscription on backend database successfully");
+        } catch (backendErr) {
+          console.warn("[PUSH] Backend subscription registration failed:", backendErr);
+        }
+
+        const newStatus = "granted";
+        setPushStatus(newStatus);
+        localStorage.setItem(getLSKey(LS_PUSH_STATUS_KEY), newStatus);
+        updatePromptStatus("accepted");
+
+        toast.success("Notifications enabled!");
       }
-
-      // Cache the subscription locally in localStorage (no database persistence)
-      const subJSON = JSON.stringify(subscription.toJSON());
-      localStorage.setItem("socio_vapid_subscription", subJSON);
-      localStorage.setItem("socio_vapid_subscription_created_at", new Date().toISOString());
-
-      // Register the subscription on the backend database
-      try {
-        await apiRequest("/notifications/push/subscribe", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: subJSON,
-        });
-        console.log("[PUSH] Registered subscription on backend database successfully");
-      } catch (backendErr) {
-        console.warn("[PUSH] Backend subscription registration failed:", backendErr);
-      }
-
-      const newStatus = "granted";
-      setPushStatus(newStatus);
-      localStorage.setItem(getLSKey(LS_PUSH_STATUS_KEY), newStatus);
-      updatePromptStatus("accepted");
-
-      toast.success("Notifications enabled!");
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : "Failed to enable notifications";
       console.error("[PUSH] Enable error", e);
@@ -460,44 +457,46 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      if ("serviceWorker" in navigator) {
-        try {
-          const reg = await navigator.serviceWorker.getRegistration("/sw.js");
-          const subscription = await reg?.pushManager.getSubscription();
-          if (subscription) {
-            await subscription.unsubscribe();
-            console.log("[PUSH] Local unsubscribe complete");
+      if (!Capacitor.isNativePlatform()) {
+        if ("serviceWorker" in navigator) {
+          try {
+            const reg = await navigator.serviceWorker.getRegistration("/sw.js");
+            const subscription = await reg?.pushManager.getSubscription();
+            if (subscription) {
+              await subscription.unsubscribe();
+              console.log("[PUSH] Local unsubscribe complete");
+            }
+          } catch (e) {
+            console.warn("[PUSH] Local unsubscribe error:", e);
           }
-        } catch (e) {
-          console.warn("[PUSH] Local unsubscribe error:", e);
         }
-      }
 
-      // Clear server subscription
-      try {
-        const cachedSub = localStorage.getItem("socio_vapid_subscription");
-        if (cachedSub) {
-          await apiRequest("/notifications/push/unsubscribe", {
-            method: "DELETE",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: cachedSub,
-          });
-          console.log("[PUSH] Unregistered subscription from backend database");
+        // Clear server subscription
+        try {
+          const cachedSub = localStorage.getItem("socio_vapid_subscription");
+          if (cachedSub) {
+            await apiRequest("/notifications/push/unsubscribe", {
+              method: "DELETE",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: cachedSub,
+            });
+            console.log("[PUSH] Unregistered subscription from backend database");
+          }
+        } catch (backendErr) {
+          console.warn("[PUSH] Backend unsubscription failed:", backendErr);
         }
-      } catch (backendErr) {
-        console.warn("[PUSH] Backend unsubscription failed:", backendErr);
+
+        // Clear local cache keys
+        localStorage.removeItem("socio_vapid_subscription");
+        localStorage.removeItem("socio_vapid_subscription_created_at");
+
+        setPushStatus("not_requested");
+        localStorage.setItem(getLSKey(LS_PUSH_STATUS_KEY), "not_requested");
+        updatePromptStatus("not_shown");
+        toast.success("Notifications turned off");
       }
-
-      // Clear local cache keys
-      localStorage.removeItem("socio_vapid_subscription");
-      localStorage.removeItem("socio_vapid_subscription_created_at");
-
-      setPushStatus("not_requested");
-      localStorage.setItem(getLSKey(LS_PUSH_STATUS_KEY), "not_requested");
-      updatePromptStatus("not_shown");
-      toast.success("Notifications turned off");
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : "Failed to turn off notifications";
       console.error("[PUSH] Disable error", e);

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "react-hot-toast";
 import { useAuth } from "@/context/AuthContext";
 import { useNotifications } from "@/context/NotificationContext";
+import { Capacitor } from "@capacitor/core";
 import { Button } from "@/components/Button";
 import { LogOutIcon, BellIcon as Bell } from "@/components/icons";
 import NotificationPermissionModal from "@/components/notifications/NotificationPermissionModal";
@@ -19,9 +20,12 @@ export default function SettingsPage() {
   const [browserPermission, setBrowserPermission] = useState<NotificationPermission | "unsupported">("unsupported");
 
   const isPushEnabled = pushStatus === "granted";
-  const isPushBlocked = browserPermission === "denied" || pushStatus === "denied";
+  const isPushBlocked = Capacitor.isNativePlatform()
+    ? pushStatus === "denied"
+    : browserPermission === "denied" || pushStatus === "denied";
 
   useEffect(() => {
+    if (Capacitor.isNativePlatform()) return;
     if (typeof window === "undefined" || !("Notification" in window)) return;
     setBrowserPermission(Notification.permission);
     let permStatus: PermissionStatus | null = null;
@@ -72,7 +76,9 @@ export default function SettingsPage() {
               {isPushEnabled
                 ? "Push notifications are on"
                 : isPushBlocked
-                ? "Blocked in browser settings — enable there to allow"
+                ? Capacitor.isNativePlatform()
+                  ? "Blocked in app settings — enable there to allow"
+                  : "Blocked in browser settings — enable there to allow"
                 : "Get instant alerts for events & registrations"}
             </p>
           </div>

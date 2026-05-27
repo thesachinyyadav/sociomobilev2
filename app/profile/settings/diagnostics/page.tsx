@@ -197,6 +197,10 @@ export default function DiagnosticsPage() {
   }, [collect]);
 
   const handleSendTest = async () => {
+    if (Capacitor.isNativePlatform()) {
+      toast.error("VAPID direct test is only available on Web/PWA.");
+      return;
+    }
     setBusy("test");
     try {
       const cachedSub = localStorage.getItem("socio_vapid_subscription");
@@ -247,6 +251,10 @@ export default function DiagnosticsPage() {
   };
 
   const handleForceReregisterSW = async () => {
+    if (Capacitor.isNativePlatform()) {
+      toast.error("Service worker registration is only available on Web/PWA.");
+      return;
+    }
     setBusy("sw");
     try {
       if (!("serviceWorker" in navigator)) {
@@ -272,6 +280,10 @@ export default function DiagnosticsPage() {
   };
 
   const handleLocalNotification = async () => {
+    if (Capacitor.isNativePlatform()) {
+      toast.error("Local Web Notification testing is only available on Web/PWA.");
+      return;
+    }
     setBusy("local");
     try {
       if (typeof Notification === "undefined") {

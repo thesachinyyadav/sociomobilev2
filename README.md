@@ -1,219 +1,158 @@
-# SOCIO Mobile (PWA) v2
+# 🏛️ SOCIO Mobile (PWA) v2
+> **The Next-Generation University Event Platform** — Mobile-First Progressive Web App & Native Bridge.
 
-Mobile-first **Progressive Web App (PWA)** for the SOCIO university events platform.
+SOCIO Mobile is a high-performance, mobile-first **Progressive Web App (PWA)** and hybrid mobile application built with **Next.js (App Router)** and **Capacitor**. It serves as the primary student-facing interface for event discovery, ticket generation, and community interaction.
 
-This repository contains a **Next.js (App Router)** application that uses:
+---
 
-- **Supabase** for authentication (Google OAuth) and data access
-- An existing **SOCIO backend API** (`NEXT_PUBLIC_API_URL`) for certain operations
-- A custom **service worker** (`public/sw.js`) + `public/manifest.json`
-- Optional **Capacitor** setup for Android builds
+## 🚀 Core Features
 
-For deeper historical notes and feature status, see `CONTEXT.md`.
+*   **⚡ High-Speed Discovery**: Curated dashboard views for campus events, fests, and student clubs, optimized for performance with SWR data pre-fetching.
+*   **🎟️ Secure Digital Ticketing**: Offline-ready ticket generation displaying secure QR codes for campus entry and volunteer check-ins.
+*   **📱 Hybrid Mobile Shell**: Built with Capacitor to compile as a native Android or iOS application, complete with deep link handling and push notification support.
+*   **🔌 PWA Capabilities**: Fully installable client with a custom background Service Worker handling network caching and providing robust offline fallbacks.
+*   **🤝 Volunteer Controls**: Built-in scanning flows and gesture-based triggers (Shake-to-Scan) to empower club organizers and volunteers at event venues.
 
-## What This App Does
+---
 
-| Area | What you can do |
-|---|---|
-| Discover | Browse fests and events, search + filter lists |
-| Event details | View rules/schedule/prizes and register |
-| Registration | Submit team registrations (where applicable) |
-| Profile | View user info + registrations, sign out |
-| Notifications | Receive in-app / browser notifications (where supported) |
-| Volunteer tools | Access volunteer pages and QR scanning flows |
-| PWA | Installable app + offline fallback via service worker |
+## 🛠️ Technology Stack
 
-## Tech Stack
+| Layer | Technologies | Purpose |
+| :--- | :--- | :--- |
+| **Framework** | Next.js 16 (App Router), React 19 | Core web application architecture |
+| **Language** | TypeScript | Strong typings and static analysis |
+| **Styling** | Tailwind CSS v4, PostCSS | Performance-focused visual design system |
+| **Database & Auth** | Supabase, PostgreSQL | Secure session management (Google OAuth) and data persistence |
+| **Local Storage** | Dexie.js (IndexedDB) | High-performance client-side database for offline support |
+| **Native Bridge** | Capacitor, Cordova | Hybrid mobile wrapper for Android & iOS builds |
+| **Push Notifications** | OneSignal (Cordova Plugin) | Rich native notifications and audience segments |
+| **Analytics & Alerts** | Sentry (Express integration), React Hot Toast | Error tracing and micro-interactive user feedback |
 
-| Layer | Technology |
-|---|---|
-| Framework | Next.js (App Router) |
-| UI | React |
-| Language | TypeScript |
-| Styling | Tailwind CSS |
-| Auth + DB | Supabase (Auth + Postgres) |
-| Dates | Day.js |
-| Icons | Lucide React |
-| Notifications | OneSignal (via Cordova plugin; primarily for native builds) |
-| Mobile wrapper (optional) | Capacitor (Android) |
-| PWA | Custom `public/sw.js` + `public/manifest.json` |
+---
 
-## Key Packages
+## 📂 Project Architecture
 
-| Package | Why it’s used |
-|---|---|
-| `next`, `react`, `react-dom` | Core web framework + UI |
-| `tailwindcss`, `@tailwindcss/postcss`, `postcss` config | Styling pipeline |
-| `@supabase/supabase-js`, `@supabase/ssr` | Auth/session management + data access |
-| `dayjs` | Date formatting utilities (`lib/dateUtils.ts`) |
-| `lucide-react` | Icon set across UI |
-| `react-hot-toast` | Toast notifications (Toaster wired in layout) |
-| `qr-scanner` | QR scanning UI (volunteer scanner) |
-| `@capacitor/*` | Android/native wrapper + plugins |
-| `onesignal-cordova-plugin` | Push notifications in native context |
-
-## Requirements
-
-- Node.js (recommended: latest LTS). Note: some Capacitor tooling expects Node 22+.
-- npm
-
-## Getting Started
-
-### 1) Install dependencies
-
-```bash
-npm ci
+```text
+sociomobilev2/
+├── app/                  # Next.js App Router Pages & API Routes
+│   ├── api/pwa/          # Backend proxy endpoints for PWA synchronization
+│   ├── auth/             # Authentication & OAuth callback handlers
+│   ├── discover/         # Principal curation dashboard
+│   ├── event/            # Event detailed information and registrations
+│   ├── volunteer/        # Scanner portal and check-in workflows
+│   └── globals.css       # Main design tokens and Tailwind utility mappings
+├── components/           # Reusable functional UI components
+│   ├── icons/            # Optimized SVG icon library (Lucide-based)
+│   ├── native/           # Bridge controllers for native mobile platform APIs
+│   └── TopBar & BottomNav# Primary PWA navigation headers & tabs
+├── context/              # React Context Providers (Auth, Event, Network, Notifications)
+├── lib/                  # Library configurations (Supabase, API Client, Cache policies)
+├── public/               # Static assets, Web Manifest, and PWA Service Worker (sw.js)
+├── android/              # Capacitor Android Studio folder configuration
+└── ios/                  # Capacitor Xcode project configuration
 ```
 
-### 2) Configure environment variables
+---
 
-Create `.env.local` in the project root.
+## ⚙️ Environment Variables
 
-You can start from the example file:
-
+Copy the template configuration into a local file:
 ```bash
 cp .env.local.example .env.local
 ```
 
-Common variables:
+Key environment configurations defined in `env.local`:
+*   `NEXT_PUBLIC_APP_URL`: Canonical root URL of the web server (used in OAuth redirects).
+*   `NEXT_PUBLIC_SUPABASE_URL`: Endpoint of the Supabase instance.
+*   `NEXT_PUBLIC_SUPABASE_ANON_KEY`: Supabase client anonymous API key.
+*   `NEXT_PUBLIC_API_URL`: Root base URL of the primary SOCIO backend services.
+*   `NEXT_PUBLIC_APP_VERSION`: App version metadata checked during startup to trigger onboarding updates.
 
-- `NEXT_PUBLIC_APP_URL`: Public app URL (used for auth redirects / canonical URLs)
-- `NEXT_PUBLIC_PWA_URL`: Public PWA URL (often same as `NEXT_PUBLIC_APP_URL`)
-- `NEXT_PUBLIC_SUPABASE_URL`: Supabase project URL
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY`: Supabase anon key
-- `NEXT_PUBLIC_API_URL`: SOCIO backend API base URL
-- `NEXT_PUBLIC_REMOTE_IMAGE_HOSTS`: Comma-separated allowlist for remote images
-- `NEXT_PUBLIC_APP_VERSION`: App semantic version used for native onboarding major-version replay logic
+---
 
-If Supabase variables are missing, the app still builds, but authentication won’t work.
+## 💻 Local Development
 
-### 3) Run the development server
+### 1. Install Dependencies
+Initialize package dependencies:
+```bash
+npm ci
+```
 
+### 2. Launch Local Server
+Run Next.js in development mode:
 ```bash
 npm run dev
 ```
+Open [http://localhost:3000](http://localhost:3000) to view the application in your browser.
 
-Then open `http://localhost:3000`.
+---
 
-## Scripts
+## 🔧 Production Build & Optimization
 
-- `npm run dev`: Start Next.js dev server
-- `npm run build`: Create a production build
-- `npm run start`: Start the production server (after build)
-- `npm run lint`: Run ESLint
-- `npm run perf:audit:architecture`: Generate architecture dependency/hydration-risk report
-- `npm run perf:audit:routes`: Generate route-by-route payload/chunk size report (after build)
-- `npm run perf:lighthouse`: Run mobile Lighthouse for `/` and `/discover` (expects running app)
-- `npm run perf:baseline`: Build + generate baseline architecture/payload reports
-- `npm run perf:baseline:full`: Lint + baseline build/report pipeline
+To check, compile, and prepare the project for deployment:
 
-### Performance profiling workflow
+```bash
+# Perform linter audits (zero warnings allowed in CI)
+npm run lint
 
-1. Build and static reports:
-   - `npm run perf:baseline`
-2. Start app in another terminal:
-   - `npm run dev` (or `npm run start`)
-3. Collect Lighthouse mobile runs:
-   - `npm run perf:lighthouse`
-   - Optional target override: `npm run perf:lighthouse -- --base-url=http://localhost:3000 --routes=/,/discover`
+# Create optimized production build
+npm run build
 
-Artifacts are written to `artifacts/perf/*` with timestamped folders.
-
-## Project Structure (high level)
-
-```text
-app/            Next.js routes (App Router)
-components/     Shared UI components
-context/        React context providers (auth, events, notifications, etc.)
-lib/            Shared utilities (Supabase client, date utils)
-public/         Static assets, PWA manifest, service worker
-android/        Capacitor Android project (optional)
+# Start server in production mode
+npm run start
 ```
 
-## Main Routes & APIs
+### Performance & Audit Pipelines
+The project includes automated audit utilities:
+*   `npm run perf:audit:architecture`: Profiles file relationships, component hydration levels, and script footprint.
+*   `npm run perf:audit:routes`: Audits the compiled bundle chunk boundaries, route weights, and JavaScript payloads.
+*   `npm run perf:lighthouse`: Measures Lighthouse metrics on `/` and `/discover` under Simulated Mobile Throttling.
+*   `npm run perf:baseline:full`: Automates full linting, building, and reporting processes.
 
-### App Routes
+---
 
-| Route | Purpose |
-|---|---|
-| `/` | Home / landing |
-| `/auth` | Starts Google sign-in |
-| `/auth/callback` | OAuth code exchange route |
-| `/discover` | Main dashboard (search + curated lists) |
-| `/events` | Browse all events |
-| `/event/[id]` | Event details |
-| `/event/[id]/register` | Registration form |
-| `/fests` | Browse all fests |
-| `/fest/[id]` | Fest details + associated events |
-| `/profile` | User profile + registrations |
-| `/notifications` | Notifications listing |
-| `/volunteer` | Volunteer tools |
+## 📱 Hybrid Android App Build (Capacitor)
 
-### API Routes (Next.js)
+The codebase compiles to a native Android application using Capacitor:
 
-The app exposes API routes under `app/api/pwa/*` for PWA-specific flows.
+### Step 1: Compile Web Assets
+Build the Next.js static files:
+```bash
+npm run build
+```
 
-| Area | Path prefix |
-|---|---|
-| Events | `app/api/pwa/events/*` |
-| Fests | `app/api/pwa/fests/*` |
-| Notifications | `app/api/pwa/notifications/*` |
-| Registrations | `app/api/pwa/registrations/*` |
-| Users | `app/api/pwa/users/*` |
-| Volunteer | `app/api/pwa/volunteer/*` |
+### Step 2: Synchronize Assets
+Sync web builds and plugin configurations into the Android sub-project:
+```bash
+npx cap sync android
+```
 
-## Key Runtime Concepts
+### Step 3: Run / Build the Application
+Open the Android Studio workspace:
+```bash
+npx cap open android
+```
+Alternatively, compile the APK directly from the CLI:
+```bash
+cd android && ./gradlew assembleDebug
+```
+The compiled package is written to:
+`android/app/build/outputs/apk/debug/app-debug.apk`
 
-### Authentication
+---
 
-- Sign-in is handled via **Supabase Auth** (Google OAuth).
-- The auth callback route is implemented in `app/auth/callback/route.ts`.
-- Some routes are protected via `middleware.ts`.
+## 💾 Caching & Synchronicity Models
 
-At runtime, most client-side auth state is managed via `context/AuthContext.tsx`, and the Supabase browser client is defined in `lib/supabaseClient.ts`.
+*   **Authoritative Server Cache**: Backed by a high-performance Valkey cache layer on the backend API layer.
+*   **PWA Cache**: The Service Worker (`public/sw.js`) intercepts page resources for offline loads but forces API requests (`/api/pwa/*`) to use a Network-Only approach.
+*   **Database Cache**: IndexedDB (using Dexie) caches structured JSON records for profiles and tickets to support immediate offline validation.
+*   **Client State**: SWR handles stale-while-revalidate client cache management for instant route changes, and in-memory caches handle micro-latency.
 
-### PWA / Offline
+---
 
-- Service worker: `public/sw.js`
-- Manifest: `public/manifest.json`
-- API traffic in SW is network-only; SW cache is reserved for offline/static asset acceleration.
+## 🛡️ Contributor Rules
 
-### Cache ownership model
-
-- Backend Valkey (authoritative read cache) is specified in:
-  - `lib/cache/backend-architecture.ts`
-  - `lib/cache/policy.ts`
-- Frontend layers remain lightweight:
-  - SWR for UI freshness
-  - `apiClient` in-memory cache for micro-latency
-  - Service worker for offline/static assets only
-
-## App Logic (High Level)
-
-| Topic | Where to look |
-|---|---|
-| Global app shell (TopBar/BottomNav, prompts, orientation) | `app/AppShell.tsx` |
-| Auth state, session, user bootstrap | `context/AuthContext.tsx` |
-| Event prefetch + shared event data | `context/EventContext.tsx` |
-| Notifications client logic | `context/NotificationContext.tsx` |
-| Shake-to-scan (volunteer) | `context/ShakeToScanContext.tsx`, `components/ShakeToScanListener.tsx` |
-| Volunteer access helper | `lib/volunteerAccess.ts` |
-| Debounced search helper | `lib/useDebounce.ts` |
-
-## Deployment Notes
-
-- This is a standard Next.js app; it can be deployed anywhere Next.js is supported.
-- Make sure your production environment variables match the required `NEXT_PUBLIC_*` values.
-
-## Troubleshooting
-
-- Build logs warn about missing Supabase env vars when not configured.
-- ESLint currently reports warnings in several files; they do not fail the build.
-
-## Contributing
-
-1. Create a branch
-2. Make changes
-3. Run `npm run lint` and `npm run build`
-4. Open a PR
-\n## Android Build (Capacitor)\n\nThe app is wrapped in Capacitor for Android distribution.\n\n### Build Process\n1. Build web assets: `npm run build`\n2. Sync assets to Android: `npx cap sync android`\n3. Build APK: `cd android && ./gradlew assembleDebug`\n\n### Distribution\nThe resulting debug APK is located at:\n`android/app/build/outputs/apk/debug/app-debug.apk`\n\nIt is copied to `apk/socio-mobile-debug.apk` for version tracking and distribution.\n\n### Authentication Note (Capacitor)\nTo prevent "Authenticating..." hangs during deep-link session restoration, the app uses a direct state update pattern in `context/AuthContext.tsx` rather than relying solely on `onAuthStateChange` listeners.
+Every pull request must align with the repository guidelines. Please consult the [CODE_OF_CONDUCT.md](file:///c:/projects/SOCIO/sociomobilev2/CODE_OF_CONDUCT.md) for specifics:
+1.  **Zero Lints**: Build and lint steps must run without any errors or warnings.
+2.  **Tokens Only**: Do not introduce hex values or inline styling — utilize variables mapped in `globals.css`.
+3.  **Strict Security**: Do not commit secrets, private environment values, or raw URL constants. Always fetch values through process environment parameters.

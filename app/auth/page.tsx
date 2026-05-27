@@ -4,7 +4,15 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { AlertCircleIcon, Loader2Icon, SchoolIcon, WifiOffIcon } from "@/components/icons";
+import {
+  AlertCircleIcon,
+  Loader2Icon,
+  SchoolIcon,
+  WifiOffIcon,
+  ShieldCheckIcon,
+  UsersIcon,
+  ZapIcon
+} from "@/components/icons";
 import { useAuth } from "@/context/AuthContext";
 
 function GoogleMark() {
@@ -100,37 +108,51 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="relative min-h-dvh overflow-hidden bg-[var(--color-bg)] text-[var(--color-text)]">
-      <div className="absolute inset-0 opacity-[0.14]" style={{ backgroundImage: "radial-gradient(#c3c6d5 0.7px, transparent 0.7px)", backgroundSize: "24px 24px" }} />
-      <div className="absolute -top-20 -right-16 h-72 w-72 rounded-full bg-[var(--color-primary)]/12 blur-3xl" />
-      <div className="absolute -bottom-12 -left-12 h-64 w-64 rounded-full bg-[var(--color-accent)]/18 blur-3xl" />
+    <div className="relative h-dvh w-full overflow-hidden bg-white text-[var(--color-text)] flex flex-col items-center">
+      <div className="w-full max-w-[420px] h-full flex flex-col bg-white shadow-xl relative overflow-hidden border-x border-gray-100 justify-between">
 
-      <main className="relative mx-auto flex min-h-dvh w-full max-w-[420px] flex-col items-center justify-center px-4 pb-10">
-        <div className="w-full space-y-5">
-          <div className="flex flex-col items-center gap-3 text-center">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[var(--color-primary)] shadow-[0_12px_32px_rgba(1,31,123,0.18)]">
-              <SchoolIcon className="h-6 w-6 text-white" strokeWidth={2.2} />
-            </div>
-            <Image
-              src="/logo.svg"
-              alt="SOCIO"
-              width={140}
-              height={42}
-              priority
-              className="mx-auto h-auto w-[120px]"
-            />
+        {/* Upper White Brand Section */}
+        <div className="flex flex-col items-center pt-6 pb-2 bg-white relative z-10">
+          <div className="flex h-15 w-15 items-center justify-center rounded-[16px] bg-[var(--color-primary)] shadow-[0_10px_24px_rgba(1,31,123,0.16)] mb-3.5">
+            <SchoolIcon className="h-8 w-8 text-white" strokeWidth={2} />
           </div>
+          
+          <h2 className="text-[26px] font-[900] tracking-tight text-[var(--color-primary)] leading-none mb-2">
+            SOCIO
+          </h2>
+          
+          <p className="text-[14px] font-bold text-[#0F172A] mb-0.5">
+            Your community, connected.
+          </p>
+          <p className="text-[11px] font-medium text-gray-500">
+            Manage, engage and grow together.
+          </p>
+        </div>
 
-          <div className="rounded-2xl border border-white bg-white/92 p-4 shadow-[0_10px_40px_rgba(1,31,123,0.08)] backdrop-blur-sm">
-            <h1 className="mb-4 text-lg font-extrabold tracking-tight text-[var(--color-primary-dark)]">
+        {/* Custom SVG Wave Divider */}
+        <div className="w-full h-[40px] overflow-hidden leading-none relative z-10 bg-white">
+          <svg viewBox="0 0 1440 80" className="relative block w-full h-full" preserveAspectRatio="none">
+            <path d="M0,80 C360,30 720,120 1080,40 C1200,10 1320,10 1440,50 L1440,80 L0,80 Z" fill="#EDF4FF" />
+          </svg>
+        </div>
+
+        {/* Lower Light-Blue Gradient Section */}
+        <div className="relative flex-1 w-full bg-gradient-to-b from-[#EDF4FF] via-[#F4F8FF] to-white px-5 pb-3.5 pt-1 z-10 flex flex-col items-center justify-between overflow-hidden">
+
+          {/* Sign-in Card */}
+          <div className="relative w-full max-w-[360px] rounded-2xl border border-white/60 bg-white/95 p-5 shadow-[0_10px_30px_rgba(1,31,123,0.05)] backdrop-blur-md z-10 my-auto">
+            <h3 className="text-[18px] font-extrabold text-[var(--color-primary-dark)] tracking-tight mb-0.5">
               Sign in
-            </h1>
-
+            </h3>
+            <p className="text-[12px] font-medium text-gray-500 mb-5">
+              Welcome back! Please sign in to continue.
+            </p>
+            
             <button
               type="button"
               onClick={handleGoogleSignIn}
               disabled={isSubmitting || isLoading || isOffline}
-              className="flex h-[44px] w-full items-center justify-center gap-3 rounded-lg bg-[var(--color-primary)] px-4 font-bold text-white shadow-[0_10px_24px_rgba(1,31,123,0.16)] transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+              className="flex h-[42px] w-full items-center justify-center gap-3 rounded-lg bg-[#0047FF] px-4 text-xs font-bold text-white shadow-[0_6px_14px_rgba(0,71,255,0.18)] hover:bg-[#003be0] active:scale-[0.98] transition-all duration-150 disabled:cursor-not-allowed disabled:opacity-60 disabled:scale-100 disabled:shadow-none"
             >
               {isSubmitting || isLoading ? (
                 <>
@@ -139,37 +161,76 @@ export default function AuthPage() {
                 </>
               ) : (
                 <>
-                  <GoogleMark />
+                  <div className="flex h-5 w-5 items-center justify-center rounded-full bg-white shadow-sm p-0.5">
+                    <GoogleMark />
+                  </div>
                   <span>Continue with Google</span>
                 </>
               )}
             </button>
-
+            
             {authError && (
-              <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3">
-                <div className="flex items-start gap-2 text-red-700">
-                  <AlertCircleIcon className="mt-0.5 h-4 w-4 shrink-0" />
-                  <p className="text-xs font-semibold">{authError}</p>
+              <div className="mt-3 rounded-lg border border-red-100 bg-red-50/80 px-3 py-2">
+                <div className="flex items-start gap-1.5 text-red-700">
+                  <AlertCircleIcon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-red-500" />
+                  <p className="text-[11px] font-semibold">{authError}</p>
                 </div>
               </div>
             )}
 
             {isOffline && (
-              <div className="mt-3 flex items-center gap-2 rounded-xl bg-[var(--color-bg)] px-3 py-2.5">
-                <WifiOffIcon className="h-4 w-4 shrink-0 text-[var(--color-text-muted)]" />
-                <p className="text-xs text-[var(--color-text-muted)]">No connection — check your network.</p>
+              <div className="mt-3 flex items-center gap-1.5 rounded-lg bg-gray-50 border border-gray-100 px-3 py-2">
+                <WifiOffIcon className="h-3.5 w-3.5 shrink-0 text-gray-400" />
+                <p className="text-[11px] font-medium text-gray-500">No connection — check your network.</p>
               </div>
             )}
           </div>
 
-          <p className="text-center text-[11px] leading-relaxed text-[var(--color-text-light)]">
-            By continuing, you agree to our{" "}
-            <Link href="/terms" className="underline">Terms</Link> and{" "}
-            <Link href="/privacy" className="underline">Privacy Policy</Link>.
-          </p>
-        </div>
-      </main>
+          <div className="w-full flex flex-col items-center mt-auto z-10">
+            {/* Interactive Sign up switcher */}
+            <p className="text-center text-[12px] font-semibold text-gray-500 mb-3.5">
+              Don't have an account?{" "}
+              <button
+                onClick={handleGoogleSignIn}
+                disabled={isSubmitting || isLoading || isOffline}
+                className="text-[#0047FF] hover:underline font-bold bg-transparent border-none p-0 cursor-pointer disabled:opacity-50"
+              >
+                Sign up
+              </button>
+            </p>
 
+            {/* Features Capsule Footer */}
+            <div className="w-full max-w-[360px] bg-white/70 border border-white/50 backdrop-blur-md rounded-xl p-3 shadow-[0_6px_20px_rgba(1,31,123,0.03)] grid grid-cols-3 gap-1.5 items-center justify-items-center mb-4">
+              <div className="flex flex-col items-center gap-1 text-center">
+                <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[#0047FF]/10">
+                  <ShieldCheckIcon className="h-3.5 w-3.5 text-[#0047FF]" />
+                </div>
+                <span className="text-[9px] font-bold text-gray-700 tracking-tight">Secure & Private</span>
+              </div>
+              <div className="flex flex-col items-center gap-1 text-center border-x border-gray-100 w-full">
+                <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[#0047FF]/10">
+                  <UsersIcon className="h-3.5 w-3.5 text-[#0047FF]" />
+                </div>
+                <span className="text-[9px] font-bold text-gray-700 tracking-tight">Community First</span>
+              </div>
+              <div className="flex flex-col items-center gap-1 text-center">
+                <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[#0047FF]/10">
+                  <ZapIcon className="h-3.5 w-3.5 text-[#0047FF]" />
+                </div>
+                <span className="text-[9px] font-bold text-gray-700 tracking-tight">Smart & Simple</span>
+              </div>
+            </div>
+
+            {/* Terms & Privacy */}
+            <p className="text-center text-[10px] leading-relaxed text-gray-400">
+              By continuing, you agree to our{" "}
+              <Link href="/terms" className="underline font-semibold hover:text-gray-600 transition-colors">Terms</Link> and{" "}
+              <Link href="/privacy" className="underline font-semibold hover:text-gray-600 transition-colors">Privacy Policy</Link>.
+            </p>
+          </div>
+
+        </div>
+      </div>
     </div>
   );
 }

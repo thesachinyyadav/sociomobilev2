@@ -11,19 +11,6 @@ export type ToastOptions = {
 // Easing for smooth animations
 const TOAST_EASING = "cubic-bezier(0.22, 1, 0.36, 1)";
 
-// Inject global styles for mobile toast container positioning
-if (typeof window !== "undefined") {
-  const style = document.createElement('style');
-  style.innerHTML = `
-    @media (max-width: 768px) {
-      div[style*="z-index: 9999"] {
-        top: calc(env(safe-area-inset-top) + 78px) !important;
-      }
-    }
-  `;
-  document.head.appendChild(style);
-}
-
 // Check if we are on mobile/PWA
 const isMobileOrPwa = () => {
   if (typeof window === "undefined") return false;

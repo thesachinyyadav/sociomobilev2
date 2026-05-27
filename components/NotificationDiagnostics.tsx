@@ -85,7 +85,8 @@ export default function NotificationDiagnostics() {
     return (
       <button
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-20 left-4 bg-black/50 text-white text-[10px] px-2 py-1 rounded opacity-50 hover:opacity-100 z-50 cursor-pointer"
+        className="fixed left-4 bg-black/50 text-white text-[10px] px-2 py-1 rounded opacity-50 hover:opacity-100 z-50 cursor-pointer"
+        style={{ bottom: "max(env(safe-area-inset-bottom), 5rem)" }}
       >
         Push Debug
       </button>
@@ -95,7 +96,10 @@ export default function NotificationDiagnostics() {
   const isHealthy = data.permission === "granted" && data.vapidSubscription.startsWith("Cached");
 
   return (
-    <div className="fixed bottom-20 left-4 right-4 bg-gray-900 text-green-400 font-mono text-[10px] p-3 rounded-lg shadow-xl z-50 overflow-auto max-h-[60vh] border border-gray-700">
+    <div
+      className="fixed left-4 right-4 bg-gray-900 text-green-400 font-mono text-[10px] p-3 rounded-lg shadow-xl z-50 overflow-auto max-h-[60vh] border border-gray-700"
+      style={{ bottom: "max(env(safe-area-inset-bottom), 5rem)" }}
+    >
       <div className="flex justify-between items-center mb-2 pb-2 border-b border-gray-700">
         <h3 className="font-bold text-white">
           VAPID Push Diagnostics{" "}

@@ -42,8 +42,8 @@ export default function TopBar() {
             : isProfile && userData
             ? "bg-[var(--color-primary-dark)] text-white"
             : "glass border-b border-[var(--color-border)] text-[var(--color-text)]"
-        } ${showBack || isImmersiveDetail ? "border-none shadow-none" : ""}`}
-        style={{ paddingTop: "var(--safe-top)", backfaceVisibility: "hidden" }}
+        } ${showBack || isImmersiveDetail ? "border-none shadow-none" : ""} pt-safe`}
+        style={{ backfaceVisibility: "hidden" }}
       >
         <div
           className="relative flex items-center px-3 gap-1.5 will-change-none"

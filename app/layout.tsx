@@ -54,6 +54,10 @@ export default async function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+        <meta
+          name="viewport"
+          content="width=device-width, initial-scale=1, viewport-fit=cover"
+        />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link
           rel="preconnect"
@@ -86,6 +90,9 @@ export default async function RootLayout({
         </NetworkProvider>
         <Toaster
           position="top-center"
+          containerStyle={{
+            top: "max(env(safe-area-inset-top), 16px)",
+          }}
           toastOptions={{
             duration: 3000,
             style: {

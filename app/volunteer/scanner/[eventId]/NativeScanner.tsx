@@ -167,10 +167,12 @@ export default function NativeScanner({
 
       {/* ── Navy Event Header ── */}
       <div 
-        className={`bg-[#011F7B] px-4 pt-3 relative w-full flex-shrink-0 rounded-b-[40px] transition-all duration-300 ${
-          isScanning ? "pb-12" : "pb-32"
-        }`} 
-        style={{ zIndex: 30 }}
+        className="bg-[#011F7B] px-4 pt-3 relative w-full flex-shrink-0 rounded-b-[40px]"
+        style={{ 
+          zIndex: 30,
+          paddingBottom: isScanning ? "3rem" : "8rem",
+          transition: "padding-bottom 400ms cubic-bezier(0.4, 0, 0.2, 1)"
+        }}
       >
         <div className="flex flex-col gap-4 max-w-[480px] mx-auto">
           {/* Top row: Back button, Title, Pill */}
@@ -211,9 +213,11 @@ export default function NativeScanner({
       </div>
 
       <div 
-        className={`scan-main-column px-3 relative pb-20 max-w-[480px] mx-auto w-full flex-shrink-0 flex flex-col gap-4 transition-all duration-300 overflow-y-auto ${
-          isScanning ? "-mt-4" : "-mt-20"
-        }`}
+        className="scan-main-column px-3 relative pb-20 max-w-[480px] mx-auto w-full flex-shrink-0 flex flex-col gap-4 overflow-y-auto"
+        style={{
+          marginTop: isScanning ? "-1rem" : "-5rem",
+          transition: "margin-top 400ms cubic-bezier(0.4, 0, 0.2, 1)"
+        }}
       >
         {/* ── Scanner Card Wrapper ── */}
         <div className="w-full relative rounded-[20px]">
@@ -265,7 +269,7 @@ export default function NativeScanner({
 
                   {/* Stop scanning button */}
                   <button
-                    className="absolute top-3 left-3 w-9 h-9 bg-black/40 backdrop-blur-md text-white rounded-full flex items-center justify-center z-50 pointer-events-auto active:scale-95 transition-transform"
+                    className="absolute left-[max(env(safe-area-inset-left),12px)] top-[max(env(safe-area-inset-top),12px)] w-9 h-9 bg-black/40 backdrop-blur-md text-white rounded-full flex items-center justify-center z-50 pointer-events-auto active:scale-95 transition-transform"
                     onClick={(e) => {
                       e.stopPropagation();
                       void stopScanner();
@@ -278,7 +282,7 @@ export default function NativeScanner({
                   {/* Flashlight toggle button */}
                   {torchAvailable && (
                     <button
-                      className={`absolute top-4 right-4 w-10 h-10 backdrop-blur-md rounded-full flex items-center justify-center z-50 pointer-events-auto active:scale-95 transition-transform ${
+                      className={`absolute right-[max(env(safe-area-inset-right),12px)] top-[max(env(safe-area-inset-top),12px)] w-10 h-10 backdrop-blur-md rounded-full flex items-center justify-center z-50 pointer-events-auto active:scale-95 transition-transform ${
                         torchEnabled ? "bg-[#FFBA09] text-[#011F7B]" : "bg-black/40 text-white"
                       }`}
                       onClick={(e) => {
@@ -300,7 +304,7 @@ export default function NativeScanner({
                   <div className="absolute inset-0" style={{ backgroundImage: 'radial-gradient(#CBD5E1 1px, transparent 1px)', backgroundSize: '16px 16px', opacity: 0.4 }} />
                   
                   {/* Yellow brackets */}
-                  <div className="absolute inset-0 pointer-events-none z-10 p-4">
+                   <div className="absolute inset-0 pointer-events-none z-10 p-4 pt-safe pb-safe">
                      <div className="absolute top-4 left-4 w-9 h-9 border-t-[3px] border-l-[3px] border-[#FFBA09] rounded-tl-[14px]" />
                      <div className="absolute top-4 right-4 w-9 h-9 border-t-[3px] border-r-[3px] border-[#FFBA09] rounded-tr-[14px]" />
                      <div className="absolute bottom-4 left-4 w-9 h-9 border-b-[3px] border-l-[3px] border-[#FFBA09] rounded-bl-[14px]" />

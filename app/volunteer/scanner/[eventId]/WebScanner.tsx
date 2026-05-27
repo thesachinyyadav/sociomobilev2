@@ -205,7 +205,7 @@ export default function WebScanner({
 
                 {/* Stop scanning button */}
                 <button
-                  className="absolute top-3 left-3 w-9 h-9 bg-black/40 backdrop-blur-md text-white rounded-full flex items-center justify-center z-50 pointer-events-auto active:scale-95 transition-transform"
+                  className="absolute left-[max(env(safe-area-inset-left),12px)] top-[max(env(safe-area-inset-top),12px)] w-9 h-9 bg-black/40 backdrop-blur-md text-white rounded-full flex items-center justify-center z-50 pointer-events-auto active:scale-95 transition-transform"
                   onClick={(e) => {
                     e.stopPropagation();
                     void stopScanner();
@@ -224,7 +224,7 @@ export default function WebScanner({
                 <div className="absolute inset-0" style={{ backgroundImage: 'radial-gradient(#CBD5E1 1px, transparent 1px)', backgroundSize: '16px 16px', opacity: 0.4 }} />
                 
                 {/* Yellow brackets */}
-                <div className="absolute inset-0 pointer-events-none z-10 p-4">
+                 <div className="absolute inset-0 pointer-events-none z-10 p-4 pt-safe pb-safe">
                    <div className="absolute top-4 left-4 w-9 h-9 border-t-[3px] border-l-[3px] border-[#FFBA09] rounded-tl-[14px]" />
                    <div className="absolute top-4 right-4 w-9 h-9 border-t-[3px] border-r-[3px] border-[#FFBA09] rounded-tr-[14px]" />
                    <div className="absolute bottom-4 left-4 w-9 h-9 border-b-[3px] border-l-[3px] border-[#FFBA09] rounded-bl-[14px]" />

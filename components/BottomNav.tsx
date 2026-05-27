@@ -21,8 +21,7 @@ export default function BottomNav() {
 
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-50 pointer-events-none"
-      style={{ paddingBottom: "calc(var(--safe-bottom) + 6px)" }}
+      className="fixed bottom-0 left-0 right-0 z-50 pointer-events-none pb-[max(env(safe-area-inset-bottom),12px)]"
     >
       <div
         className="mx-auto w-[min(92vw,360px)] rounded-[18px] border border-[var(--color-border)] bg-[rgba(255,255,255,0.94)] shadow-[0_10px_28px_rgba(17,24,39,0.12)] backdrop-blur-xl pointer-events-auto"

@@ -137,7 +137,7 @@ export default function NotificationPermissionModal({
           {/* Scrollable Container for Modal Card */}
           <div
             onClick={onClose}
-            className="absolute inset-0 flex items-center justify-center p-4 overflow-x-hidden overflow-y-auto pt-4 pb-4"
+            className="absolute inset-0 flex items-center justify-center p-4 pt-safe pb-safe overflow-x-hidden overflow-y-auto"
           >
             {/* Modal Container */}
             <motion.div

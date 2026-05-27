@@ -37,6 +37,7 @@ import { logCapacitorPerfAudit, logMemorySnapshot, startPerfSpan, withPerfSpan }
 import ScannerSkeleton from "@/components/skeletons/ScannerSkeleton";
 import WebScanner from "./WebScanner";
 import NativeScanner from "./NativeScanner";
+import { useShakeToScan } from "@/context/ShakeToScanContext";
 import { db, syncEngine } from "@/lib/offline";
 import { useLiveQuery } from "dexie-react-hooks";
 import {
@@ -302,6 +303,7 @@ export default function ScannerClient() {
   }, [torchEnabled]);
 
   const isNative = useMemo(() => Capacitor.isNativePlatform(), []);
+  const { requestMotionPermission, motionSupported } = useShakeToScan();
 
   const cachedEvent = useMemo(() =>
     // Filter via trusted "now" so a tampered device clock cannot promote
@@ -677,6 +679,17 @@ export default function ScannerClient() {
           perm = await scannerRef.current.requestPermission();
           if (perm !== "granted") throw new Error("Camera permission required");
         }
+          // Try to request motion permission on iOS web/PWA as a convenience
+          // This must be triggered from a user gesture (we are inside startScanner())
+          try {
+            if (!isNative && motionSupported) {
+              // requestMotionPermission handles DeviceMotionEvent.requestPermission
+              void requestMotionPermission();
+            }
+          } catch (e) {
+            // Non-fatal — fallback to manual scan
+            console.warn("Motion permission request during scanner start failed", e);
+          }
         // Stable ref-based dispatch — the scanner never sees a new function,
         // so library-internal teardown/setup is never triggered by React renders.
         await scannerRef.current.start(videoRef.current as any, (r) => processScanRef.current(r));

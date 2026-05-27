@@ -113,6 +113,16 @@ export function ShakeToScanProvider({ children }: { children: ReactNode }) {
     // For iOS, we might still need to call requestPermission
   }, [motionSupported]);
 
+  // Helper: detect iOS Safari / iOS WebView contexts where DeviceMotion
+  // permission must be explicitly requested via DeviceMotionEvent.requestPermission()
+  const isIosWeb = useMemo(() => {
+    if (typeof window === "undefined") return false;
+    const ua = navigator.userAgent || navigator.vendor || "";
+    const isIosUa = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === "MacIntel" && (navigator as any).maxTouchPoints > 1);
+    // Safari and WKWebView expose DeviceMotionEvent.requestPermission on iOS
+    return isIosUa && typeof (window as any).DeviceMotionEvent !== "undefined";
+  }, []);
+
   const updateState = useCallback((next: ShakeToScanState) => {
     setState(next);
     writeStoredState(next);
@@ -135,23 +145,36 @@ export function ShakeToScanProvider({ children }: { children: ReactNode }) {
   const requestMotionPermission = useCallback(async () => {
     if (typeof window === "undefined") return false;
     if (!motionSupported) return false;
-
-    // Capacitor Motion automatically handles native permissions on most platforms
-    // but we can try to trigger the iOS dialog if available
-    const dmEvent = (window as any).DeviceMotionEvent;
-    if (dmEvent && typeof dmEvent.requestPermission === "function") {
-      try {
-        const result = await dmEvent.requestPermission();
-        setMotionPermission(result === "granted" ? "granted" : "denied");
-        return result === "granted";
-      } catch (e) {
-        console.error("ShakeToScan: Permission request failed", e);
-        return false;
+    // If the DeviceMotionEvent.requestPermission API exists (iOS web/PWA), call it.
+    // This MUST be called from a user gesture (button click / scanner open).
+    try {
+      const dmEvent = (window as any).DeviceMotionEvent;
+      if (dmEvent && typeof dmEvent.requestPermission === "function") {
+        try {
+          const result = await dmEvent.requestPermission();
+          const granted = result === "granted";
+          setMotionPermission(granted ? "granted" : "denied");
+          if (!granted) {
+            toast("Motion permission denied. Use manual scan or enable motion in settings.", { duration: 4000, position: "top-center" });
+          }
+          return granted;
+        } catch (e) {
+          console.error("ShakeToScan: Permission request failed", e);
+          setMotionPermission("denied");
+          toast("Motion permission request failed. Use manual scan.", { duration: 4000, position: "top-center" });
+          return false;
+        }
       }
-    }
 
-    setMotionPermission("granted");
-    return true;
+      // For non-web iOS (Capacitor native) and Android, assume permissions are handled
+      // by the native plugin / OS. Mark as granted so listeners may start.
+      setMotionPermission("granted");
+      return true;
+    } catch (err) {
+      console.error("ShakeToScan: requestMotionPermission unexpected error", err);
+      setMotionPermission("denied");
+      return false;
+    }
   }, [motionSupported]);
 
   // Motion Detection Listener

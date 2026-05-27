@@ -53,7 +53,10 @@ export default function ShakeToScanListener() {
   useEffect(() => {
     if (!shakeEnabled || !activeScanEvent) return;
     if (!isVolunteer) return;
-    if (!motionSupported || motionPermission === "denied") return;
+    // If motionPermission is unknown on iOS web where explicit permission is required,
+    // don't start listening until permission is resolved/granted.
+    const dm = (window as any).DeviceMotionEvent;
+    if (!motionSupported || motionPermission === "denied" || (dm && typeof dm.requestPermission === "function" && motionPermission !== "granted")) return;
     if (pathname.startsWith("/volunteer/scanner/")) return;
 
     const handleMotion = (event: DeviceMotionEvent) => {

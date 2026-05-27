@@ -108,23 +108,23 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="relative h-full w-full overflow-hidden bg-white text-[var(--color-text)] flex flex-col items-center">
+    <div className="relative h-[calc(100dvh-var(--nav-height))] w-full overflow-hidden bg-white text-[var(--color-text)] flex flex-col items-center">
       <div className="w-full max-w-[420px] h-full flex flex-col bg-white shadow-xl relative overflow-hidden border-x border-gray-100 justify-between">
 
         {/* Upper White Brand Section */}
-        <div className="flex flex-col items-center pt-6 pb-2 bg-white relative z-10">
-          <div className="flex h-15 w-15 items-center justify-center rounded-[16px] bg-[var(--color-primary)] shadow-[0_10px_24px_rgba(1,31,123,0.16)] mb-3.5">
-            <SchoolIcon className="h-8 w-8 text-white" strokeWidth={2} />
+        <div className="flex flex-col items-center pt-10 pb-4 bg-white relative z-10">
+          <div className="flex h-16 w-16 items-center justify-center rounded-[18px] bg-[var(--color-primary)] shadow-[0_12px_28px_rgba(1,31,123,0.18)] mb-4">
+            <SchoolIcon className="h-9 w-9 text-white" strokeWidth={2} />
           </div>
           
-          <h2 className="text-[26px] font-[900] tracking-tight text-[var(--color-primary)] leading-none mb-2">
+          <h2 className="text-[28px] font-[900] tracking-tight text-[var(--color-primary)] leading-none mb-2.5">
             SOCIO
           </h2>
           
-          <p className="text-[14px] font-bold text-[#0F172A] mb-0.5">
+          <p className="text-[15px] font-bold text-[#0F172A] mb-1">
             Your community, connected.
           </p>
-          <p className="text-[11px] font-medium text-gray-500">
+          <p className="text-[12px] font-medium text-gray-500">
             Manage, engage and grow together.
           </p>
         </div>
@@ -137,14 +137,14 @@ export default function AuthPage() {
         </div>
 
         {/* Lower Light-Blue Gradient Section */}
-        <div className="relative flex-1 w-full bg-gradient-to-b from-[#EDF4FF] via-[#F4F8FF] to-white px-5 pb-3.5 pt-1.5 z-10 flex flex-col items-center justify-start gap-3.5 overflow-hidden">
+        <div className="relative flex-1 w-full bg-gradient-to-b from-[#EDF4FF] via-[#F4F8FF] to-white px-5 pb-5 pt-3 z-10 flex flex-col items-center justify-start gap-7 overflow-hidden">
 
           {/* Sign-in Card */}
-          <div className="relative w-full max-w-[360px] rounded-2xl border border-white/60 bg-white/95 p-5 shadow-[0_10px_30px_rgba(1,31,123,0.05)] backdrop-blur-md z-10">
-            <h3 className="text-[18px] font-extrabold text-[var(--color-primary-dark)] tracking-tight mb-0.5">
+          <div className="relative w-full max-w-[360px] rounded-2xl border border-white/60 bg-white/95 p-6 shadow-[0_12px_36px_rgba(1,31,123,0.06)] backdrop-blur-md z-10">
+            <h3 className="text-[20px] font-extrabold text-[var(--color-primary-dark)] tracking-tight mb-1">
               Sign in
             </h3>
-            <p className="text-[12px] font-medium text-gray-500 mb-5">
+            <p className="text-[13px] font-medium text-gray-500 mb-6">
               Welcome back! Please sign in to continue.
             </p>
             
@@ -152,7 +152,7 @@ export default function AuthPage() {
               type="button"
               onClick={handleGoogleSignIn}
               disabled={isSubmitting || isLoading || isOffline}
-              className="flex h-[42px] w-full items-center justify-center gap-3 rounded-lg bg-[#0047FF] px-4 text-xs font-bold text-white shadow-[0_6px_14px_rgba(0,71,255,0.18)] hover:bg-[#003be0] active:scale-[0.98] transition-all duration-150 disabled:cursor-not-allowed disabled:opacity-60 disabled:scale-100 disabled:shadow-none"
+              className="flex h-[46px] w-full items-center justify-center gap-3.5 rounded-xl bg-[#0047FF] px-4 text-sm font-bold text-white shadow-[0_6px_16px_rgba(0,71,255,0.2)] hover:bg-[#003be0] active:scale-[0.98] transition-all duration-150 disabled:cursor-not-allowed disabled:opacity-60 disabled:scale-100 disabled:shadow-none"
             >
               {isSubmitting || isLoading ? (
                 <>
@@ -161,7 +161,7 @@ export default function AuthPage() {
                 </>
               ) : (
                 <>
-                  <div className="flex h-5 w-5 items-center justify-center rounded-full bg-white shadow-sm p-0.5">
+                  <div className="flex h-5.5 w-5.5 items-center justify-center rounded-full bg-white shadow-sm p-0.5">
                     <GoogleMark />
                   </div>
                   <span>Continue with Google</span>
@@ -170,24 +170,24 @@ export default function AuthPage() {
             </button>
             
             {authError && (
-              <div className="mt-3 rounded-lg border border-red-100 bg-red-50/80 px-3 py-2">
+              <div className="mt-3.5 rounded-lg border border-red-100 bg-red-50/80 px-3.5 py-2.5">
                 <div className="flex items-start gap-1.5 text-red-700">
-                  <AlertCircleIcon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-red-500" />
-                  <p className="text-[11px] font-semibold">{authError}</p>
+                  <AlertCircleIcon className="mt-0.5 h-4 w-4 shrink-0 text-red-500" />
+                  <p className="text-[12px] font-semibold">{authError}</p>
                 </div>
               </div>
             )}
 
             {isOffline && (
-              <div className="mt-3 flex items-center gap-1.5 rounded-lg bg-gray-50 border border-gray-100 px-3 py-2">
-                <WifiOffIcon className="h-3.5 w-3.5 shrink-0 text-gray-400" />
-                <p className="text-[11px] font-medium text-gray-500">No connection — check your network.</p>
+              <div className="mt-3.5 flex items-center gap-1.5 rounded-lg bg-gray-50 border border-gray-100 px-3.5 py-2.5">
+                <WifiOffIcon className="h-4 w-4 shrink-0 text-gray-400" />
+                <p className="text-[12px] font-medium text-gray-500">No connection — check your network.</p>
               </div>
             )}
           </div>
 
           {/* Interactive Sign up switcher */}
-          <p className="text-center text-[12px] font-semibold text-gray-500 z-10">
+          <p className="text-center text-[13px] font-semibold text-gray-500 z-10">
             Don't have an account?{" "}
             <button
               onClick={handleGoogleSignIn}
@@ -199,29 +199,29 @@ export default function AuthPage() {
           </p>
 
           {/* Features Capsule Footer */}
-          <div className="w-full max-w-[360px] bg-white/70 border border-white/50 backdrop-blur-md rounded-xl p-3 shadow-[0_6px_20px_rgba(1,31,123,0.03)] grid grid-cols-3 gap-1.5 items-center justify-items-center z-10">
+          <div className="w-full max-w-[360px] bg-white/70 border border-white/50 backdrop-blur-md rounded-xl p-3.5 shadow-[0_8px_24px_rgba(1,31,123,0.04)] grid grid-cols-3 gap-2 items-center justify-items-center z-10">
             <div className="flex flex-col items-center gap-1 text-center">
-              <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[#0047FF]/10">
-                <ShieldCheckIcon className="h-3.5 w-3.5 text-[#0047FF]" />
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#0047FF]/10">
+                <ShieldCheckIcon className="h-4 w-4 text-[#0047FF]" />
               </div>
-              <span className="text-[9px] font-bold text-gray-700 tracking-tight">Secure & Private</span>
+              <span className="text-[10px] font-bold text-gray-700 tracking-tight">Secure & Private</span>
             </div>
             <div className="flex flex-col items-center gap-1 text-center border-x border-gray-100 w-full">
-              <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[#0047FF]/10">
-                <UsersIcon className="h-3.5 w-3.5 text-[#0047FF]" />
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#0047FF]/10">
+                <UsersIcon className="h-4 w-4 text-[#0047FF]" />
               </div>
-              <span className="text-[9px] font-bold text-gray-700 tracking-tight">Community First</span>
+              <span className="text-[10px] font-bold text-gray-700 tracking-tight">Community First</span>
             </div>
             <div className="flex flex-col items-center gap-1 text-center">
-              <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[#0047FF]/10">
-                <ZapIcon className="h-3.5 w-3.5 text-[#0047FF]" />
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#0047FF]/10">
+                <ZapIcon className="h-4 w-4 text-[#0047FF]" />
               </div>
-              <span className="text-[9px] font-bold text-gray-700 tracking-tight">Smart & Simple</span>
+              <span className="text-[10px] font-bold text-gray-700 tracking-tight">Smart & Simple</span>
             </div>
           </div>
 
           {/* Terms & Privacy */}
-          <p className="text-center text-[10px] leading-relaxed text-gray-400 mt-auto z-10">
+          <p className="text-center text-[11px] leading-relaxed text-gray-400 mt-auto z-10">
             By continuing, you agree to our{" "}
             <Link href="/terms" className="underline font-semibold hover:text-gray-600 transition-colors">Terms</Link> and{" "}
             <Link href="/privacy" className="underline font-semibold hover:text-gray-600 transition-colors">Privacy Policy</Link>.

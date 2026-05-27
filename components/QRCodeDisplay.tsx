@@ -2,7 +2,7 @@
 import { createPortal } from "react-dom";
 
 import { useEffect, useState } from "react";
-import { XIcon, AlertCircleIcon, Loader2Icon, CalendarIcon, ClockIcon, MapPinIcon, DownloadIcon, ShieldCheckIcon } from "@/components/icons";
+import { XIcon, AlertCircleIcon, Loader2Icon, CalendarIcon, ClockIcon, MapPinIcon, DownloadIcon, ShieldCheckIcon, UsersIcon } from "@/components/icons";
 import { useAuth } from "@/context/AuthContext";
 import { apiRequest } from "@/lib/apiClient";
 import { generateSecurePassPayload } from "@/lib/walletCrypto";
@@ -61,6 +61,8 @@ interface QRCodeDisplayProps {
   date?: string;
   time?: string;
   venue?: string;
+  teamName?: string;
+  teammates?: Array<{ name: string; email: string; registerNumber: string }>;
 }
 
 export default function QRCodeDisplay({
@@ -72,17 +74,29 @@ export default function QRCodeDisplay({
   date,
   time,
   venue,
+  teamName,
+  teammates,
 }: QRCodeDisplayProps) {
   const { session, userData } = useAuth();
   const [qrImage, setQrImage] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [pdfLoading, setPdfLoading] = useState(false);
+  const [teamNameState, setTeamNameState] = useState<string | undefined>(teamName);
+  const [teammatesState, setTeammatesState] = useState<Array<{ name: string; email: string; registerNumber: string }> | undefined>(teammates);
+
+  useEffect(() => {
+    if (teamName) setTeamNameState(teamName);
+  }, [teamName]);
+
+  useEffect(() => {
+    if (teammates) setTeammatesState(teammates);
+  }, [teammates]);
 
   const isOutsider = userData?.organization_type === "outsider";
 
   useEffect(() => {
-    const fetchQRCode = async () => {
+    const fetchQRCodeAndDetails = async () => {
       if (!session?.access_token) {
         setError("Please sign in again to generate secure pass.");
         setLoading(false);
@@ -98,18 +112,29 @@ export default function QRCodeDisplay({
 
         if (cachedImage) {
           setQrImage(cachedImage);
-          setLoading(false);
-          return;
+        } else {
+          const data = await apiRequest<{ qrCodeImage?: string }>(`/registrations/${encodeURIComponent(registrationId)}/qr-code`);
+          if (!data || !data.qrCodeImage) {
+            throw new Error("Invalid QR code received from server");
+          }
+          localStorage.setItem(cacheKey, data.qrCodeImage);
+          setQrImage(data.qrCodeImage);
         }
 
-        const data = await apiRequest<{ qrCodeImage?: string }>(`/registrations/${encodeURIComponent(registrationId)}/qr-code`);
-
-        if (!data || !data.qrCodeImage) {
-          throw new Error("Invalid QR code received from server");
+        // Fetch detailed registration info (team name, teammates) dynamically
+        try {
+          const details = await apiRequest<{ registration?: any }>(`/registrations/${encodeURIComponent(registrationId)}`);
+          if (details?.registration) {
+            if (details.registration.team_name) {
+              setTeamNameState(details.registration.team_name);
+            }
+            if (details.registration.teammates) {
+              setTeammatesState(details.registration.teammates);
+            }
+          }
+        } catch (err) {
+          console.error("Error fetching registration details:", err);
         }
-
-        localStorage.setItem(cacheKey, data.qrCodeImage);
-        setQrImage(data.qrCodeImage);
       } catch (err: unknown) {
         setError(err instanceof Error ? err.message : "Network error while generating secure pass.");
       } finally {
@@ -117,7 +142,7 @@ export default function QRCodeDisplay({
       }
     };
 
-    fetchQRCode();
+    fetchQRCodeAndDetails();
   }, [registrationId, session?.access_token]);
 
   const addToAppleWallet = async () => {
@@ -229,7 +254,9 @@ export default function QRCodeDisplay({
       if (isOutsider) y += 5.5;
       y += 13;
 
-      const pageH = Math.ceil(y);
+      const hasTeam = Boolean(teamNameState);
+      const teamOffset = hasTeam ? 6 : 0;
+      const pageH = Math.ceil(y + teamOffset);
       const doc = new jsPDF({ unit: "mm", format: [PW, pageH] });
 
       doc.setFillColor(255, 255, 255);
@@ -278,22 +305,29 @@ export default function QRCodeDisplay({
       doc.setTextColor(100, 116, 139);
       doc.text(participantName, CX, yParticipant, { align: "center" });
 
+      if (teamNameState) {
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(8.5);
+        doc.setTextColor(21, 76, 179);
+        doc.text(`Team: ${teamNameState}`, CX, yParticipant + 5, { align: "center" });
+      }
+
       doc.setFontSize(7);
       doc.setTextColor(180, 194, 210);
-      doc.text(`ID: ${registrationId}`, CX, yRegId, { align: "center" });
+      doc.text(`ID: ${registrationId}`, CX, yRegId + teamOffset, { align: "center" });
 
       doc.setDrawColor(203, 213, 225);
       doc.setLineWidth(0.25);
       doc.setLineDashPattern([1.8, 1.8], 0);
-      doc.line(MARGIN, yDashed, PW - MARGIN, yDashed);
+      doc.line(MARGIN, yDashed + teamOffset, PW - MARGIN, yDashed + teamOffset);
       doc.setLineDashPattern([], 0);
 
       doc.setFont("helvetica", "normal");
       doc.setFontSize(7.5);
       doc.setTextColor(148, 163, 184);
-      doc.text("Scan this QR code to get your attendance marked at the event.", CX, yFooter, { align: "center" });
+      doc.text("Scan this QR code to get your attendance marked at the event.", CX, yFooter + teamOffset, { align: "center" });
       if (isOutsider) {
-        doc.text("Show this at the campus gate for entry.", CX, yFooter + 5.5, { align: "center" });
+        doc.text("Show this at the campus gate for entry.", CX, yFooter + teamOffset + 5.5, { align: "center" });
       }
 
       doc.save(`GatedPass ${eventTitle}.pdf`);
@@ -486,8 +520,21 @@ export default function QRCodeDisplay({
             )}
           </div>
 
+          {/* Participant Info */}
+          <div className="text-center mt-3 shrink-0">
+            <h4 className="text-[14px] font-extrabold text-[#0f172a] tracking-tight">{participantName}</h4>
+            <p className="text-[9px] font-bold text-[#64748B] uppercase tracking-[0.15em] mt-0.5">Attendee Pass</p>
+          </div>
+
+          {/* Team Info if registered under a team */}
+          {teamNameState && (
+            <div className="mx-4 mt-3 px-3 py-2 bg-blue-50/60 border border-blue-100/80 rounded-[14px] w-[calc(100%-32px)] flex items-center justify-between shrink-0">
+              <span className="text-[9px] font-bold text-blue-800 uppercase tracking-wider">Team</span>
+              <span className="text-[12px] font-extrabold text-[#011F7B] truncate max-w-[220px]">{teamNameState}</span>
+            </div>
+          )}
           {/* Download Button */}
-          <div className="w-full px-4 mt-3">
+          <div className="w-full px-4 mt-3 shrink-0">
             <button
               onClick={downloadAsPDF}
               disabled={pdfLoading || loading}
@@ -505,9 +552,9 @@ export default function QRCodeDisplay({
           </div>
 
           {/* Subtle Footer Closure */}
-          <div className="flex flex-col items-center justify-center mt-5 mb-2 opacity-[0.45] gap-1">
+          <div className="flex flex-col items-center justify-center mt-5 mb-2 opacity-[0.70] gap-1">
             <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-[#0F172A] leading-normal text-center">VERIFIED EVENT CREDENTIAL</span>
-            <span className="text-[8px] font-semibold text-[#64748B] leading-normal text-center">Secured by SOCIO</span>
+            <span className="text-[8px] font-semibold text-[#64748B] leading-normal text-center">Powered by SOCIO</span>
           </div>
 
 
@@ -538,6 +585,7 @@ export default function QRCodeDisplay({
         }
         .pass-modal-content {
           -webkit-overflow-scrolling: touch;
+          overflow-y: auto;
         }
         .no-scrollbar::-webkit-scrollbar {
           display: none;

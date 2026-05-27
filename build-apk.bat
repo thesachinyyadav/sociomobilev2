@@ -12,7 +12,7 @@ if %ERRORLEVEL% neq 0 (
 )
 
 echo [2/4] Syncing with Capacitor...
-call npx cap sync android
+call npx cap sync android          
 if %ERRORLEVEL% neq 0 (
     echo Capacitor sync failed.
     exit /b %ERRORLEVEL%

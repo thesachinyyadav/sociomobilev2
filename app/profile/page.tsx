@@ -68,6 +68,8 @@ const regFetcher = async (url: string) => {
       department: r?.event?.organizing_dept || r?.organizing_dept || r?.department || "",
       status: getStatus(r?.event?.event_date || r?.event_date || r?.date || ""),
       event: r?.event,
+      team_name: r?.team_name || undefined,
+      teammates: r?.teammates || undefined,
     }))
     .filter((r: Registration) => Boolean(r.event_id) && Boolean(r.registration_id));
 };
@@ -80,6 +82,8 @@ interface Registration {
   department?: string;
   status?: string;
   event?: FetchedEvent;
+  team_name?: string;
+  teammates?: Array<{ name: string; email: string; registerNumber: string }>;
 }
 
 export default function ProfilePage() {
@@ -94,7 +98,16 @@ export default function ProfilePage() {
   const [nameInput, setNameInput] = useState("");
   const [isSubmittingName, setIsSubmittingName] = useState(false);
   const [nameEditError, setNameEditError] = useState<string | null>(null);
-  const [activeQR, setActiveQR] = useState<{ registrationId: string; eventId: string; eventTitle: string; date?: string; time?: string; venue?: string } | null>(null);
+  const [activeQR, setActiveQR] = useState<{
+    registrationId: string;
+    eventId: string;
+    eventTitle: string;
+    date?: string;
+    time?: string;
+    venue?: string;
+    teamName?: string;
+    teammates?: Array<{ name: string; email: string; registerNumber: string }>;
+  } | null>(null);
   const [cancelConfirmId, setCancelConfirmId] = useState<string | null>(null);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -156,6 +169,8 @@ export default function ProfilePage() {
           raw_date: r.raw_date || event?.event_date,
           department: r.department || event?.organizing_dept || "Department TBA",
           status: r.status || getStatus(r.raw_date || event?.event_date),
+          team_name: r.team_name,
+          teammates: r.teammates,
         });
       }
     }
@@ -485,7 +500,16 @@ export default function ProfilePage() {
                     <Button
                       variant="primary"
                       size="sm"
-                      onClick={() => setActiveQR({ registrationId: r.registration_id, eventId: r.event_id, eventTitle, date: r.raw_date || r.event?.event_date, time: r.event?.event_time || undefined, venue: r.event?.venue || undefined })}
+                      onClick={() => setActiveQR({
+                        registrationId: r.registration_id,
+                        eventId: r.event_id,
+                        eventTitle,
+                        date: r.raw_date || r.event?.event_date,
+                        time: r.event?.event_time || undefined,
+                        venue: r.event?.venue || undefined,
+                        teamName: r.team_name,
+                        teammates: r.teammates
+                      })}
                       className="flex-1"
                       leftIcon={<QrCode size={14} />}
                     >
@@ -626,6 +650,8 @@ export default function ProfilePage() {
           date={activeQR.date}
           time={activeQR.time}
           venue={activeQR.venue}
+          teamName={activeQR.teamName}
+          teammates={activeQR.teammates}
         />
       )}
     </div>

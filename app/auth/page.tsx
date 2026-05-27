@@ -108,7 +108,7 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="relative h-dvh w-full overflow-hidden bg-white text-[var(--color-text)] flex flex-col items-center">
+    <div className="relative h-full w-full overflow-hidden bg-white text-[var(--color-text)] flex flex-col items-center">
       <div className="w-full max-w-[420px] h-full flex flex-col bg-white shadow-xl relative overflow-hidden border-x border-gray-100 justify-between">
 
         {/* Upper White Brand Section */}
@@ -137,10 +137,10 @@ export default function AuthPage() {
         </div>
 
         {/* Lower Light-Blue Gradient Section */}
-        <div className="relative flex-1 w-full bg-gradient-to-b from-[#EDF4FF] via-[#F4F8FF] to-white px-5 pb-3.5 pt-1 z-10 flex flex-col items-center justify-between overflow-hidden">
+        <div className="relative flex-1 w-full bg-gradient-to-b from-[#EDF4FF] via-[#F4F8FF] to-white px-5 pb-3.5 pt-1.5 z-10 flex flex-col items-center justify-start gap-3.5 overflow-hidden">
 
           {/* Sign-in Card */}
-          <div className="relative w-full max-w-[360px] rounded-2xl border border-white/60 bg-white/95 p-5 shadow-[0_10px_30px_rgba(1,31,123,0.05)] backdrop-blur-md z-10 my-auto">
+          <div className="relative w-full max-w-[360px] rounded-2xl border border-white/60 bg-white/95 p-5 shadow-[0_10px_30px_rgba(1,31,123,0.05)] backdrop-blur-md z-10">
             <h3 className="text-[18px] font-extrabold text-[var(--color-primary-dark)] tracking-tight mb-0.5">
               Sign in
             </h3>
@@ -186,48 +186,46 @@ export default function AuthPage() {
             )}
           </div>
 
-          <div className="w-full flex flex-col items-center mt-auto z-10">
-            {/* Interactive Sign up switcher */}
-            <p className="text-center text-[12px] font-semibold text-gray-500 mb-3.5">
-              Don't have an account?{" "}
-              <button
-                onClick={handleGoogleSignIn}
-                disabled={isSubmitting || isLoading || isOffline}
-                className="text-[#0047FF] hover:underline font-bold bg-transparent border-none p-0 cursor-pointer disabled:opacity-50"
-              >
-                Sign up
-              </button>
-            </p>
+          {/* Interactive Sign up switcher */}
+          <p className="text-center text-[12px] font-semibold text-gray-500 z-10">
+            Don't have an account?{" "}
+            <button
+              onClick={handleGoogleSignIn}
+              disabled={isSubmitting || isLoading || isOffline}
+              className="text-[#0047FF] hover:underline font-bold bg-transparent border-none p-0 cursor-pointer disabled:opacity-50"
+            >
+              Sign up
+            </button>
+          </p>
 
-            {/* Features Capsule Footer */}
-            <div className="w-full max-w-[360px] bg-white/70 border border-white/50 backdrop-blur-md rounded-xl p-3 shadow-[0_6px_20px_rgba(1,31,123,0.03)] grid grid-cols-3 gap-1.5 items-center justify-items-center mb-4">
-              <div className="flex flex-col items-center gap-1 text-center">
-                <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[#0047FF]/10">
-                  <ShieldCheckIcon className="h-3.5 w-3.5 text-[#0047FF]" />
-                </div>
-                <span className="text-[9px] font-bold text-gray-700 tracking-tight">Secure & Private</span>
+          {/* Features Capsule Footer */}
+          <div className="w-full max-w-[360px] bg-white/70 border border-white/50 backdrop-blur-md rounded-xl p-3 shadow-[0_6px_20px_rgba(1,31,123,0.03)] grid grid-cols-3 gap-1.5 items-center justify-items-center z-10">
+            <div className="flex flex-col items-center gap-1 text-center">
+              <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[#0047FF]/10">
+                <ShieldCheckIcon className="h-3.5 w-3.5 text-[#0047FF]" />
               </div>
-              <div className="flex flex-col items-center gap-1 text-center border-x border-gray-100 w-full">
-                <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[#0047FF]/10">
-                  <UsersIcon className="h-3.5 w-3.5 text-[#0047FF]" />
-                </div>
-                <span className="text-[9px] font-bold text-gray-700 tracking-tight">Community First</span>
-              </div>
-              <div className="flex flex-col items-center gap-1 text-center">
-                <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[#0047FF]/10">
-                  <ZapIcon className="h-3.5 w-3.5 text-[#0047FF]" />
-                </div>
-                <span className="text-[9px] font-bold text-gray-700 tracking-tight">Smart & Simple</span>
-              </div>
+              <span className="text-[9px] font-bold text-gray-700 tracking-tight">Secure & Private</span>
             </div>
-
-            {/* Terms & Privacy */}
-            <p className="text-center text-[10px] leading-relaxed text-gray-400">
-              By continuing, you agree to our{" "}
-              <Link href="/terms" className="underline font-semibold hover:text-gray-600 transition-colors">Terms</Link> and{" "}
-              <Link href="/privacy" className="underline font-semibold hover:text-gray-600 transition-colors">Privacy Policy</Link>.
-            </p>
+            <div className="flex flex-col items-center gap-1 text-center border-x border-gray-100 w-full">
+              <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[#0047FF]/10">
+                <UsersIcon className="h-3.5 w-3.5 text-[#0047FF]" />
+              </div>
+              <span className="text-[9px] font-bold text-gray-700 tracking-tight">Community First</span>
+            </div>
+            <div className="flex flex-col items-center gap-1 text-center">
+              <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[#0047FF]/10">
+                <ZapIcon className="h-3.5 w-3.5 text-[#0047FF]" />
+              </div>
+              <span className="text-[9px] font-bold text-gray-700 tracking-tight">Smart & Simple</span>
+            </div>
           </div>
+
+          {/* Terms & Privacy */}
+          <p className="text-center text-[10px] leading-relaxed text-gray-400 mt-auto z-10">
+            By continuing, you agree to our{" "}
+            <Link href="/terms" className="underline font-semibold hover:text-gray-600 transition-colors">Terms</Link> and{" "}
+            <Link href="/privacy" className="underline font-semibold hover:text-gray-600 transition-colors">Privacy Policy</Link>.
+          </p>
 
         </div>
       </div>

@@ -91,7 +91,7 @@ export default async function RootLayout({
         <Toaster
           position="top-center"
           containerStyle={{
-            top: "max(env(safe-area-inset-top), 16px)",
+            top: "calc(env(safe-area-inset-top, 0px) + 16px)",
           }}
           toastOptions={{
             duration: 3000,

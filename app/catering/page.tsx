@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import LoadingScreen from "@/components/LoadingScreen";
@@ -63,6 +63,12 @@ export default function CateringDashboardPage() {
   const [vendors, setVendors] = useState<Vendor[]>([]);
   const [selectedVendorId, setSelectedVendorId] = useState<string>("");
   const pageSize = 10;
+
+  const sortedBookings = useMemo(() => {
+    return [...bookings].sort(
+      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    );
+  }, [bookings]);
 
   useEffect(() => {
     if (!isLoading && !session) {
@@ -299,7 +305,7 @@ export default function CateringDashboardPage() {
               )}
             </div>
 
-            {bookings.map((booking) => (
+            {sortedBookings.map((booking) => (
               <div key={booking.booking_id} className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden hover:border-blue-200 transition-colors">
                 <div className="p-5">
                   {/* Card Header */}

@@ -18,6 +18,7 @@ import type { Session, User } from "@supabase/supabase-js";
 import { signInWithGoogleWeb } from "@/lib/auth/webAuth";
 import { signInWithGoogleNative } from "@/lib/auth/nativeAuth";
 import { apiRequest } from "@/lib/apiClient";
+import { APP_URL } from "@/lib/apiConfig";
 import { emitAuthTransition } from "@/lib/nativeLaunchState";
 import { logCapacitorPerfAudit, startPerfSpan, withPerfSpan } from "@/lib/capacitorPerfAudit";
 import { db } from "@/lib/offline";

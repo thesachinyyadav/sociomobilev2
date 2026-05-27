@@ -23,6 +23,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useNotifications } from "@/context/NotificationContext";
 import { Button } from "@/components/Button";
 import { apiRequest } from "@/lib/apiClient";
+import { APP_URL } from "@/lib/apiConfig";
 import { getNotificationAnalyticsSummary } from "@/lib/notificationAnalytics";
 
 interface Diagnostic {
@@ -131,9 +132,6 @@ export default function DiagnosticsPage() {
       subscriptionCreatedAt: subCreatedAt,
       subscriptionKeys: subKeys,
       serviceWorkers: swList,
-import { APP_URL } from "@/lib/apiConfig";
-
-// Add APP_URL usage to origin
       swScope,
       origin: typeof window !== "undefined" ? APP_URL : "ssr",
       isSecureContext: typeof window !== "undefined" ? window.isSecureContext : false,

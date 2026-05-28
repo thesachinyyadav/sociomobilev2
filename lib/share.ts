@@ -21,6 +21,11 @@ export async function shareEvent({ title, text, url }: ShareOptions) {
       shareUrl = `${APP_URL}${path}`;
     }
 
+    // Force production URLs to use app.withsocio.com instead of live.withsocio.com
+    if (shareUrl.includes("live.withsocio.com")) {
+      shareUrl = shareUrl.replace("live.withsocio.com", "app.withsocio.com");
+    }
+
     if (Capacitor.isNativePlatform()) {
       await Share.share({
         title,

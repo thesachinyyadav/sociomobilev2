@@ -19,6 +19,7 @@ const CampusSelector = dynamic(() => import("@/components/CampusSelector"), { ss
 const OrientationGate = dynamic(() => import("@/components/OrientationGate"), { ssr: false });
 const NotificationDiagnostics = dynamic(() => import("@/components/NotificationDiagnostics"), { ssr: false });
 const NativeLaunchController = dynamic(() => import("@/components/native/NativeLaunchController"), { ssr: false });
+const ShakeToScanListener = dynamic(() => import("@/components/ShakeToScanListener"), { ssr: false });
 const DesktopGate = dynamic(() => import("@/components/DesktopGate"), { ssr: false });
 
 
@@ -209,7 +210,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       {/* Install prompt removed per request */}
       {!hideBottom && <ChatbotFab />}
       {!hideBottom && userData && <SmartNotificationPrompt />}
-      {/* <ShakeToScanListener /> */}
+      <ShakeToScanListener />
 
       {needsCampus && !campusDismissed && userData && (
         <CampusSelector

@@ -1,11 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode, useRef } from "react";
-import { useRouter, usePathname } from "next/navigation";
-import { Motion } from "@capacitor/motion";
-import { Haptics, ImpactStyle } from "@capacitor/haptics";
-import { useAuth } from "@/context/AuthContext";
-import { getActiveVolunteerEvents } from "@/lib/volunteerAccess";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import toast from "react-hot-toast";
 
 interface ShakeToScanState {
@@ -25,8 +20,6 @@ interface ShakeToScanContextValue extends ShakeToScanState {
 
 const STORAGE_KEY = "socio_shake_to_scan";
 const DEFAULT_STATE: ShakeToScanState = { activeScanEvent: null, shakeEnabled: false };
-const SHAKE_THRESHOLD = 25; // Sensitivity threshold
-const COOLDOWN_MS = 2500; // 2.5 seconds cooldown between triggers
 
 function readStoredState(): ShakeToScanState {
   if (typeof window === "undefined") return DEFAULT_STATE;
@@ -68,40 +61,18 @@ export function useShakeToScan() {
 }
 
 export function ShakeToScanProvider({ children }: { children: ReactNode }) {
-  const router = useRouter();
-  const pathname = usePathname();
-  const { userData, session } = useAuth();
   const [state, setState] = useState<ShakeToScanState>(DEFAULT_STATE);
   const [motionPermission, setMotionPermission] = useState<MotionPermission>("unknown");
-  const lastTriggerRef = useRef<number>(0);
 
   const motionSupported = useMemo(() => {
     if (typeof window === "undefined") return false;
     return "DeviceMotionEvent" in window;
   }, []);
 
-  // Access Control: Check if user is a volunteer with active events
-  const isAuthorizedVolunteer = useMemo(() => {
-    if (!userData || !session) return false;
-    const activeEvents = getActiveVolunteerEvents(userData.volunteerEvents);
-    return activeEvents.length > 0;
-  }, [userData, session]);
-
   useEffect(() => {
     const stored = readStoredState();
-    // Validate that the stored event is still active for this user
-    if (stored.shakeEnabled && stored.activeScanEvent && userData?.volunteerEvents) {
-      const isActive = getActiveVolunteerEvents(userData.volunteerEvents).some(
-        e => e.event_id === stored.activeScanEvent
-      );
-      if (!isActive) {
-        setState(DEFAULT_STATE);
-        writeStoredState(DEFAULT_STATE);
-        return;
-      }
-    }
     setState(stored);
-  }, [userData?.volunteerEvents]);
+  }, []);
 
   useEffect(() => {
     if (!motionSupported || typeof window === "undefined") {
@@ -154,6 +125,9 @@ export function ShakeToScanProvider({ children }: { children: ReactNode }) {
           const result = await dmEvent.requestPermission();
           const granted = result === "granted";
           setMotionPermission(granted ? "granted" : "denied");
+          if (granted) {
+            console.log("[SHAKE] permission granted");
+          }
           if (!granted) {
             toast("Motion permission denied. Use manual scan or enable motion in settings.", { duration: 4000, position: "top-center" });
           }
@@ -169,6 +143,7 @@ export function ShakeToScanProvider({ children }: { children: ReactNode }) {
       // For non-web iOS (Capacitor native) and Android, assume permissions are handled
       // by the native plugin / OS. Mark as granted so listeners may start.
       setMotionPermission("granted");
+      console.log("[SHAKE] permission granted");
       return true;
     } catch (err) {
       console.error("ShakeToScan: requestMotionPermission unexpected error", err);
@@ -176,59 +151,6 @@ export function ShakeToScanProvider({ children }: { children: ReactNode }) {
       return false;
     }
   }, [motionSupported]);
-
-  // Motion Detection Listener
-  useEffect(() => {
-    if (!state.shakeEnabled || !state.activeScanEvent || !isAuthorizedVolunteer) return;
-
-    let listener: any = null;
-
-    const startListening = async () => {
-      try {
-        listener = await Motion.addListener("accel", (event) => {
-          const { x, y, z } = event.acceleration;
-          const totalAccel = Math.sqrt(x * x + y * y + z * z);
-
-          if (totalAccel > SHAKE_THRESHOLD) {
-            const now = Date.now();
-            if (now - lastTriggerRef.current > COOLDOWN_MS) {
-              lastTriggerRef.current = now;
-              handleShakeTrigger();
-            }
-          }
-        });
-      } catch (err) {
-        console.error("ShakeToScan: Failed to add motion listener", err);
-      }
-    };
-
-    const handleShakeTrigger = async () => {
-      // Don't trigger if already on the scanner page for this event
-      const targetUrl = `/volunteer/scanner/${state.activeScanEvent}`;
-      if (pathname === targetUrl) return;
-
-      // UX Feedback
-      await Haptics.impact({ style: ImpactStyle.Heavy });
-      
-      const eventTitle = userData?.volunteerEvents?.find(e => e.event_id === state.activeScanEvent)?.title || "Event";
-      toast(`Opening scanner for ${eventTitle}`, {
-        icon: "📳",
-        duration: 2000,
-        position: "top-center"
-      });
-
-      // Navigation
-      router.push(targetUrl);
-    };
-
-    void startListening();
-
-    return () => {
-      if (listener) {
-        listener.remove();
-      }
-    };
-  }, [state.shakeEnabled, state.activeScanEvent, isAuthorizedVolunteer, router, pathname, userData?.volunteerEvents]);
 
   const contextValue = useMemo(
     () => ({

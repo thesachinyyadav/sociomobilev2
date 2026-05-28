@@ -7,6 +7,8 @@ import { supabase } from "@/lib/supabaseClient";
 import { ArrowLeftIcon, GlobeIcon, CheckCircleIcon, XIcon, ArrowRightIcon } from "@/components/icons";
 import toast from "react-hot-toast";
 import { sanitizeUrl } from "@/lib/sanitizeUrl";
+import { apiRequest } from "@/lib/apiClient";
+import { normalizeClubBannerUrl } from "@/lib/clubBannerUrl";
 
 interface ClubRecord {
   club_id: string;
@@ -16,6 +18,7 @@ interface ClubRecord {
   club_web_link?: string | null;
   slug?: string | null;
   club_banner_url?: string | null;
+  club_image_url?: string | null;
   type?: "club" | "centre" | "cell" | null;
   category?: string | string[] | null;
   club_registrations?: boolean | null;
@@ -196,34 +199,18 @@ export default function ClubDetailClient({ id }: { id: string }) {
 
     setIsSubmitting(true);
     try {
-      const existingApplicants = parseClubApplicants(club.clubs_applicants ?? club.clubs_applicant);
-      const newApplicant = {
-        regno: normalizedRegno,
-        name: userData?.name ?? "",
-        email: currentEmail,
-        role_applied_for: selectedRole,
-        applied_at: new Date().toISOString(),
-      };
-      const updatedApplicants = [...existingApplicants, newApplicant];
-
-      // Use a server API route that uses the Supabase service role key
-      // to perform the update — client-side anon keys are blocked by RLS.
-      const res = await fetch("/api/clubs/apply", {
+      const res = await apiRequest<{ applicant: any }>(`/clubs/${club.club_id}/apply`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ club_id: club.club_id, applicants: updatedApplicants }),
+        body: JSON.stringify({ role: selectedRole }),
       });
-
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(body?.error || `Update failed (${res.status})`);
-      }
 
       setClub((prev) => {
         if (!prev) return prev;
+        const existingApplicants = parseClubApplicants(prev.clubs_applicants ?? prev.clubs_applicant);
         return {
           ...prev,
-          clubs_applicants: updatedApplicants,
+          clubs_applicants: [...existingApplicants, res.applicant],
         };
       });
 
@@ -237,14 +224,16 @@ export default function ClubDetailClient({ id }: { id: string }) {
     }
   };
 
+  const bannerUrl = normalizeClubBannerUrl(club.club_banner_url || club.club_image_url);
+
   return (
     <div className="pwa-page pt-2 pb-20 bg-[#f9fafb] max-w-[420px] mx-auto">
       {/* Banner */}
       <div className="px-4 pt-3">
         <div className="relative h-[184px] w-full overflow-hidden rounded-2xl bg-[var(--color-primary-dark)] shadow-lg">
-          {club.club_banner_url ? (
+          {bannerUrl ? (
             <img
-              src={club.club_banner_url}
+              src={bannerUrl}
               alt={club.club_name || "Club"}
               className="absolute inset-0 w-full h-full object-cover"
             />

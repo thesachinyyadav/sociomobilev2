@@ -8,6 +8,7 @@ import EmptyState from "@/components/EmptyState";
 import Skeleton from "@/components/Skeleton";
 import { useDebounce } from "@/lib/useDebounce";
 import { supabase } from "@/lib/supabaseClient";
+import { normalizeClubBannerUrl } from "@/lib/clubBannerUrl";
 
 export interface ClubRecord {
   club_id: string;
@@ -17,6 +18,7 @@ export interface ClubRecord {
   club_web_link?: string | null;
   slug?: string | null;
   club_banner_url?: string | null;
+  club_image_url?: string | null;
   type?: "club" | "centre" | "cell" | null;
   category?: string | string[] | null;
   club_registrations?: boolean | null;
@@ -274,6 +276,7 @@ export default function ClubsPage() {
 function ClubCard({ club }: { club: ClubRecord }) {
   const href = `/club/${club.slug || club.club_id}`;
   const categories = toClubCategories(club.category);
+  const imageUrl = normalizeClubBannerUrl(club.club_image_url || club.club_banner_url);
 
   return (
     <Link
@@ -282,9 +285,9 @@ function ClubCard({ club }: { club: ClubRecord }) {
     >
       {/* Image */}
       <div className="w-[60px] h-[60px] rounded-lg overflow-hidden bg-[var(--color-primary-light)] shrink-0 relative">
-        {club.club_banner_url ? (
+        {imageUrl ? (
           <img
-            src={club.club_banner_url}
+            src={imageUrl}
             alt={club.club_name || "Club"}
             className="absolute inset-0 w-full h-full object-cover group-hover:scale-[1.05] transition-transform duration-300 will-change-transform"
           />

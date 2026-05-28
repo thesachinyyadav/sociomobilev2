@@ -393,25 +393,12 @@ export default function QRCodeDisplay({
         <div
           className="pass-header relative z-10 shrink-0 overflow-hidden bg-gradient-to-br from-[#011F7B] to-[#1E3FAB] px-4 pt-4 pb-5 rounded-t-[20px] min-h-[148px] flex flex-col justify-between"
         >
-          {/* Subtle Blueprint Dots */}
-          <div className="absolute inset-0 opacity-[0.05] pointer-events-none" 
-               style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, white 1px, transparent 0)', backgroundSize: '16px 16px' }} />
-          
-          {/* Subtle SOCIO Operational Pattern */}
-          <div className="absolute inset-0 opacity-[0.02] pointer-events-none mask-fade-edges" 
-               style={{ 
-                 backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='20' viewBox='0 0 60 20' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M4.7 15.5C3.3 15.5 2.1 15.2 1.2 14.5C0.3 13.8 -0.2 12.8 -0.2 11.6H3.4C3.4 12 3.5 12.3 3.8 12.5C4 12.7 4.3 12.8 4.7 12.8C5 12.8 5.3 12.7 5.5 12.5C5.7 12.3 5.8 12.1 5.8 11.8C5.8 11.4 5.6 11.1 5.3 10.9C5 10.7 4.4 10.5 3.6 10.3C2.8 10 2.1 9.8 1.6 9.5C1.1 9.2 0.7 8.9 0.4 8.4C0.1 7.9 -0.1 7.3 -0.1 6.5C-0.1 5.7 0.1 5 0.5 4.4C0.9 3.8 1.4 3.4 2.1 3.1C2.8 2.8 3.6 2.6 4.5 2.6C5.9 2.6 7.1 3 8 3.7C8.9 4.4 9.3 5.4 9.4 6.7H5.9C5.9 6.3 5.8 6 5.6 5.8C5.4 5.6 5.1 5.5 4.7 5.5C4.4 5.5 4.2 5.6 4.1 5.7C3.9 5.8 3.8 6.1 3.8 6.3C3.8 6.6 3.9 6.8 4.1 7C4.3 7.2 4.5 7.3 4.8 7.4C5.1 7.5 5.5 7.6 6.1 7.8C6.9 8.1 7.5 8.4 8.1 8.6C8.6 8.9 9.1 9.3 9.4 9.7C9.7 10.2 9.9 10.8 9.9 11.4C9.9 12.1 9.7 12.8 9.4 13.4C9 13.9 8.5 14.4 7.8 14.7C7.1 15.2 6.2 15.5 4.7 15.5Z' fill='white'/%3E%3C/svg%3E")`,
-                 backgroundSize: '80px 40px',
-                 backgroundRepeat: 'repeat'
-               }} />
-
           {/* Subtle Glow / Light Beam */}
           <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.28)_0%,transparent_55%)] pointer-events-none" />
           <div className="absolute inset-x-0 top-0 h-28 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.12)_0%,transparent_72%)] pointer-events-none" />
 
           <div className="relative z-10 pr-10 flex-1 flex flex-col justify-start gap-2 pt-1">
             <div className="flex items-center gap-2">
-              <span className="h-2 w-2 rounded-full bg-[#FFBA09] shadow-[0_0_8px_rgba(255,186,9,0.9)] shrink-0" />
               <div className="flex items-center gap-2">
                 <svg viewBox="0 0 319 94" className="h-[13px] w-auto fill-white/85 shrink-0 select-none pointer-events-none">
                   <path d="M28 74.5C20.3 74.5 13.9 72.7 8.8 69.1C3.7 65.5 1 60.4 0.7 53.8H20.8C21 56 21.7 57.6 23 58.6C24.2 59.6 25.9 60.1 28 60.1C29.9 60.1 31.4 59.7 32.6 58.8C33.8 57.9 34.4 56.7 34.4 55C34.4 52.8 33.5 51.2 31.7 50.1C29.9 49 26.8 47.9 22.4 46.6C17.8 45.2 14.1 43.8 11.3 42.4C8.5 41 6.1 39 4.1 36.4C2.1 33.8 1.1 30.4 1.1 26.1C1.1 21.7 2.2 18 4.4 14.8C6.7 11.6 9.8 9.2 13.7 7.6C17.6 5.9 22.1 5.1 27.1 5.1C35.2 5.1 41.7 7.1 46.5 11.1C51.4 15.1 54 20.6 54.3 27.7H35.2C35.2 25.5 34.6 23.9 33.4 22.8C32.3 21.7 30.7 21.2 28.7 21.2C27.2 21.2 26 21.6 25.1 22.4C24.2 23.2 23.7 24.3 23.7 25.8C23.7 27.1 24.2 28.2 25.2 29.1C26.2 30 27.5 30.8 29.1 31.4C30.7 32.1 33 32.8 36 33.9C40.5 35.4 44.2 36.9 47.1 38.2C50 39.6 52.5 41.5 54.5 44C56.6 46.5 57.6 49.7 57.6 53.5C57.6 57.5 56.6 61.1 54.5 64.2C52.4 67.3 49.4 69.8 45.4 71.7C41.5 73.6 36.9 74.5 28 74.5Z" />

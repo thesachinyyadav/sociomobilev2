@@ -160,7 +160,6 @@ export default function NativeScanner({
           aria-live="polite"
           style={{ position: "relative", zIndex: 35 }}
         >
-          <span className="scan-status-dot" />
           <span className="scan-status-text">{integrityLabel(integrity.level)}</span>
         </div>
       )}
@@ -299,26 +298,23 @@ export default function NativeScanner({
 
               {/* Idle state inside viewport */}
               {!isScanning && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center bg-white z-30">
-                  {/* Dotted grid background */}
-                  <div className="absolute inset-0" style={{ backgroundImage: 'radial-gradient(#CBD5E1 1px, transparent 1px)', backgroundSize: '16px 16px', opacity: 0.4 }} />
-                  
-                  {/* Yellow brackets */}
-                   <div className="absolute inset-0 pointer-events-none z-10 p-4 pt-safe pb-safe">
-                     <div className="absolute top-4 left-4 w-9 h-9 border-t-[3px] border-l-[3px] border-[#FFBA09] rounded-tl-[14px]" />
-                     <div className="absolute top-4 right-4 w-9 h-9 border-t-[3px] border-r-[3px] border-[#FFBA09] rounded-tr-[14px]" />
-                     <div className="absolute bottom-4 left-4 w-9 h-9 border-b-[3px] border-l-[3px] border-[#FFBA09] rounded-bl-[14px]" />
-                     <div className="absolute bottom-4 right-4 w-9 h-9 border-b-[3px] border-r-[3px] border-[#FFBA09] rounded-br-[14px]" />
+                <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#F8FAFF] z-30">
+                  {/* Yellow corner brackets */}
+                  <div className="absolute inset-0 pointer-events-none z-10 p-4">
+                    <div className="absolute top-4 left-4 w-9 h-9 border-t-[3px] border-l-[3px] border-[#FFBA09] rounded-tl-[14px]" />
+                    <div className="absolute top-4 right-4 w-9 h-9 border-t-[3px] border-r-[3px] border-[#FFBA09] rounded-tr-[14px]" />
+                    <div className="absolute bottom-4 left-4 w-9 h-9 border-b-[3px] border-l-[3px] border-[#FFBA09] rounded-bl-[14px]" />
+                    <div className="absolute bottom-4 right-4 w-9 h-9 border-b-[3px] border-r-[3px] border-[#FFBA09] rounded-br-[14px]" />
                   </div>
 
                   {/* Center elements */}
                   <div className="z-20 flex flex-col items-center">
                     <div className="mb-4">
-                      <svg width="72" height="72" viewBox="0 0 24 24" fill="none" className="text-[#94A3B8] opacity-40">
+                      <svg width="64" height="64" viewBox="0 0 24 24" fill="none" className="text-[#CBD5E1]">
                         <path d="M3 3h8v8H3V3zm2 2v4h4V5H5zm8-2h8v8h-8V3zm2 2v4h4V5h-4zM3 13h8v8H3v-8zm2 2v4h4v-4H5zm13-2h3v2h-3v-2zm-3 0h2v2h-2v-2zm3 3h3v2h-3v-2zm-3 0h2v2h-2v-2zm3 3h3v2h-3v-2zm-3 0h2v2h-2v-2z" fill="currentColor"/>
                       </svg>
                     </div>
-                    <p className="text-[#64748B] text-[12px] font-medium tracking-wide">Position QR code within the frame</p>
+                    <p className="text-[#94A3B8] text-[12px] font-medium tracking-wide">Position QR code within the frame</p>
                   </div>
                 </div>
               )}

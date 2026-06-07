@@ -12,6 +12,13 @@ export default function PrivacyPage() {
 
           <div className="p-4 space-y-4 text-[13px] leading-relaxed text-[var(--color-text-muted)]">
             <section>
+              <p>
+                The SOCIO platform is owned and operated by <strong>Sociosphere Private Limited</strong> (CIN: U58202KA2026PTC221977),
+                incorporated under the Companies Act, 2013, in India.
+              </p>
+            </section>
+
+            <section>
               <h2 className="text-[15px] font-bold text-[var(--color-text)] mb-2">1. Information We Collect</h2>
               <p>
                 We collect account and usage information required to provide SOCIO services,

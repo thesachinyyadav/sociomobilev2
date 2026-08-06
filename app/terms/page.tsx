@@ -12,6 +12,13 @@ export default function TermsPage() {
 
           <div className="p-4 space-y-4 text-[13px] leading-relaxed text-[var(--color-text-muted)]">
             <section>
+              <p>
+                SOCIO is operated by <strong>Sociosphere Private Limited</strong> (CIN: U58202KA2026PTC221977),
+                a company incorporated under the Companies Act, 2013, in India.
+              </p>
+            </section>
+
+            <section>
               <h2 className="text-[15px] font-bold text-[var(--color-text)] mb-2">1. Acceptance of Terms</h2>
               <p>
                 By using SOCIO, you agree to these Terms and all applicable policies.

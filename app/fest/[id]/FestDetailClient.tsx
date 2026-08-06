@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo } from "react";
 import useSWR from "swr";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { useEvents } from "@/context/EventContext";
@@ -21,8 +21,12 @@ const fetcher = async (url: string) => {
   return d.fest ?? d;
 };
 
-export default function FestDetailClient({ festId }: { festId: string }) {
+export default function FestDetailClient({ festId: serverFestId }: { festId: string }) {
   const router = useRouter();
+  // useParams reads the real URL segment on the client, even when Vercel serves
+  // a pre-built shell for an unknown route. This ensures we always show the correct fest.
+  const params = useParams();
+  const festId = (params?.id as string) || serverFestId;
   const { allEvents, isLoading: ctxLoading, refreshEvents, lastUpdated } = useEvents();
   const [mounted, setMounted] = useState(false);
 

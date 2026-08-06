@@ -1,4 +1,18 @@
 {
+  "rewrites": [
+    {
+      "source": "/event/:path*",
+      "destination": "/event/hackathon.html"
+    },
+    {
+      "source": "/fest/:path*",
+      "destination": "/fest/blossoms.html"
+    },
+    {
+      "source": "/club/:path*",
+      "destination": "/club/cai.html"
+    }
+  ],
   "headers": [
     {
       "source": "/push/OneSignalSDKWorker.js",

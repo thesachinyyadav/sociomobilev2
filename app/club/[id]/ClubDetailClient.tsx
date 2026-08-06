@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
+import { useParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabaseClient";
 import { ArrowLeftIcon, GlobeIcon, CheckCircleIcon, XIcon, ArrowRightIcon } from "@/components/icons";
@@ -71,8 +72,12 @@ function getTypeLabel(type: string | null | undefined) {
   return "Club";
 }
 
-export default function ClubDetailClient({ id }: { id: string }) {
+export default function ClubDetailClient({ id: serverId }: { id: string }) {
   const { userData, session } = useAuth();
+  // useParams reads the real URL segment on the client, even when Vercel serves
+  // a pre-built shell for an unknown route. This ensures we always show the correct club.
+  const params = useParams();
+  const id = (params?.id as string) || serverId;
 
   const [club, setClub] = useState<ClubRecord | null>(null);
   const [loading, setLoading] = useState(true);

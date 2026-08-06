@@ -2,7 +2,7 @@
 
 import useSWR from "swr";
 import React, { useState, useEffect, useRef, type ReactNode } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { useEvents, type FetchedEvent } from "@/context/EventContext";
@@ -93,8 +93,13 @@ const AccordionSection = ({
   );
 };
 
-export default function EventDetailClient({ eventId }: { eventId: string }) {
+export default function EventDetailClient({ eventId: serverEventId }: { eventId: string }) {
   const router = useRouter();
+  // useParams reads the real URL segment on the client, even when Vercel serves
+  // a pre-built shell for an unknown route (e.g. /event/agentrix-26 → hackathon.html).
+  // This ensures we always fetch the correct event regardless of which static file was served.
+  const params = useParams();
+  const eventId = (params?.id as string) || serverEventId;
   const { allEvents, isLoading: ctxLoading } = useEvents();
   const { userData, isLoading: authLoading } = useAuth();
   const { pushStatus, triggerPrompt } = useNotifications();

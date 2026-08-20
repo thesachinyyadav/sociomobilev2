@@ -26,8 +26,23 @@ import { db } from "@/lib/offline";
 /* ── Local-storage helpers for PWA session persistence ── */
 const LS_SESSION_KEY = "socio_pwa_session";
 const LS_USER_KEY = "socio_pwa_user_data";
-// Set on first successful user provision — prevents redundant POST /users on every session restore
-const USER_PROVISIONED_KEY = "socio_user_provisioned";
+// Helper for user-scoped provision tracking — prevents redundant POST /users while allowing new users to provision
+const getUserProvisionedKey = (userId: string) => `socio_user_provisioned_${userId}`;
+
+function clearUserProvisionedKeys() {
+  try {
+    if (typeof window === "undefined") return;
+    localStorage.removeItem("socio_user_provisioned");
+    const keysToRemove: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith("socio_user_provisioned")) {
+        keysToRemove.push(key);
+      }
+    }
+    keysToRemove.forEach((k) => localStorage.removeItem(k));
+  } catch {}
+}
 
 function persistSessionToLS(session: Session | null) {
   try {
@@ -383,12 +398,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
         }
 
+        const userProvKey = getUserProvisionedKey(supaUser.id);
+        let provisionedUser: UserData | null = null;
+
         try {
           const alreadyProvisioned =
-            typeof window !== "undefined" && localStorage.getItem(USER_PROVISIONED_KEY);
+            typeof window !== "undefined" && localStorage.getItem(userProvKey);
           if (!alreadyProvisioned) {
             await withPerfSpan("auth.ensure-user.provision", async () => {
-              await apiRequest(`/users`, {
+              const res: any = await apiRequest(`/users`, {
                 method: "POST",
                 body: JSON.stringify({
                   user: {
@@ -401,10 +419,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                   },
                 }),
               });
+
+              if (res?.user) {
+                provisionedUser = res.user;
+                if (!provisionedUser?.roles) provisionedUser!.roles = {};
+                if (!provisionedUser?.volunteerEvents) provisionedUser!.volunteerEvents = [];
+              }
             }, { email });
 
             if (typeof window !== "undefined") {
-              localStorage.setItem(USER_PROVISIONED_KEY, "1");
+              localStorage.setItem(userProvKey, "1");
             }
           }
         } catch (err) {
@@ -412,7 +436,45 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           // Don't set provisioned flag on failure — will retry next time
         }
 
-        const fetchedUser = await fetchUserData(email);
+        // Single-roundtrip Optimization: If POST /users returned the user payload (including visitor_id), use it directly!
+        let fetchedUser: UserData | null = provisionedUser;
+        if (!fetchedUser) {
+          fetchedUser = await fetchUserData(email);
+        } else {
+          // Sync state and LS directly with provisioned user object
+          setAuthState(prev => ({ ...prev, userData: provisionedUser }));
+          persistUserDataToLS(provisionedUser);
+        }
+
+        // Auto-repair: If user is an outsider but missing visitor_id, trigger POST /users to generate it on the fly
+        if (fetchedUser && fetchedUser.organization_type === "outsider" && !fetchedUser.visitor_id) {
+          try {
+            console.log("🔍 [AuthDebug] ensureUser: Outsider missing visitor_id. Auto-repairing via POST /users...");
+            const repairRes: any = await apiRequest(`/users`, {
+              method: "POST",
+              body: JSON.stringify({
+                user: {
+                  id: supaUser.id,
+                  email,
+                  name: fetchedUser.name || fullName || email.split("@")[0],
+                  avatar_url: supaUser.user_metadata?.avatar_url,
+                  register_number: registerNumber,
+                  course,
+                },
+              }),
+            });
+            if (repairRes?.user?.visitor_id) {
+              fetchedUser = { ...fetchedUser, ...repairRes.user };
+              setAuthState(prev => ({ ...prev, userData: fetchedUser }));
+              persistUserDataToLS(fetchedUser);
+              if (typeof window !== "undefined") {
+                localStorage.setItem(userProvKey, "1");
+              }
+            }
+          } catch (repairErr) {
+            console.error("🔍 [AuthDebug] ensureUser: Visitor ID auto-repair error:", repairErr);
+          }
+        }
         
         if (fetchedUser) {
           authTimingsRef.current.profileReady = Date.now();
@@ -727,6 +789,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       } else if (event === "SIGNED_OUT") {
         persistUserDataToLS(null);
+        clearUserProvisionedKeys();
         if (mounted) {
           setAuthState({
             session: null,
